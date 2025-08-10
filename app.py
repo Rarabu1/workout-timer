@@ -1,10 +1,40 @@
 import os
-from flask import Flask, render_template, request, jsonify
+import sqlite3
+from flask import Flask, render_template, request, jsonify, g
+from dotenv import load_dotenv
 from openai import OpenAI
+import workout_parser
+
+load_dotenv()
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
+DATABASE = 'workouts.db'
 
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect(DATABASE)
+        db.row_factory = sqlite3.Row
+    return db
+
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
+
+def init_db():
+    with app.app_context():
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS workouts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                description TEXT NOT NULL,
+                intervals TEXT NOT NULL
+            )
+        ''')
+        db.commit()
 
 @app.route("/")
 def index():
@@ -32,8 +62,45 @@ def parse():
     txt = (data.get("text") or "").strip()
     if not txt:
         return jsonify(success=False, error="No text provided"), 400
-    # This could also be AI-assisted, but keeping local parse
-    return jsonify(success=True, intervals=[])
+    try:
+        intervals = workout_parser.parse(txt)
+        return jsonify(success=True, intervals=intervals)
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
+
+@app.route("/save_workout", methods=["POST"])
+def save_workout():
+    data = request.get_json() or {}
+    description = (data.get("description") or "").strip()
+    intervals = data.get("intervals")
+    if not description or not intervals:
+        return jsonify(success=False, error="Description and intervals required"), 400
+    try:
+        import json
+        intervals_json = json.dumps(intervals)
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute("INSERT INTO workouts (description, intervals) VALUES (?, ?)", (description, intervals_json))
+        db.commit()
+        return jsonify(success=True, workout_id=cursor.lastrowid)
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
+
+@app.route("/workouts")
+def get_workouts():
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("SELECT id, description, intervals FROM workouts ORDER BY id DESC")
+    rows = cursor.fetchall()
+    workouts = []
+    import json
+    for row in rows:
+        workouts.append({
+            "id": row["id"],
+            "description": row["description"],
+            "intervals": json.loads(row["intervals"])
+        })
+    return jsonify(workouts)
 
 @app.route("/generate_workout", methods=["POST"])
 def generate_workout():
@@ -41,6 +108,10 @@ def generate_workout():
     req = (data.get("request") or "").strip()
     if not req:
         return jsonify(success=False, error="Please describe the workout"), 400
+
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        return jsonify(success=False, error="OpenAI API key not configured"), 500
 
     prompt = f"""
     Create a treadmill workout for the following request:
@@ -61,6 +132,7 @@ def generate_workout():
     """
 
     try:
+        client = OpenAI(api_key=api_key)
         response = client.responses.create(
             model="gpt-4.1-mini",
             input=prompt,
@@ -81,6 +153,7 @@ def healthz():
     return "ok", 200
 
 if __name__ == "__main__":
+    init_db()
     port = int(os.environ.get("PORT", "5000"))
     debug = os.environ.get("FLASK_DEBUG", "1") == "1"
     app.run(host="0.0.0.0", port=port, debug=debug)
