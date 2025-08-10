@@ -1,14 +1,14 @@
-venv/
-__pycache__/
-*.pyc
-.DS_Store
+# Environment & secrets
+.env
+.env.*
+
+# Local DB files
 workouts.db
-.env
-.env
-.env
-.env.save
-workouts.db
+
+# Python virtual environment
 venv/
+
+# System files
 __pycache__/
 *.pyc
 .DS_Store
