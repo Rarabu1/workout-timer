@@ -1,14 +1,12 @@
-from flask import Flask, send_from_directory, request, jsonify
+from flask import Flask, render_template, request, jsonify
 import os
 
-app = Flask(__name__, static_folder='.', static_url_path='')
-
+app = Flask(__name__, template_folder="templates", static_folder="static")
 
 @app.route('/')
-def root():
-    # Serve the main UI
-    return send_from_directory('.', 'index.html')
-
+def home():
+    # Serve index.html from the templates folder
+    return render_template("index.html")
 
 @app.route('/workout_suggestions', methods=['GET'])
 def workout_suggestions():
@@ -21,7 +19,6 @@ def workout_suggestions():
         "60 minute long run with short surges",
     ]
     return jsonify(suggestions)
-
 
 @app.route('/generate_workout', methods=['POST'])
 def generate_workout():
@@ -46,7 +43,6 @@ def generate_workout():
 
     return jsonify(success=True, intervals=intervals, workout_text=workout_text)
 
-
 @app.route('/parse', methods=['POST'])
 def parse_workout():
     # Very light parser: returns a single easy block so the UI proceeds
@@ -61,17 +57,14 @@ def parse_workout():
     ]
     return jsonify(success=True, intervals=intervals)
 
-
 @app.route('/saved_workouts', methods=['GET'])
 def saved_workouts():
     # No persistence wired yet — return empty list
     return jsonify([])
 
-
 @app.route('/load_workout/<wid>', methods=['GET'])
 def load_workout(wid):
     return jsonify(success=False, error="Loading saved workouts not implemented yet")
-
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
