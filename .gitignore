@@ -5,3 +5,10 @@ __pycache__/
 workouts.db
 .env
 .env
+.env
+.env.save
+workouts.db
+venv/
+__pycache__/
+*.pyc
+.DS_Store
