@@ -1,6 +1,7 @@
 import os
 import sqlite3
 import json
+import traceback 
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, g
 from dotenv import load_dotenv
@@ -196,9 +197,55 @@ def generate_workout():
         traceback.print_exc()
         return jsonify(success=False, error=f"Generation failed: {str(e)}"), 500
 
-@app.route("/healthz")
-def healthz():
-    return "ok", 200
+@app.route("/saved_workouts")
+def saved_workouts():
+    """Return list of saved workouts"""
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute("SELECT id, description, intervals FROM workouts ORDER BY id DESC")
+        rows = cursor.fetchall()
+        
+        workouts = []
+        for row in rows:
+            intervals_data = json.loads(row["intervals"])
+            total_min = sum(float(i.get("duration_min", 0)) for i in intervals_data)
+            
+            workouts.append({
+                "id": row["id"],
+                "name": row["description"],
+                "interval_count": len(intervals_data),
+                "total_minutes": int(total_min),
+                "method": "manual",  # or detect from description
+                "created": "2024-01-01"  # You might want to add a created_at column
+            })
+        
+        return jsonify(workouts)
+    except Exception as e:
+        print(f"Error in saved_workouts: {e}")
+        return jsonify([])
+
+@app.route("/load_workout/<int:workout_id>")
+def load_workout(workout_id):
+    """Load a specific workout by ID"""
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute("SELECT description, intervals FROM workouts WHERE id = ?", (workout_id,))
+        row = cursor.fetchone()
+        
+        if row:
+            return jsonify({
+                "success": True,
+                "name": row["description"],
+                "intervals": json.loads(row["intervals"])
+            })
+        else:
+            return jsonify({"success": False, "error": "Workout not found"}), 404
+            
+    except Exception as e:
+        print(f"Error in load_workout: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == "__main__":
     init_db()

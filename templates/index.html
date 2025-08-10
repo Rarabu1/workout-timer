@@ -616,32 +616,59 @@
             const request = document.getElementById('workoutRequest').value;
             if (!request.trim()) { alert('Please describe the workout you want'); return; }
 
-            document.getElementById('generate-btn-text').style.display = 'none';
-            document.getElementById('generate-loading').style.display = 'inline-block';
-
+            // Show loading state and disable button
+            const genTextEl = document.getElementById('generate-btn-text');
+            const genLoadEl = document.getElementById('generate-loading');
             const btn = document.querySelector('.btn-generate');
+            if (genTextEl) genTextEl.style.display = 'none';
+            if (genLoadEl) genLoadEl.style.display = 'inline-block';
             if (btn) btn.disabled = true;
 
             try {
-                const response = await fetch('/generate_workout', {
+                const resp = await fetch('/generate_workout', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({request})
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ request })
                 });
-                const data = await response.json();
-                if (data.success) {
-                    document.getElementById('generatedText').value = data.workout_text;
-                    document.getElementById('generated-workout').style.display = 'block';
-                    intervals = data.intervals;
+
+                // Try to parse JSON safely even if server returns text/html
+                const ct = (resp.headers.get('content-type') || '').toLowerCase();
+                let data = null;
+                if (ct.includes('application/json')) {
+                    data = await resp.json();
                 } else {
-                    alert('Error: ' + data.error);
+                    const text = await resp.text();
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        const snippet = text ? text.slice(0, 140) : '(empty response)';
+                        throw new Error(`Server did not return JSON. Status ${resp.status}. Body: ${snippet}`);
+                    }
                 }
-            } catch (e) {
-                alert('Error generating workout: ' + e.message);
+
+                if (!resp.ok) {
+                    const msg = (data && (data.error || data.message)) || `Request failed with status ${resp.status}`;
+                    throw new Error(msg);
+                }
+
+                if (data.success) {
+                    const genText = document.getElementById('generatedText');
+                    if (genText) genText.value = data.workout_text || '';
+                    const genBox = document.getElementById('generated-workout');
+                    if (genBox) genBox.style.display = 'block';
+                    intervals = Array.isArray(data.intervals) ? data.intervals : [];
+                } else {
+                    const msg = data && (data.error || data.message) ? (data.error || data.message) : 'Unknown error from server';
+                    alert('Error: ' + msg);
+                }
+            } catch (err) {
+                // Show a user-friendly error and log details
+                console.error('generate_workout failed:', err);
+                alert('Error: ' + (err && err.message ? err.message : String(err)));
             } finally {
                 if (btn) btn.disabled = false;
-                document.getElementById('generate-btn-text').style.display = 'inline-block';
-                document.getElementById('generate-loading').style.display = 'none';
+                if (genTextEl) genTextEl.style.display = 'inline-block';
+                if (genLoadEl) genLoadEl.style.display = 'none';
             }
         }
 
