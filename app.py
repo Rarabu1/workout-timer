@@ -1,71 +1,77 @@
-from flask import Flask, render_template, request, jsonify
-import os
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Workout Timer</title>
+  <style>
+    /* Existing styles above */
 
-app = Flask(__name__, template_folder="templates", static_folder="static")
+    /* Countdown pill centered and responsive */
+    .countdown-pill{border:1px solid #ddd;border-radius:16px;padding:16px 20px;background:#fff;margin:8px auto 12px;max-width:460px}
+    .countdown-pill .time-remaining{font-size:clamp(48px,12vw,96px);line-height:1;margin:0}
+    .metric-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:8px 0 12px}
+    @media (max-width:640px){.metric-row{grid-template-columns:1fr}}
+    /* Color the countdown by effort (phase) */
+    .timer-display.phase-blue   .countdown-pill{background:#eaf4ff;border-color:#90caf9}
+    .timer-display.phase-green  .countdown-pill{background:#e8f5e9;border-color:#81c784}
+    .timer-display.phase-yellow .countdown-pill{background:#fff8e1;border-color:#fbc02d}
+    .timer-display.phase-orange .countdown-pill{background:#fff3e0;border-color:#ffb74d}
+    .timer-display.phase-red    .countdown-pill{background:#ffebee;border-color:#ef9a9a}
+    .timer-display.phase-blue   .countdown-pill .time-remaining{color:#1e88e5}
+    .timer-display.phase-green  .countdown-pill .time-remaining{color:#2e7d32}
+    .timer-display.phase-yellow .countdown-pill .time-remaining{color:#f9a825}
+    .timer-display.phase-orange .countdown-pill .time-remaining{color:#fb8c00}
+    .timer-display.phase-red    .countdown-pill .time-remaining{color:#e53935}
+  </style>
+</head>
+<body>
+  <!-- Other content above -->
 
-@app.route('/')
-def home():
-    # Serve index.html from the templates folder
-    return render_template("index.html")
+  <div id="timer-section" class="timer-display">
+    <div class="current-interval">
+      <h3>Current Interval: <span id="current-section">-</span></h3>
+      <div class="countdown-pill">
+        <div id="timer" class="time-remaining">0:00</div>
+        <div id="eta-line" class="eta-line" aria-live="polite"></div>
+      </div>
+      <div id="current-description">-</div>
+    </div>
 
-@app.route('/workout_suggestions', methods=['GET'])
-def workout_suggestions():
-    # Simple built‑in ideas so the UI renders even without a DB/API
-    suggestions = [
-        "20 minute endurance run with steady pacing",
-        "30 minute VO2 max intervals (mph only)",
-        "40 minute hill repeats (incline work)",
-        "45 minute progression run, finish strong",
-        "60 minute long run with short surges",
-    ]
-    return jsonify(suggestions)
+    <div class="metric-row">
+      <div class="metric">
+        <div class="metric-label">Speed</div>
+        <div class="metric-value"><span id="current-speed">-</span><span class="metric-unit"> mph</span></div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Incline</div>
+        <div class="metric-value"><span id="current-incline">0</span><span class="metric-unit"> %</span></div>
+      </div>
+      <!-- Keep a hidden duration node so existing JS can update safely -->
+      <span id="current-duration" hidden></span>
+    </div>
 
-@app.route('/generate_workout', methods=['POST'])
-def generate_workout():
-    data = request.get_json(silent=True) or {}
-    req = (data.get('request') or '').strip()
+    <div class="controls">
+      <!-- Controls content -->
+    </div>
+  </div>
 
-    # Minimal, hardcoded intervals so the timer works on Render
-    intervals = [
-        {"duration_min": 5,  "speed_mph": 5.5, "incline": 0, "description": "Warm-up"},
-        {"duration_min": 3,  "speed_mph": 6.8, "incline": 1, "description": "Work"},
-        {"duration_min": 2,  "speed_mph": 5.2, "incline": 0, "description": "Recovery"},
-        {"duration_min": 3,  "speed_mph": 7.0, "incline": 1, "description": "Work"},
-        {"duration_min": 2,  "speed_mph": 5.2, "incline": 0, "description": "Recovery"},
-        {"duration_min": 5,  "speed_mph": 5.0, "incline": 0, "description": "Cool-down"},
-    ]
+  <!-- Other content below -->
 
-    lines = [f"Auto plan for: {req}"] if req else ["Auto plan:"]
-    for i, it in enumerate(intervals, 1):
-        desc = it.get('description') or ''
-        lines.append(f"{i}. {it['duration_min']} min @ {it['speed_mph']} mph{(' - ' + desc) if desc else ''}")
-    workout_text = "\n".join(lines)
+  <script>
+    // Other JS code above
 
-    return jsonify(success=True, intervals=intervals, workout_text=workout_text)
+    function updateDisplay(current) {
+      // Other update code
 
-@app.route('/parse', methods=['POST'])
-def parse_workout():
-    # Very light parser: returns a single easy block so the UI proceeds
-    data = request.get_json(silent=True) or {}
-    text = (data.get('text') or '').strip()
-    if not text:
-        return jsonify(success=False, error="No workout text provided"), 400
+      const spEl = document.getElementById('current-speed'); if (spEl) spEl.textContent = current.speed_mph;
+      const duEl = document.getElementById('current-duration'); if (duEl) duEl.textContent = current.duration_min;
+      const inEl = document.getElementById('current-incline'); if (inEl) inEl.textContent = current.incline || 0;
 
-    intervals = [
-        {"duration_min": 10, "speed_mph": 5.5, "incline": 0, "description": "Parsed block 1"},
-        {"duration_min": 10, "speed_mph": 6.0, "incline": 0, "description": "Parsed block 2"},
-    ]
-    return jsonify(success=True, intervals=intervals)
+      // Other update code
+    }
 
-@app.route('/saved_workouts', methods=['GET'])
-def saved_workouts():
-    # No persistence wired yet — return empty list
-    return jsonify([])
-
-@app.route('/load_workout/<wid>', methods=['GET'])
-def load_workout(wid):
-    return jsonify(success=False, error="Loading saved workouts not implemented yet")
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    // Other JS code below
+  </script>
+</body>
+</html>
