@@ -1,77 +1,86 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Workout Timer</title>
-  <style>
-    /* Existing styles above */
+import os
+from flask import Flask, render_template, request, jsonify
+from openai import OpenAI
 
-    /* Countdown pill centered and responsive */
-    .countdown-pill{border:1px solid #ddd;border-radius:16px;padding:16px 20px;background:#fff;margin:8px auto 12px;max-width:460px}
-    .countdown-pill .time-remaining{font-size:clamp(48px,12vw,96px);line-height:1;margin:0}
-    .metric-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:8px 0 12px}
-    @media (max-width:640px){.metric-row{grid-template-columns:1fr}}
-    /* Color the countdown by effort (phase) */
-    .timer-display.phase-blue   .countdown-pill{background:#eaf4ff;border-color:#90caf9}
-    .timer-display.phase-green  .countdown-pill{background:#e8f5e9;border-color:#81c784}
-    .timer-display.phase-yellow .countdown-pill{background:#fff8e1;border-color:#fbc02d}
-    .timer-display.phase-orange .countdown-pill{background:#fff3e0;border-color:#ffb74d}
-    .timer-display.phase-red    .countdown-pill{background:#ffebee;border-color:#ef9a9a}
-    .timer-display.phase-blue   .countdown-pill .time-remaining{color:#1e88e5}
-    .timer-display.phase-green  .countdown-pill .time-remaining{color:#2e7d32}
-    .timer-display.phase-yellow .countdown-pill .time-remaining{color:#f9a825}
-    .timer-display.phase-orange .countdown-pill .time-remaining{color:#fb8c00}
-    .timer-display.phase-red    .countdown-pill .time-remaining{color:#e53935}
-  </style>
-</head>
-<body>
-  <!-- Other content above -->
+app = Flask(__name__, static_folder='static', template_folder='templates')
 
-  <div id="timer-section" class="timer-display">
-    <div class="current-interval">
-      <h3>Current Interval: <span id="current-section">-</span></h3>
-      <div class="countdown-pill">
-        <div id="timer" class="time-remaining">0:00</div>
-        <div id="eta-line" class="eta-line" aria-live="polite"></div>
-      </div>
-      <div id="current-description">-</div>
-    </div>
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-    <div class="metric-row">
-      <div class="metric">
-        <div class="metric-label">Speed</div>
-        <div class="metric-value"><span id="current-speed">-</span><span class="metric-unit"> mph</span></div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Incline</div>
-        <div class="metric-value"><span id="current-incline">0</span><span class="metric-unit"> %</span></div>
-      </div>
-      <!-- Keep a hidden duration node so existing JS can update safely -->
-      <span id="current-duration" hidden></span>
-    </div>
+@app.route("/")
+def index():
+    return render_template("index.html")
 
-    <div class="controls">
-      <!-- Controls content -->
-    </div>
-  </div>
+@app.route("/static/manifest.json")
+def manifest():
+    return app.send_static_file("manifest.json")
 
-  <!-- Other content below -->
+@app.route("/workout_suggestions")
+def workout_suggestions():
+    suggestions = [
+        "30 minute endurance run with steady pacing",
+        "20 minute VO2 max intervals (mph only)",
+        "40 minute hill repeats (incline work)",
+        "45 minute tempo with recoveries",
+        "60 minute long run with surges",
+        "30 minute fartlek: varied speeds"
+    ]
+    return jsonify(suggestions)
 
-  <script>
-    // Other JS code above
+@app.route("/parse", methods=["POST"])
+def parse():
+    data = request.get_json() or {}
+    txt = (data.get("text") or "").strip()
+    if not txt:
+        return jsonify(success=False, error="No text provided"), 400
+    # This could also be AI-assisted, but keeping local parse
+    return jsonify(success=True, intervals=[])
 
-    function updateDisplay(current) {
-      // Other update code
+@app.route("/generate_workout", methods=["POST"])
+def generate_workout():
+    data = request.get_json() or {}
+    req = (data.get("request") or "").strip()
+    if not req:
+        return jsonify(success=False, error="Please describe the workout"), 400
 
-      const spEl = document.getElementById('current-speed'); if (spEl) spEl.textContent = current.speed_mph;
-      const duEl = document.getElementById('current-duration'); if (duEl) duEl.textContent = current.duration_min;
-      const inEl = document.getElementById('current-incline'); if (inEl) inEl.textContent = current.incline || 0;
+    prompt = f"""
+    Create a treadmill workout for the following request:
+    '{req}'
+    Respond ONLY in JSON with this structure:
+    {{
+      "intervals": [
+        {{
+          "duration_min": <number>,
+          "speed_mph": <number>,
+          "incline": <number>,
+          "description": "<short description>"
+        }},
+        ...
+      ]
+    }}
+    Ensure at least 5 intervals and total time <= 60 minutes.
+    """
 
-      // Other update code
-    }
+    try:
+        response = client.responses.create(
+            model="gpt-4.1-mini",
+            input=prompt,
+            temperature=0.7,
+        )
+        import json
+        intervals = json.loads(response.output_text)["intervals"]
+        workout_text = f"Generated plan for: {req}\n" + "\n".join(
+            [f"- {it['duration_min']} min @ {it['speed_mph']} mph, incline {it['incline']} ({it['description']})"
+             for it in intervals]
+        )
+        return jsonify(success=True, workout_text=workout_text, intervals=intervals)
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
 
-    // Other JS code below
-  </script>
-</body>
-</html>
+@app.route("/healthz")
+def healthz():
+    return "ok", 200
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", "5000"))
+    debug = os.environ.get("FLASK_DEBUG", "1") == "1"
+    app.run(host="0.0.0.0", port=port, debug=debug)
