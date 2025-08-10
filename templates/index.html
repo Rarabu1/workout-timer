@@ -3,7 +3,24 @@
 <head>
     <meta charset="utf-8" />
     <title>Treadmill Run Generator</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Workout Timer">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#4CAF50">
+    <link rel="manifest" href="/static/manifest.json">
+
+    <!-- Icon for home screen -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
+
+    <!-- Prevent zooming on input focus -->
+    <style>
+      input, textarea, select {
+        font-size: 16px !important;
+      }
+    </style>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
