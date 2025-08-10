@@ -1,9 +1,19 @@
 import os
 import sqlite3
+import json
+from datetime import datetime
 from flask import Flask, render_template, request, jsonify, g
 from dotenv import load_dotenv
 from openai import OpenAI
-import workout_parser
+
+# Prefer class-based parser if available; fall back to module-level parse()
+try:
+    from workout_parser import WorkoutParser
+    _PARSER_MODE = "class"
+except Exception:  # pragma: no cover
+    import workout_parser  # type: ignore
+    WorkoutParser = None  # type: ignore
+    _PARSER_MODE = "module"
 
 load_dotenv()
 
@@ -36,6 +46,19 @@ def init_db():
         ''')
         db.commit()
 
+def parse_intervals(text: str):
+    """Parse workout text using the best available parser variant."""
+    if WorkoutParser is not None:
+        try:
+            return WorkoutParser().parse_chatgpt_workout(text)
+        except Exception:
+            pass
+    # Fallback to module-level parser if present
+    try:
+        return workout_parser.parse(text)  # type: ignore[name-defined]
+    except Exception:
+        return []
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -63,7 +86,7 @@ def parse():
     if not txt:
         return jsonify(success=False, error="No text provided"), 400
     try:
-        intervals = workout_parser.parse(txt)
+        intervals = parse_intervals(txt)
         return jsonify(success=True, intervals=intervals)
     except Exception as e:
         return jsonify(success=False, error=str(e)), 500
@@ -104,49 +127,74 @@ def get_workouts():
 
 @app.route("/generate_workout", methods=["POST"])
 def generate_workout():
-    data = request.get_json() or {}
-    req = (data.get("request") or "").strip()
-    if not req:
-        return jsonify(success=False, error="Please describe the workout"), 400
-
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        return jsonify(success=False, error="OpenAI API key not configured"), 500
-
-    prompt = f"""
-    Create a treadmill workout for the following request:
-    '{req}'
-    Respond ONLY in JSON with this structure:
-    {{
-      "intervals": [
-        {{
-          "duration_min": <number>,
-          "speed_mph": <number>,
-          "incline": <number>,
-          "description": "<short description>"
-        }},
-        ...
-      ]
-    }}
-    Ensure at least 5 intervals and total time <= 60 minutes.
-    """
-
+    """Generate workout using OpenAI with robust error handling and safe fallback."""
     try:
+        # Check API key
+        api_key = os.environ.get("OPENAI_API_KEY")
+        print(f"API Key present: {bool(api_key)}")  # debug log
+        if not api_key:
+            return jsonify(success=False, error="OpenAI API key not configured"), 500
+
+        # Validate input
+        body = request.get_json() or {}
+        user_request = (body.get("request") or "").strip()
+        if not user_request:
+            return jsonify(success=False, error="Please describe the workout"), 400
+
+        # Call OpenAI
         client = OpenAI(api_key=api_key)
-        response = client.responses.create(
-            model="gpt-4.1-mini",
-            input=prompt,
+        completion = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a running coach. Generate a treadmill workout as plain text, one interval per line. "
+                        "Use the exact format: `<minutes> min @ <speed> mph (<short label>)`. "
+                        "Optionally include 'incline X' like `, incline 2`. Keep total duration ≤ 60 minutes."
+                    ),
+                },
+                {"role": "user", "content": user_request},
+            ],
             temperature=0.7,
+            max_tokens=600,
         )
-        import json
-        intervals = json.loads(response.output_text)["intervals"]
-        workout_text = f"Generated plan for: {req}\n" + "\n".join(
-            [f"- {it['duration_min']} min @ {it['speed_mph']} mph, incline {it['incline']} ({it['description']})"
-             for it in intervals]
+
+        workout_text = (completion.choices[0].message.content or "").strip()
+
+        # Parse the generated workout using our parser wrapper
+        intervals = []
+        try:
+            intervals = parse_intervals(workout_text)
+        except Exception as parse_err:
+            print(f"Parse error: {parse_err}")
+
+        # Fallback if parsing failed
+        if not intervals:
+            intervals = [{
+                "duration_min": 30,
+                "speed_mph": 5.5,
+                "incline": 0,
+                "description": "Generated workout - manual parsing needed"
+            }]
+
+        total_minutes = sum(float(i.get("duration_min", 0) or 0) for i in intervals)
+        name = f"AI Workout {int(total_minutes)}min"
+
+        return jsonify(
+            success=True,
+            workout_text=workout_text,
+            intervals=intervals,
+            total_minutes=total_minutes,
+            name=name
         )
-        return jsonify(success=True, workout_text=workout_text, intervals=intervals)
+
     except Exception as e:
-        return jsonify(success=False, error=str(e)), 500
+        # Ensure JSON error response (avoid HTML)
+        print(f"Error in generate_workout: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify(success=False, error=f"Generation failed: {str(e)}"), 500
 
 @app.route("/healthz")
 def healthz():
