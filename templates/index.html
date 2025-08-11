@@ -699,6 +699,12 @@
       background: #000; 
       color: #fff; 
       text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 9999;
     }
     
     /* Landscape mode for non-timer screens (like Generate AI Workout) */
@@ -792,17 +798,32 @@
       }
     }
     
-    body.landscape-compact.phase-blue { background: #007AFF; }
-    body.landscape-compact.phase-green { background: #34C759; }
-    body.landscape-compact.phase-yellow { background: #FF9500; }
-    body.landscape-compact.phase-orange { background: #FF6B35; }
-    body.landscape-compact.phase-red { background: #FF3B30; }
+    body.landscape-compact.phase-blue { 
+      background: var(--ios-blue) !important; 
+      color: #fff !important;
+    }
+    body.landscape-compact.phase-green { 
+      background: var(--ios-green) !important; 
+      color: #fff !important;
+    }
+    body.landscape-compact.phase-yellow { 
+      background: var(--ios-orange) !important; 
+      color: #fff !important;
+    }
+    body.landscape-compact.phase-orange { 
+      background: #FF6B35 !important; 
+      color: #fff !important;
+    }
+    body.landscape-compact.phase-red { 
+      background: var(--ios-red) !important; 
+      color: #fff !important;
+    }
 
     /* Timer section in landscape */
     body.landscape-compact #timer-section.timer-display { 
-      background: transparent; 
-      border: none; 
-      box-shadow: none; 
+      background: transparent !important; 
+      border: none !important; 
+      box-shadow: none !important; 
       padding: 16px; 
       width: 100%;
       max-width: none;
@@ -819,6 +840,7 @@
       min-width: 70vw;
       height: auto;
       padding: 0;
+      color: #fff !important;
     }
     
     body.landscape-compact #timer { 
