@@ -1521,6 +1521,8 @@ def exchange_whoop_code_for_token(code):
         print(f"Client ID: {WHOOP_CLIENT_ID}")
         print(f"Redirect URI: {WHOOP_REDIRECT_URI}")
         
+        from urllib.parse import urlencode
+        
         token_data = {
             'client_id': WHOOP_CLIENT_ID,
             'client_secret': WHOOP_CLIENT_SECRET,
@@ -1531,7 +1533,15 @@ def exchange_whoop_code_for_token(code):
         
         print(f"Token request data: {token_data}")
         
-        response = requests.post(f"{WHOOP_API_BASE}/oauth/oauth2/token", data=token_data)
+        # URL encode the data properly
+        encoded_data = urlencode(token_data)
+        print(f"Encoded data: {encoded_data}")
+        
+        response = requests.post(
+            f"{WHOOP_API_BASE}/oauth/oauth2/token", 
+            data=encoded_data,
+            headers={'Content-Type': 'application/x-www-form-urlencoded'}
+        )
         
         print(f"Token response status: {response.status_code}")
         print(f"Token response headers: {dict(response.headers)}")
