@@ -1537,29 +1537,24 @@ def exchange_whoop_code_for_token(code):
         
         token_url = f"{WHOOP_API_BASE}/oauth/oauth2/token"
         
-        # Try Basic Authentication method
-        import base64
-        
+        # Use client_secret_post method (WHOOP's preferred method)
         token_data = {
             'grant_type': 'authorization_code',
             'code': code,
+            'client_id': WHOOP_CLIENT_ID,
+            'client_secret': WHOOP_CLIENT_SECRET,
             'redirect_uri': WHOOP_REDIRECT_URI
         }
         
-        # Create Basic Auth header
-        credentials = f"{WHOOP_CLIENT_ID}:{WHOOP_CLIENT_SECRET}"
-        encoded_credentials = base64.b64encode(credentials.encode()).decode()
-        
         headers = {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': f'Basic {encoded_credentials}'
+            'Content-Type': 'application/x-www-form-urlencoded'
         }
         
         print(f"Request data: {token_data}")
         print(f"Client secret length: {len(WHOOP_CLIENT_SECRET) if WHOOP_CLIENT_SECRET else 0}")
         print(f"Full client ID: {WHOOP_CLIENT_ID}")
         print(f"Full client secret: {WHOOP_CLIENT_SECRET}")
-        print(f"Using Basic Auth with encoded credentials: {encoded_credentials[:20]}...")
+        print(f"Using client_secret_post method")
         
         response = requests.post(token_url, data=token_data, headers=headers)
         
