@@ -1494,11 +1494,17 @@ def get_whoop_auth_url():
     if not WHOOP_AVAILABLE:
         return None
     
+    import secrets
+    
+    # Generate a random 8-character state parameter
+    state = secrets.token_urlsafe(6)[:8]  # Generate 8 characters
+    
     params = {
         'client_id': WHOOP_CLIENT_ID,
         'redirect_uri': WHOOP_REDIRECT_URI,
         'response_type': 'code',
-        'scope': 'read:recovery read:workouts read:profile read:cycles read:sleep'
+        'scope': 'read:recovery read:workouts read:profile read:cycles read:sleep',
+        'state': state
     }
     auth_url = f"{WHOOP_API_BASE}/oauth/oauth2/auth"
     query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
@@ -1625,8 +1631,24 @@ def whoop_auth():
 def whoop_callback():
     """Handle WHOOP OAuth callback"""
     try:
+        # Debug: Log all request parameters
+        print(f"WHOOP Callback - All args: {dict(request.args)}")
+        print(f"WHOOP Callback - URL: {request.url}")
+        
         code = request.args.get('code')
+        state = request.args.get('state')
+        error = request.args.get('error')
+        error_description = request.args.get('error_description')
+        
+        print(f"WHOOP Callback - Code: {code[:10] if code else 'None'}...")
+        print(f"WHOOP Callback - State: {state}")
+        
+        if error:
+            print(f"WHOOP OAuth Error: {error} - {error_description}")
+            return jsonify(success=False, error=f"WHOOP OAuth Error: {error}"), 400
+            
         if not code:
+            print("No authorization code received from WHOOP")
             return jsonify(success=False, error="No authorization code received"), 400
         
         # Exchange code for token
