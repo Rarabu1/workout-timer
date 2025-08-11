@@ -1255,6 +1255,10 @@
     </div>
     <div class="d-flex align-items-center gap-2">
       <label class="toggle" title="Mute interval beeps"><input type="checkbox" id="mute-toggle" onchange="setMuted(this.checked)"> Mute beeps</label>
+      <label class="toggle" title="Play bell sound at interval start">
+        <input type="checkbox" id="bell-toggle" onchange="setBellEnabled(this.checked)"> Interval bell
+        <button onclick="testBell()" style="background: none; border: none; color: var(--ios-blue); font-size: 12px; margin-left: 8px; padding: 2px 6px;">🔔 Test</button>
+      </label>
       <label class="toggle" title="Prevent screen from sleeping">
         <input type="checkbox" id="wakelock-toggle" onchange="setWakeLockEnabled(this.checked)">
         Keep screen awake
@@ -1326,6 +1330,7 @@
     let isPaused = false;
     let deadlineTs = null;
     let muteBeeps = false;
+    let bellEnabled = false;
 
     // --- Wake Lock API ---
     let wakeLock = null;
@@ -1699,6 +1704,8 @@
       if (!isPaused) {
         if (currentIntervalIndex >= intervals.length) resetTimer();
         timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
+        // Play bell sound when starting first interval
+        if (currentIntervalIndex === 0) playBell();
       }
       isPaused = false;
       if (wakeLockPref) requestWakeLock();
@@ -1717,6 +1724,8 @@
         if (timeRemaining <= 0) {
           beep(); currentIntervalIndex++;
           if (currentIntervalIndex < intervals.length) {
+            // Play bell sound for interval transition
+            playBell();
             timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
             deadlineTs = Date.now() + timeRemaining * 1000;
             updateDisplay(); updateProgress(); updateETA(); applyPhaseColor();
@@ -1733,6 +1742,8 @@
     function skipInterval(){
       if (currentIntervalIndex < intervals.length - 1) {
         currentIntervalIndex++;
+        // Play bell sound for manual interval skip
+        playBell();
         timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
         document.getElementById('timer').textContent = formatTime(timeRemaining);
         updateDisplay(); updateProgress(); applyPhaseColor();
@@ -1830,6 +1841,18 @@
 
     function setMuted(on){ muteBeeps = !!on; try { localStorage.setItem('wt.muted', muteBeeps ? '1' : '0'); } catch {} }
     function loadMuted(){ try { const v = localStorage.getItem('wt.muted'); muteBeeps = v === '1'; const cb = document.getElementById('mute-toggle'); if (cb) cb.checked = muteBeeps; } catch {} }
+    
+    function setBellEnabled(on){ bellEnabled = !!on; try { localStorage.setItem('wt.bell', bellEnabled ? '1' : '0'); } catch {} }
+    function loadBell(){ try { const v = localStorage.getItem('wt.bell'); bellEnabled = v === '1'; const cb = document.getElementById('bell-toggle'); if (cb) cb.checked = bellEnabled; } catch {} }
+    
+    function testBell(){
+      // Temporarily enable bell for testing
+      const wasEnabled = bellEnabled;
+      bellEnabled = true;
+      playBell();
+      // Restore previous state after a short delay
+      setTimeout(() => { bellEnabled = wasEnabled; }, 100);
+    }
 
     /* ---------- Enhanced iPhone interactions ---------- */
     
@@ -1933,6 +1956,52 @@
         oscillator.stop(audioContext.currentTime + 0.5);
       } catch(e){ 
         console.log('Audio not available'); 
+      }
+    }
+
+    // Bell sound for interval transitions
+    function playBell(){
+      if (!bellEnabled) return;
+      
+      // Haptic feedback for bell
+      hapticFeedback('medium');
+      
+      try{
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const audioContext = new AudioCtx();
+        
+        // Create a bell-like sound using multiple oscillators
+        const frequencies = [523.25, 659.25, 783.99]; // C5, E5, G5 chord
+        const oscillators = [];
+        const gainNodes = [];
+        
+        frequencies.forEach((freq, index) => {
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          oscillator.frequency.value = freq;
+          oscillator.type = 'sine';
+          
+          // Stagger the start times slightly for a more natural bell sound
+          const startTime = audioContext.currentTime + (index * 0.05);
+          const duration = 1.5;
+          
+          gainNode.gain.setValueAtTime(0, startTime);
+          gainNode.gain.linearRampToValueAtTime(0.15, startTime + 0.1);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+          
+          oscillator.start(startTime);
+          oscillator.stop(startTime + duration);
+          
+          oscillators.push(oscillator);
+          gainNodes.push(gainNode);
+        });
+        
+      } catch(e){ 
+        console.log('Bell audio not available'); 
       }
     }
 
@@ -2196,7 +2265,7 @@
     loadPrefs();
     document.querySelectorAll('#category-chips .chip').forEach(c=>c.classList.toggle('active', c.getAttribute('data-cat') === currentCategory));
     document.querySelectorAll('#duration-chips .chip').forEach(c=>c.classList.toggle('active', parseInt(c.getAttribute('data-min'),10) === currentMinutes));
-    loadSuggestions(); loadState(); loadMuted(); updateStats(); updateETA(); loadWakeLockPref();
+    loadSuggestions(); loadState(); loadMuted(); loadBell(); updateStats(); updateETA(); loadWakeLockPref();
     
     // Initialize iPhone-specific features
     addTouchGestures();
