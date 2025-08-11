@@ -1291,6 +1291,131 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
+    
+    /* WHOOP Integration Styles */
+    .whoop-auth {
+      background: #fff;
+      border: 1px solid var(--ios-border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    .whoop-status {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      background: var(--ios-light-gray);
+    }
+    
+    .whoop-recovery {
+      background: #fff;
+      border: 1px solid var(--ios-border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .recovery-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .whoop-recommendations {
+      background: #fff;
+      border: 1px solid var(--ios-border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .recommendation-card {
+      background: var(--ios-light-gray);
+      border: 1px solid var(--ios-border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    
+    .recommendation-details {
+      margin-bottom: 16px;
+    }
+    
+    .recommendation-details p {
+      margin: 8px 0;
+      font-size: 14px;
+    }
+    
+    .recommendation-reasons {
+      margin-bottom: 16px;
+    }
+    
+    .recommendation-reasons h5 {
+      margin-bottom: 8px;
+      color: var(--ios-blue);
+    }
+    
+    .recommendation-reasons ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    
+    .recommendation-reasons li {
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+    
+    .whoop-workouts {
+      background: #fff;
+      border: 1px solid var(--ios-border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .workout-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .workout-header h4 {
+      margin: 0;
+      color: var(--ios-blue);
+    }
+    
+    .workout-date {
+      font-size: 12px;
+      color: var(--ios-gray);
+    }
+    
+    .workout-details {
+      display: flex;
+      gap: 16px;
+      font-size: 14px;
+      color: var(--ios-gray);
+    }
+    
+    .btn-refresh {
+      background: var(--ios-blue);
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-refresh:active {
+      background: #0056CC;
+      transform: scale(0.98);
+    }
 
     /* Dark mode support */
     @media (prefers-color-scheme: dark) {
@@ -1370,6 +1495,7 @@
     <button class="tab" onclick="switchTab('manual', this)">📝 Paste Workout</button>
     <button class="tab" onclick="switchTab('saved', this)">💾 Saved Workouts</button>
     <button class="tab" onclick="switchTab('progress', this)">📊 Progress & WHOOP</button>
+    <button class="tab" onclick="switchTab('whoop', this)">💪 WHOOP Integration</button>
     <button class="tab" onclick="switchTab('ml', this)">🧠 ML Insights</button>
   </div>
 
@@ -1506,6 +1632,65 @@
       <h3>🤖 AI Workout Summary</h3>
       <button onclick="generateAISummary()" class="btn-generate">Generate Summary</button>
       <div id="ai-summary-content" class="summary-content"></div>
+    </div>
+  </div>
+
+  <!-- WHOOP Integration Tab -->
+  <div id="whoop-tab" class="tab-content">
+    <h2>💪 WHOOP Performance Integration</h2>
+    
+    <!-- WHOOP Authentication -->
+    <div class="whoop-auth">
+      <h3>🔐 Connect Your WHOOP Account</h3>
+      <p>Connect your WHOOP account to get personalized workout recommendations based on your recovery, sleep, and strain data.</p>
+      <button onclick="connectWHOOP()" class="btn-generate" id="whoop-connect-btn">
+        🔗 Connect WHOOP Account
+      </button>
+      <div id="whoop-status" class="whoop-status"></div>
+    </div>
+
+    <!-- WHOOP Recovery Data -->
+    <div class="whoop-recovery" id="whoop-recovery-section" style="display:none;">
+      <h3>📈 Today's Recovery</h3>
+      <div class="recovery-metrics">
+        <div class="metric-card">
+          <div class="metric-label">Recovery Score</div>
+          <div class="metric-value" id="recovery-score">--</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Sleep Score</div>
+          <div class="metric-value" id="sleep-score">--</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Strain Score</div>
+          <div class="metric-value" id="strain-score">--</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">HRV</div>
+          <div class="metric-value" id="hrv-value">--</div>
+        </div>
+      </div>
+      <button onclick="refreshWHOOPData()" class="btn-refresh">🔄 Refresh Data</button>
+    </div>
+
+    <!-- WHOOP Recommendations -->
+    <div class="whoop-recommendations" id="whoop-recommendations-section" style="display:none;">
+      <h3>🎯 Personalized Recommendations</h3>
+      <div id="whoop-recommendation-content" class="recommendation-content">
+        <p>Loading recommendations based on your WHOOP data...</p>
+      </div>
+      <button onclick="getWHOOPRecommendations()" class="btn-generate">🎯 Get Recommendations</button>
+    </div>
+
+    <!-- WHOOP Workout History -->
+    <div class="whoop-workouts" id="whoop-workouts-section" style="display:none;">
+      <h3>📊 Recent WHOOP Workouts</h3>
+      <div class="period-selector">
+        <button class="chip secondary" data-days="7" onclick="loadWHOOPWorkouts(7)">7 days</button>
+        <button class="chip secondary active" data-days="30" onclick="loadWHOOPWorkouts(30)">30 days</button>
+        <button class="chip secondary" data-days="90" onclick="loadWHOOPWorkouts(90)">90 days</button>
+      </div>
+      <div id="whoop-workouts-list" class="workouts-list"></div>
     </div>
   </div>
 
@@ -2660,6 +2845,219 @@
     // Load initial progress report
     if (window.location.hash === '#progress') {
       loadProgressReport(30);
+    }
+    
+    // Check WHOOP connection status on page load
+    checkWHOOPStatus();
+
+    /* ---------- WHOOP Integration Functions ---------- */
+    function connectWHOOP() {
+      const btn = document.getElementById('whoop-connect-btn');
+      const status = document.getElementById('whoop-status');
+      
+      btn.textContent = '🔄 Connecting...';
+      btn.disabled = true;
+      status.innerHTML = '<p>Redirecting to WHOOP for authorization...</p>';
+      
+      // Redirect to WHOOP OAuth
+      window.location.href = '/whoop/auth';
+    }
+    
+    function refreshWHOOPData() {
+      fetch('/whoop/recovery')
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            displayWHOOPData(data.recovery_data, data.analysis);
+            showWHOOPSections();
+          } else {
+            console.error('Failed to get WHOOP data:', data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching WHOOP data:', error);
+        });
+    }
+    
+    function displayWHOOPData(recoveryData, analysis) {
+      // Display recovery metrics
+      document.getElementById('recovery-score').textContent = 
+        analysis?.recovery_score || recoveryData?.recovery?.score?.recovery_score || '--';
+      document.getElementById('sleep-score').textContent = 
+        analysis?.sleep_score || recoveryData?.sleep?.score?.sleep_performance || '--';
+      document.getElementById('strain-score').textContent = 
+        analysis?.strain_score || recoveryData?.strain?.score?.strain || '--';
+      document.getElementById('hrv-value').textContent = 
+        analysis?.hrv || recoveryData?.recovery?.metrics?.hrv_rmssd || '--';
+      
+      // Show sections
+      showWHOOPSections();
+    }
+    
+    function showWHOOPSections() {
+      document.getElementById('whoop-recovery-section').style.display = 'block';
+      document.getElementById('whoop-recommendations-section').style.display = 'block';
+      document.getElementById('whoop-workouts-section').style.display = 'block';
+    }
+    
+    function getWHOOPRecommendations() {
+      fetch('/whoop/recommendations')
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            displayWHOOPRecommendations(data.recommendation, data.analysis);
+          } else {
+            console.error('Failed to get recommendations:', data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching recommendations:', error);
+        });
+    }
+    
+    function displayWHOOPRecommendations(recommendation, analysis) {
+      const content = document.getElementById('whoop-recommendation-content');
+      
+      let html = `
+        <div class="recommendation-card">
+          <h4>🎯 Today's Workout Recommendation</h4>
+          <div class="recommendation-details">
+            <p><strong>Type:</strong> ${recommendation.workout_type}</p>
+            <p><strong>Intensity:</strong> ${recommendation.intensity}</p>
+            <p><strong>Duration:</strong> ${recommendation.duration}</p>
+            <p><strong>Description:</strong> ${recommendation.description}</p>
+            <p><strong>Recovery Score:</strong> ${recommendation.recovery_score}%</p>
+          </div>
+          <div class="recommendation-reasons">
+            <h5>Why this recommendation?</h5>
+            <ul>
+      `;
+      
+      if (analysis.recommendations) {
+        analysis.recommendations.forEach(rec => {
+          html += `<li>${rec}</li>`;
+        });
+      }
+      
+      html += `
+            </ul>
+          </div>
+          <button onclick="useWHOOPRecommendation('${recommendation.workout_type}', '${recommendation.intensity}', '${recommendation.duration}')" class="btn-generate">
+            🚀 Use This Recommendation
+          </button>
+        </div>
+      `;
+      
+      content.innerHTML = html;
+    }
+    
+    function useWHOOPRecommendation(workoutType, intensity, duration) {
+      // Switch to generate tab and pre-fill with WHOOP recommendation
+      switchTab('generate', document.querySelector('.tab[onclick*="generate"]'));
+      
+      // Pre-fill workout request
+      const workoutRequest = document.getElementById('workoutRequest');
+      workoutRequest.value = `${duration} ${intensity} intensity ${workoutType} workout based on WHOOP recovery data`;
+      
+      // Select appropriate category
+      const categoryMap = {
+        'recovery': 'recovery',
+        'moderate': 'endurance',
+        'intense': 'speed'
+      };
+      
+      const category = categoryMap[workoutType] || 'endurance';
+      const categoryBtn = document.querySelector(`[data-cat="${category}"]`);
+      if (categoryBtn) {
+        selectCategory(categoryBtn);
+      }
+      
+      // Select duration
+      const durationMatch = duration.match(/(\d+)/);
+      if (durationMatch) {
+        const durationValue = parseInt(durationMatch[1]);
+        const durationBtn = document.querySelector(`[data-min="${durationValue}"]`);
+        if (durationBtn) {
+          selectDuration(durationBtn);
+        }
+      }
+    }
+    
+    function loadWHOOPWorkouts(days) {
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      const endDate = new Date();
+      
+      const params = new URLSearchParams({
+        start_date: startDate.toISOString().split('T')[0],
+        end_date: endDate.toISOString().split('T')[0]
+      });
+      
+      fetch(`/whoop/workouts?${params}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            displayWHOOPWorkouts(data.workouts);
+          } else {
+            console.error('Failed to get WHOOP workouts:', data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching WHOOP workouts:', error);
+        });
+    }
+    
+    function displayWHOOPWorkouts(workouts) {
+      const container = document.getElementById('whoop-workouts-list');
+      
+      if (!workouts || workouts.length === 0) {
+        container.innerHTML = '<p>No workouts found for this period.</p>';
+        return;
+      }
+      
+      let html = '';
+      workouts.forEach(workout => {
+        const date = new Date(workout.start).toLocaleDateString();
+        const duration = Math.round(workout.duration / 60); // Convert to minutes
+        const strain = workout.strain || 'N/A';
+        
+        html += `
+          <div class="workout-item">
+            <div class="workout-header">
+              <h4>${workout.sport?.name || 'Workout'}</h4>
+              <span class="workout-date">${date}</span>
+            </div>
+            <div class="workout-details">
+              <span>Duration: ${duration} min</span>
+              <span>Strain: ${strain}</span>
+            </div>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+    }
+    
+    function checkWHOOPStatus() {
+      fetch('/whoop/recovery')
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // User is connected
+            document.getElementById('whoop-connect-btn').textContent = '✅ Connected to WHOOP';
+            document.getElementById('whoop-connect-btn').disabled = true;
+            document.getElementById('whoop-status').innerHTML = '<p>✅ Successfully connected to WHOOP!</p>';
+            displayWHOOPData(data.recovery_data, data.analysis);
+          } else if (data.error === 'Not authenticated with WHOOP') {
+            // User needs to connect
+            document.getElementById('whoop-connect-btn').textContent = '🔗 Connect WHOOP Account';
+            document.getElementById('whoop-connect-btn').disabled = false;
+            document.getElementById('whoop-status').innerHTML = '<p>Connect your WHOOP account to get personalized recommendations.</p>';
+          }
+        })
+        .catch(error => {
+          console.error('Error checking WHOOP status:', error);
+        });
     }
 
     /* ---------- ML Insights Functions ---------- */

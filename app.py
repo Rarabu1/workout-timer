@@ -2,8 +2,9 @@ import os
 import sqlite3
 import json
 import traceback 
-from datetime import datetime
-from flask import Flask, render_template, request, jsonify, g
+import requests
+from datetime import datetime, timedelta
+from flask import Flask, render_template, request, jsonify, g, redirect, url_for, session
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -19,7 +20,14 @@ except Exception:  # pragma: no cover
 load_dotenv()
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')
 DATABASE = 'workouts.db'
+
+# WHOOP API Configuration
+WHOOP_CLIENT_ID = os.getenv('WHOOP_CLIENT_ID')
+WHOOP_CLIENT_SECRET = os.getenv('WHOOP_CLIENT_SECRET')
+WHOOP_REDIRECT_URI = os.getenv('WHOOP_REDIRECT_URI', 'http://localhost:5000/whoop/callback')
+WHOOP_API_BASE = 'https://api.whoop.com'
 
 def get_db():
     db = getattr(g, '_database', None)
@@ -901,6 +909,255 @@ def generate_performance_insights(analysis_data):
             insights["trends"].append("Recent performance declining - consider recovery week")
     
     return insights
+
+# WHOOP API Integration Functions
+def get_whoop_auth_url():
+    """Generate WHOOP OAuth authorization URL"""
+    params = {
+        'client_id': WHOOP_CLIENT_ID,
+        'redirect_uri': WHOOP_REDIRECT_URI,
+        'response_type': 'code',
+        'scope': 'read:recovery read:workouts read:profile read:cycles read:sleep'
+    }
+    auth_url = f"{WHOOP_API_BASE}/oauth/authorize"
+    query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
+    return f"{auth_url}?{query_string}"
+
+def exchange_whoop_code_for_token(code):
+    """Exchange authorization code for access token"""
+    try:
+        response = requests.post(f"{WHOOP_API_BASE}/oauth/token", data={
+            'client_id': WHOOP_CLIENT_ID,
+            'client_secret': WHOOP_CLIENT_SECRET,
+            'grant_type': 'authorization_code',
+            'code': code,
+            'redirect_uri': WHOOP_REDIRECT_URI
+        })
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error exchanging code for token: {e}")
+        return None
+
+def get_whoop_user_profile(access_token):
+    """Get WHOOP user profile"""
+    try:
+        headers = {'Authorization': f'Bearer {access_token}'}
+        response = requests.get(f"{WHOOP_API_BASE}/user/profile", headers=headers)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error getting WHOOP profile: {e}")
+        return None
+
+def get_whoop_recovery_data(access_token, date=None):
+    """Get WHOOP recovery data for a specific date"""
+    try:
+        if not date:
+            date = datetime.now().strftime('%Y-%m-%d')
+        
+        headers = {'Authorization': f'Bearer {access_token}'}
+        response = requests.get(f"{WHOOP_API_BASE}/user/recovery", headers=headers, params={'date': date})
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error getting WHOOP recovery: {e}")
+        return None
+
+def get_whoop_workouts(access_token, start_date=None, end_date=None):
+    """Get WHOOP workouts for a date range"""
+    try:
+        if not start_date:
+            start_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+        if not end_date:
+            end_date = datetime.now().strftime('%Y-%m-%d')
+        
+        headers = {'Authorization': f'Bearer {access_token}'}
+        params = {'start': start_date, 'end': end_date}
+        response = requests.get(f"{WHOOP_API_BASE}/user/workouts", headers=headers, params=params)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error getting WHOOP workouts: {e}")
+        return None
+
+def get_whoop_heart_rate_data(access_token, workout_id):
+    """Get heart rate data for a specific workout"""
+    try:
+        headers = {'Authorization': f'Bearer {access_token}'}
+        response = requests.get(f"{WHOOP_API_BASE}/user/workouts/{workout_id}/heart_rate", headers=headers)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error getting WHOOP heart rate data: {e}")
+        return None
+
+def analyze_whoop_performance(whoop_data):
+    """Analyze WHOOP performance data for workout recommendations"""
+    try:
+        if not whoop_data:
+            return None
+        
+        analysis = {
+            'recovery_score': whoop_data.get('recovery', {}).get('score', {}).get('recovery_score', 0),
+            'sleep_score': whoop_data.get('sleep', {}).get('score', {}).get('sleep_performance', 0),
+            'strain_score': whoop_data.get('strain', {}).get('score', {}).get('strain', 0),
+            'hrv': whoop_data.get('recovery', {}).get('metrics', {}).get('hrv_rmssd', 0),
+            'resting_heart_rate': whoop_data.get('recovery', {}).get('metrics', {}).get('resting_heart_rate', 0),
+            'recommendations': []
+        }
+        
+        # Generate recommendations based on WHOOP data
+        if analysis['recovery_score'] < 30:
+            analysis['recommendations'].append("Low recovery - consider a light recovery workout or rest day")
+        elif analysis['recovery_score'] > 70:
+            analysis['recommendations'].append("High recovery - good day for intense training")
+        
+        if analysis['sleep_score'] < 50:
+            analysis['recommendations'].append("Poor sleep - focus on recovery and avoid high-intensity workouts")
+        
+        if analysis['strain_score'] > 15:
+            analysis['recommendations'].append("High strain - consider reducing workout intensity")
+        
+        return analysis
+    except Exception as e:
+        print(f"Error analyzing WHOOP data: {e}")
+        return None
+
+# WHOOP API Routes
+@app.route("/whoop/auth")
+def whoop_auth():
+    """Initiate WHOOP OAuth flow"""
+    auth_url = get_whoop_auth_url()
+    return redirect(auth_url)
+
+@app.route("/whoop/callback")
+def whoop_callback():
+    """Handle WHOOP OAuth callback"""
+    try:
+        code = request.args.get('code')
+        if not code:
+            return jsonify(success=False, error="No authorization code received"), 400
+        
+        # Exchange code for token
+        token_data = exchange_whoop_code_for_token(code)
+        if not token_data:
+            return jsonify(success=False, error="Failed to exchange code for token"), 400
+        
+        # Store token in session
+        session['whoop_access_token'] = token_data.get('access_token')
+        session['whoop_refresh_token'] = token_data.get('refresh_token')
+        session['whoop_expires_at'] = datetime.now().timestamp() + token_data.get('expires_in', 3600)
+        
+        # Get user profile
+        profile = get_whoop_user_profile(token_data.get('access_token'))
+        if profile:
+            session['whoop_user_id'] = profile.get('id')
+            session['whoop_user_email'] = profile.get('email')
+        
+        return redirect(url_for('index'))
+        
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
+
+@app.route("/whoop/recovery")
+def get_whoop_recovery():
+    """Get current WHOOP recovery data"""
+    try:
+        access_token = session.get('whoop_access_token')
+        if not access_token:
+            return jsonify(success=False, error="Not authenticated with WHOOP"), 401
+        
+        recovery_data = get_whoop_recovery_data(access_token)
+        if not recovery_data:
+            return jsonify(success=False, error="Failed to get recovery data"), 400
+        
+        # Analyze the data
+        analysis = analyze_whoop_performance(recovery_data)
+        
+        return jsonify({
+            "success": True,
+            "recovery_data": recovery_data,
+            "analysis": analysis
+        })
+        
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
+
+@app.route("/whoop/workouts")
+def get_whoop_workouts_route():
+    """Get WHOOP workouts"""
+    try:
+        access_token = session.get('whoop_access_token')
+        if not access_token:
+            return jsonify(success=False, error="Not authenticated with WHOOP"), 401
+        
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        workouts_data = get_whoop_workouts(access_token, start_date, end_date)
+        if not workouts_data:
+            return jsonify(success=False, error="Failed to get workouts data"), 400
+        
+        return jsonify({
+            "success": True,
+            "workouts": workouts_data
+        })
+        
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
+
+@app.route("/whoop/recommendations")
+def get_whoop_recommendations():
+    """Get workout recommendations based on WHOOP data"""
+    try:
+        access_token = session.get('whoop_access_token')
+        if not access_token:
+            return jsonify(success=False, error="Not authenticated with WHOOP"), 401
+        
+        # Get recovery data
+        recovery_data = get_whoop_recovery_data(access_token)
+        if not recovery_data:
+            return jsonify(success=False, error="Failed to get recovery data"), 400
+        
+        # Analyze and generate recommendations
+        analysis = analyze_whoop_performance(recovery_data)
+        if not analysis:
+            return jsonify(success=False, error="Failed to analyze WHOOP data"), 400
+        
+        # Generate workout recommendation based on recovery
+        recovery_score = analysis.get('recovery_score', 50)
+        
+        if recovery_score < 30:
+            workout_type = "recovery"
+            intensity = "low"
+            duration = "20-30 minutes"
+            recommendation = "Light recovery run or walk"
+        elif recovery_score < 60:
+            workout_type = "moderate"
+            intensity = "medium"
+            duration = "30-45 minutes"
+            recommendation = "Moderate endurance or tempo run"
+        else:
+            workout_type = "intense"
+            intensity = "high"
+            duration = "45-60 minutes"
+            recommendation = "High-intensity intervals or long run"
+        
+        return jsonify({
+            "success": True,
+            "analysis": analysis,
+            "recommendation": {
+                "workout_type": workout_type,
+                "intensity": intensity,
+                "duration": duration,
+                "description": recommendation,
+                "recovery_score": recovery_score
+            }
+        })
+        
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
 
 if __name__ == "__main__":
     init_db()
