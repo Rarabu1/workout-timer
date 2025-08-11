@@ -510,7 +510,69 @@
       }
     }
 
-    /* Enhanced landscape compact mode */
+    /* Tablet and larger landscape improvements */
+    @media (min-width: 768px) and (orientation: landscape) {
+      body {
+        padding: 20px;
+      }
+      
+      .tabs {
+        max-width: 800px;
+        margin: 0 auto 20px auto;
+      }
+      
+      .tab-content {
+        max-width: 800px;
+        margin: 0 auto 20px auto;
+      }
+      
+      #timer-section {
+        max-width: 800px;
+        margin: 20px auto;
+      }
+      
+      .summary {
+        max-width: 800px;
+        margin: 12px auto 16px auto;
+      }
+    }
+      
+      .metric .metric-value {
+        font-size: 2rem;
+      }
+      
+      .tabs {
+        border-radius: 10px;
+      }
+      
+      .tab {
+        padding: 14px 16px;
+        font-size: 14px;
+      }
+      
+      .tab-content {
+        padding: 16px;
+        border-radius: 10px;
+      }
+      
+      button {
+        padding: 14px 20px;
+        font-size: 15px;
+        margin: 6px;
+      }
+      
+      .workout-request {
+        padding: 14px;
+        font-size: 15px;
+      }
+      
+      .paste-area {
+        padding: 14px;
+        font-size: 13px;
+      }
+    }
+
+    /* Enhanced landscape mode - Improved UI consistency */
     body.landscape-compact { 
       height: 100vh; 
       overflow: hidden; 
@@ -534,15 +596,20 @@
     body.landscape-compact.phase-orange { background: #FF6B35; }
     body.landscape-compact.phase-red { background: #FF3B30; }
 
+    /* Timer section in landscape */
     body.landscape-compact #timer-section.timer-display { 
       background: transparent; 
       border: none; 
       box-shadow: none; 
       padding: 16px; 
+      width: 100%;
+      max-width: none;
     }
+    
     body.landscape-compact .countdown-wrap { 
       margin: 0 0 12px; 
     }
+    
     body.landscape-compact .countdown-pill {
       background: transparent !important;
       border: none !important;
@@ -560,6 +627,7 @@
       color: #fff; 
     }
 
+    /* Enhanced landscape metrics */
     .landscape-metrics { 
       display: none; 
       font-size: 6vh; 
@@ -571,11 +639,15 @@
       display: block !important; 
     }
 
+    /* Improved compact controls */
     .compact-controls { 
       display: none; 
       gap: 12px; 
       margin-top: 16px; 
+      width: 100%;
+      justify-content: center;
     }
+    
     .compact-controls button {
       background: rgba(255,255,255,0.2);
       border: 1px solid rgba(255,255,255,0.3);
@@ -586,23 +658,82 @@
       backdrop-filter: blur(10px);
       min-height: 48px;
       font-size: 15px;
+      min-width: 80px;
+      flex: 1;
+      max-width: 120px;
     }
+    
     .compact-controls button:active { 
       background: rgba(255,255,255,0.3); 
       transform: scale(0.95);
     }
+    
     body.landscape-compact .compact-controls { 
       display: flex !important; 
       justify-content: center; 
       flex-wrap: wrap; 
+      padding: 0 20px;
     }
 
-    /* Hide non-essential UI in compact */
+    /* Landscape-specific summary bar */
+    .landscape-summary {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(10px);
+      padding: 8px 16px;
+      z-index: 1000;
+      font-size: 14px;
+      color: #fff;
+    }
+    
+    body.landscape-compact .landscape-summary {
+      display: flex !important;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .landscape-summary .summary-info {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    
+    .landscape-summary .summary-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    
+    .landscape-summary .toggle {
+      color: #fff;
+      font-size: 12px;
+    }
+    
+    .landscape-summary .toggle input[type="checkbox"] {
+      width: 32px;
+      height: 18px;
+    }
+    
+    .landscape-summary .toggle input[type="checkbox"]::before {
+      width: 14px;
+      height: 14px;
+    }
+    
+    .landscape-summary .toggle input[type="checkbox"]:checked::before {
+      transform: translateX(14px);
+    }
+
+    /* Hide non-essential UI in compact but keep some functionality */
     body.landscape-compact .tabs,
     body.landscape-compact #generate-tab,
     body.landscape-compact #manual-tab,
     body.landscape-compact #saved-tab,
-    body.landscape-compact .summary,
+    body.landscape-compact #progress-tab,
+    body.landscape-compact #ml-tab,
     body.landscape-compact .progress,
     body.landscape-compact .reset-row,
     body.landscape-compact .next-up,
@@ -610,8 +741,14 @@
     body.landscape-compact .controls,
     body.landscape-compact #eta-line,
     body.landscape-compact .current-interval,
-    body.landscape-compact #current-description { 
+    body.landscape-compact #current-description,
+    body.landscape-compact h1 { 
       display: none !important; 
+    }
+    
+    /* Keep summary but move to landscape bar */
+    body.landscape-compact .summary {
+      display: none !important;
     }
 
     /* Enhanced current interval display */
@@ -1068,6 +1205,25 @@
 <body>
   <h1>🏃 Treadmill Run Generator</h1>
 
+  <!-- Landscape Summary Bar -->
+  <div class="landscape-summary">
+    <div class="summary-info">
+      <span id="landscape-summary-pill">—</span>
+      <span id="landscape-eta">—</span>
+    </div>
+    <div class="summary-controls">
+      <label class="toggle" title="Mute interval beeps">
+        <input type="checkbox" id="landscape-mute-toggle" onchange="setMuted(this.checked)"> Mute
+      </label>
+      <label class="toggle" title="Play bell sound at interval start">
+        <input type="checkbox" id="landscape-bell-toggle" onchange="setBellEnabled(this.checked)"> Bell
+      </label>
+      <label class="toggle" title="Prevent screen from sleeping">
+        <input type="checkbox" id="landscape-wakelock-toggle" onchange="setWakeLockEnabled(this.checked)"> Wake
+      </label>
+    </div>
+  </div>
+
   <div class="tabs">
     <button class="tab active" onclick="switchTab('generate', this)">🤖 Generate AI Workout</button>
     <button class="tab" onclick="switchTab('manual', this)">📝 Paste Workout</button>
@@ -1361,13 +1517,25 @@
       try { localStorage.setItem('wt.wakelock', wakeLockPref ? '1' : '0'); } catch {}
       if (wakeLockPref && (timerInterval || isPaused)) requestWakeLock();
       else if (!wakeLockPref) releaseWakeLock();
+      
+      // Sync landscape controls
+      const landscapeToggle = document.getElementById('landscape-wakelock-toggle');
+      if (landscapeToggle) landscapeToggle.checked = wakeLockPref;
     }
+    
     function loadWakeLockPref(){
       const supported = 'wakeLock' in navigator;
       const box = document.getElementById('wakelock-toggle');
-      if (!supported && box){ box.disabled = true; box.title = 'Not supported on this browser'; }
+      const landscapeBox = document.getElementById('landscape-wakelock-toggle');
+      
+      if (!supported) {
+        if (box) { box.disabled = true; box.title = 'Not supported on this browser'; }
+        if (landscapeBox) { landscapeBox.disabled = true; landscapeBox.title = 'Not supported on this browser'; }
+      }
+      
       try { wakeLockPref = localStorage.getItem('wt.wakelock') === '1'; } catch {}
       if (box) box.checked = !!wakeLockPref;
+      if (landscapeBox) landscapeBox.checked = !!wakeLockPref;
     }
 
     function safeMinutes(it) {
@@ -1392,6 +1560,10 @@
       if (bar) { bar.style.width = pct + '%'; bar.setAttribute('aria-valuenow', Math.round(pct)); }
       const pill = document.getElementById('summary-pill');
       if (pill) pill.textContent = `${total} min · ${(intervals||[]).length} intervals`;
+      
+      // Update landscape summary
+      const landscapePill = document.getElementById('landscape-summary-pill');
+      if (landscapePill) landscapePill.textContent = `${total} min · ${(intervals||[]).length} intervals`;
     }
 
     function remainingSecondsTotal(){
@@ -1417,6 +1589,16 @@
       const end = new Date(Date.now() + baseSec*1000);
       const opts = { hour: 'numeric', minute: '2-digit' };
       etaNode.textContent = running ? `ETA: ${end.toLocaleTimeString([], opts)}` : `If you start now, finish by ${end.toLocaleTimeString([], opts)}`;
+      
+      // Update landscape ETA
+      const landscapeEta = document.getElementById('landscape-eta');
+      if (landscapeEta) {
+        if (!intervals || !intervals.length) {
+          landscapeEta.textContent = '';
+        } else {
+          landscapeEta.textContent = running ? `ETA: ${end.toLocaleTimeString([], opts)}` : `Finish by ${end.toLocaleTimeString([], opts)}`;
+        }
+      }
     }
 
     function updateStats(){
@@ -1839,11 +2021,49 @@
       } catch {}
     }
 
-    function setMuted(on){ muteBeeps = !!on; try { localStorage.setItem('wt.muted', muteBeeps ? '1' : '0'); } catch {} }
-    function loadMuted(){ try { const v = localStorage.getItem('wt.muted'); muteBeeps = v === '1'; const cb = document.getElementById('mute-toggle'); if (cb) cb.checked = muteBeeps; } catch {} }
+    function setMuted(on){ 
+      muteBeeps = !!on; 
+      try { 
+        localStorage.setItem('wt.muted', muteBeeps ? '1' : '0'); 
+        // Sync landscape controls
+        const landscapeToggle = document.getElementById('landscape-mute-toggle');
+        if (landscapeToggle) landscapeToggle.checked = muteBeeps;
+      } catch {} 
+    }
     
-    function setBellEnabled(on){ bellEnabled = !!on; try { localStorage.setItem('wt.bell', bellEnabled ? '1' : '0'); } catch {} }
-    function loadBell(){ try { const v = localStorage.getItem('wt.bell'); bellEnabled = v === '1'; const cb = document.getElementById('bell-toggle'); if (cb) cb.checked = bellEnabled; } catch {} }
+    function loadMuted(){ 
+      try { 
+        const v = localStorage.getItem('wt.muted'); 
+        muteBeeps = v === '1'; 
+        const cb = document.getElementById('mute-toggle'); 
+        if (cb) cb.checked = muteBeeps;
+        // Sync landscape controls
+        const landscapeToggle = document.getElementById('landscape-mute-toggle');
+        if (landscapeToggle) landscapeToggle.checked = muteBeeps;
+      } catch {} 
+    }
+    
+    function setBellEnabled(on){ 
+      bellEnabled = !!on; 
+      try { 
+        localStorage.setItem('wt.bell', bellEnabled ? '1' : '0'); 
+        // Sync landscape controls
+        const landscapeToggle = document.getElementById('landscape-bell-toggle');
+        if (landscapeToggle) landscapeToggle.checked = bellEnabled;
+      } catch {} 
+    }
+    
+    function loadBell(){ 
+      try { 
+        const v = localStorage.getItem('wt.bell'); 
+        bellEnabled = v === '1'; 
+        const cb = document.getElementById('bell-toggle'); 
+        if (cb) cb.checked = bellEnabled;
+        // Sync landscape controls
+        const landscapeToggle = document.getElementById('landscape-bell-toggle');
+        if (landscapeToggle) landscapeToggle.checked = bellEnabled;
+      } catch {} 
+    }
     
     function testBell(){
       // Temporarily enable bell for testing
@@ -2471,11 +2691,30 @@
       document.getElementById('duration-value').textContent = e.target.value;
     });
 
-    /* ---------- Compact mode (landscape always) ---------- */
+    /* ---------- Enhanced landscape mode detection ---------- */
     function applyLandscapeCompact(){
       const mq = window.matchMedia('(orientation: landscape)');
-      document.body.classList.toggle('landscape-compact', mq.matches);
+      const isLandscape = mq.matches;
+      const isSmallScreen = window.innerWidth < 768;
+      
+      // Only apply compact mode on small screens in landscape
+      const shouldCompact = isLandscape && isSmallScreen;
+      document.body.classList.toggle('landscape-compact', shouldCompact);
+      
+      // Update landscape metrics display
+      const landscapeMetrics = document.getElementById('landscape-metrics');
+      if (landscapeMetrics) {
+        if (shouldCompact && intervals && intervals.length > 0 && currentIntervalIndex < intervals.length) {
+          const current = intervals[currentIntervalIndex];
+          const spd = (current && (current.speed_mph ?? current.speed)) || '-';
+          const inc = (current && (current.incline ?? 0)) || 0;
+          landscapeMetrics.textContent = `${spd} mph · ${inc}%`;
+        } else {
+          landscapeMetrics.textContent = '—';
+        }
+      }
     }
+    
     applyLandscapeCompact();
     window.addEventListener('resize', applyLandscapeCompact);
     window.addEventListener('orientationchange', applyLandscapeCompact);
