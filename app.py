@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, g, redirect, url_for, session
 from dotenv import load_dotenv
 from openai import OpenAI
+import math
 
 # Optional WHOOP integration
 try:
@@ -1747,6 +1748,663 @@ def get_whoop_recommendations():
         
     except Exception as e:
         return jsonify(success=False, error=str(e)), 500
+
+# Add new calibration functions after the existing functions
+def calculate_fitness_profile(assessment_data):
+    """Calculate personalized fitness profile from assessment data."""
+    
+    # Extract assessment data
+    fitness_level = assessment_data.get('fitness_level', 'beginner')  # beginner, intermediate, advanced
+    recent_5k_time = assessment_data.get('recent_5k_time', None)  # in minutes
+    weekly_miles = assessment_data.get('weekly_miles', 10)
+    running_frequency = assessment_data.get('running_frequency', 3)  # days per week
+    comfortable_pace = assessment_data.get('comfortable_pace', 6.0)  # mph
+    
+    # Calculate base fitness score (0-100)
+    fitness_score = 0
+    
+    # Fitness level multiplier
+    level_multipliers = {
+        'beginner': 0.6,
+        'intermediate': 0.8,
+        'advanced': 1.0,
+        'elite': 1.2
+    }
+    
+    # Base score from fitness level
+    fitness_score += 30 * level_multipliers.get(fitness_level, 0.8)
+    
+    # Adjust based on 5K time if available
+    if recent_5k_time:
+        # Convert 5K time to fitness score (lower time = higher score)
+        if recent_5k_time <= 20:  # Elite
+            fitness_score += 40
+        elif recent_5k_time <= 25:  # Advanced
+            fitness_score += 30
+        elif recent_5k_time <= 30:  # Intermediate
+            fitness_score += 20
+        elif recent_5k_time <= 35:  # Beginner
+            fitness_score += 10
+        else:  # Very beginner
+            fitness_score += 5
+    
+    # Adjust based on weekly mileage
+    fitness_score += min(weekly_miles * 0.5, 20)
+    
+    # Adjust based on running frequency
+    fitness_score += min(running_frequency * 2, 10)
+    
+    # Cap at 100
+    fitness_score = min(fitness_score, 100)
+    
+    # Calculate personalized pace anchors
+    base_pace = comfortable_pace
+    
+    # Adjust paces based on fitness score
+    pace_multiplier = 0.8 + (fitness_score / 100) * 0.4  # 0.8 to 1.2
+    
+    pace_anchors = {
+        'walk_brisk': round(3.5 * pace_multiplier, 1),
+        'recovery': round(4.5 * pace_multiplier, 1),
+        'steady': round(5.5 * pace_multiplier, 1),
+        'tempo': round(6.5 * pace_multiplier, 1),
+        'sprint': round(7.5 * pace_multiplier, 1)
+    }
+    
+    # Calculate heart rate zones (estimated if no WHOOP data)
+    max_hr_estimate = 220 - 30  # Assuming average age, adjust as needed
+    hr_zones = {
+        'Z1': [max_hr_estimate * 0.5, max_hr_estimate * 0.6],
+        'Z2': [max_hr_estimate * 0.6, max_hr_estimate * 0.7],
+        'Z3': [max_hr_estimate * 0.7, max_hr_estimate * 0.8],
+        'Z4': [max_hr_estimate * 0.8, max_hr_estimate * 0.9],
+        'Z5': [max_hr_estimate * 0.9, max_hr_estimate]
+    }
+    
+    # Calculate workout constraints based on fitness level
+    if fitness_score < 30:  # Beginner
+        constraints = {
+            'max_duration': 30,
+            'max_speed': 6.5,
+            'max_incline': 2,
+            'recovery_ratio': 1.5,  # More recovery
+            'z3_target': 50,  # Lower intensity
+            'z4_target': 5   # Minimal high intensity
+        }
+    elif fitness_score < 60:  # Intermediate
+        constraints = {
+            'max_duration': 45,
+            'max_speed': 7.5,
+            'max_incline': 4,
+            'recovery_ratio': 1.0,
+            'z3_target': 65,
+            'z4_target': 15
+        }
+    else:  # Advanced
+        constraints = {
+            'max_duration': 60,
+            'max_speed': 8.5,
+            'max_incline': 6,
+            'recovery_ratio': 0.8,
+            'z3_target': 70,
+            'z4_target': 20
+        }
+    
+    return {
+        'fitness_score': fitness_score,
+        'fitness_level': fitness_level,
+        'pace_anchors': pace_anchors,
+        'hr_zones': hr_zones,
+        'constraints': constraints,
+        'assessment_data': assessment_data
+    }
+
+def generate_personalized_athlete_profile(fitness_profile):
+    """Generate personalized athlete profile for workout generation."""
+    
+    pace_anchors = fitness_profile['pace_anchors']
+    hr_zones = fitness_profile['hr_zones']
+    constraints = fitness_profile['constraints']
+    
+    profile = f"""
+    ATHLETE PROFILE:
+    - Device: Treadmill, speed in mph, show segment lengths
+    - Fitness Level: {fitness_profile['fitness_level'].title()} (Score: {fitness_profile['fitness_score']}/100)
+    - Pace anchors (0-1% incline):
+      * {pace_anchors['walk_brisk']} mph = brisk walk
+      * {pace_anchors['recovery']} mph = very easy jog (recovery)
+      * {pace_anchors['steady']} mph = easy-moderate (steady)
+      * {pace_anchors['tempo']} mph = challenging but doable
+      * {pace_anchors['sprint']} mph = comfortable sprint
+    - HR zones: Z2 {int(hr_zones['Z2'][0])}-{int(hr_zones['Z2'][1])}, Z3 {int(hr_zones['Z3'][0])}-{int(hr_zones['Z3'][1])}, Z4 {int(hr_zones['Z4'][0])}-{int(hr_zones['Z4'][1])}
+    - Preferences: variety but structured; keep mostly Z3 with controlled Z4 surges; use mild inclines
+    - Duration defaults: {constraints['max_duration']} min max
+    """
+    
+    return profile
+
+def generate_personalized_constraints(fitness_profile):
+    """Generate personalized constraints for workout generation."""
+    
+    pace_anchors = fitness_profile['pace_anchors']
+    constraints = fitness_profile['constraints']
+    
+    # Calculate speed bounds based on pace anchors
+    steady_min = pace_anchors['steady'] - 0.5
+    steady_max = pace_anchors['steady'] + 0.5
+    surge_min = pace_anchors['tempo'] - 0.3
+    surge_max = pace_anchors['tempo'] + 0.7
+    recovery_min = pace_anchors['recovery'] - 0.5
+    recovery_max = pace_anchors['recovery'] + 0.3
+    
+    constraints_text = f"""
+    CONSTRAINTS & DIFFICULTY KNOBS:
+    - Target intensity mix: {constraints['z3_target']}-75% Z3, {constraints['z4_target']}-20% Z4, remainder Z1-Z2
+    - Speed bounds: steady {steady_min:.1f}-{steady_max:.1f} mph; surges {surge_min:.1f}-{surge_max:.1f} mph; cap max at {constraints['max_speed']} mph; recoveries {recovery_min:.1f}-{recovery_max:.1f} mph
+    - Incline rules: recoveries 0-1%; steadies 0-1%; surges up to {constraints['max_incline']}%; no hills on sprints if using {pace_anchors['sprint']}+ mph
+    - Work:recovery ratios: 1:{constraints['recovery_ratio']} for surges ≤60s, 2:1 for steadies; minimum interval length 1:00
+    - Progression: if prior run felt ≤7/10 RPE or Z3 time <60%, add +0.1-0.2 mph to steady sections next time; otherwise keep speeds and add +1 min total time
+    - Output language: mph only; print by segment length
+    """
+    
+    return constraints_text
+
+# Add new calibration endpoints
+@app.route("/calibrate", methods=["POST"])
+def calibrate_user():
+    """Calibrate user fitness level through assessment."""
+    try:
+        data = request.get_json() or {}
+        
+        # Validate required fields
+        required_fields = ['fitness_level', 'weekly_miles', 'running_frequency']
+        for field in required_fields:
+            if field not in data:
+                return jsonify(success=False, error=f"Missing required field: {field}"), 400
+        
+        # Calculate fitness profile
+        fitness_profile = calculate_fitness_profile(data)
+        
+        # Store calibration data (you could save to database)
+        # For now, we'll return it in the response
+        calibration_data = {
+            'fitness_profile': fitness_profile,
+            'calibrated_at': datetime.now().isoformat(),
+            'user_id': data.get('user_id', 'anonymous')
+        }
+        
+        return jsonify(success=True, calibration=calibration_data)
+        
+    except Exception as e:
+        print(f"Error in calibrate_user: {e}")
+        return jsonify(success=False, error=str(e)), 500
+
+@app.route("/generate_personalized_workout", methods=["POST"])
+def generate_personalized_workout():
+    """Generate workout using personalized fitness profile."""
+    try:
+        # Check API key
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            return jsonify(success=False, error="OpenAI API key not configured"), 500
+
+        # Validate input
+        body = request.get_json() or {}
+        user_request = (body.get("request") or "").strip()
+        calibration_data = body.get("calibration", {})
+        
+        if not user_request:
+            return jsonify(success=False, error="Please describe the workout"), 400
+        
+        if not calibration_data:
+            return jsonify(success=False, error="Please provide calibration data"), 400
+
+        try:
+            import random
+            from datetime import datetime
+            
+            # Initialize OpenAI client
+            try:
+                client = OpenAI(api_key=api_key)
+            except Exception as client_error:
+                print(f"OpenAI client init error: {client_error}")
+                client = OpenAI(api_key=api_key, base_url="https://api.openai.com/v1")
+
+            # Get fitness profile
+            fitness_profile = calibration_data.get('fitness_profile', {})
+            
+            # Generate personalized athlete profile
+            athlete_profile = generate_personalized_athlete_profile(fitness_profile)
+            
+            # Generate personalized constraints
+            constraints = generate_personalized_constraints(fitness_profile)
+            
+            # Get WHOOP zones if available, otherwise use calculated zones
+            whoop_zones = body.get("whoop_zones")
+            if not whoop_zones:
+                hr_zones = fitness_profile.get('hr_zones', {})
+                whoop_zones = {
+                    "Z2": [int(hr_zones['Z2'][0]), int(hr_zones['Z2'][1])],
+                    "Z3": [int(hr_zones['Z3'][0]), int(hr_zones['Z3'][1])],
+                    "Z4": [int(hr_zones['Z4'][0]), int(hr_zones['Z4'][1])],
+                    "Z5": [int(hr_zones['Z5'][0]), int(hr_zones['Z5'][1])]
+                }
+
+            # Strict JSON Schema with personalized data
+            pace_anchors = fitness_profile.get('pace_anchors', {})
+            constraints_data = fitness_profile.get('constraints', {})
+            
+            json_schema = f"""
+            STRICT OUTPUT SCHEMA - Return ONLY valid JSON that matches this format:
+            {{
+              "title": "Workout title with duration and focus",
+              "total_time_min": <total_duration>,
+              "rules": {{
+                "speeds": {{
+                  "walk_brisk": {pace_anchors.get('walk_brisk', 3.9)},
+                  "recovery": [{pace_anchors.get('recovery', 4.5) - 0.5}, {pace_anchors.get('recovery', 4.5) + 0.3}],
+                  "steady": [{pace_anchors.get('steady', 5.8) - 0.5}, {pace_anchors.get('steady', 5.8) + 0.5}],
+                  "surge": [{pace_anchors.get('tempo', 6.7) - 0.3}, {pace_anchors.get('tempo', 6.7) + 0.7}],
+                  "max_sprint": [{pace_anchors.get('sprint', 7.3)}, {constraints_data.get('max_speed', 8.0)}]
+                }},
+                "incline_pct": {{
+                  "recovery": [0, 1],
+                  "steady": [0, 1],
+                  "surge": [0, {constraints_data.get('max_incline', 4)}],
+                  "max_sprint": [0, 2]
+                }},
+                "zones": {{
+                  "Z2": [{whoop_zones['Z2'][0]}, {whoop_zones['Z2'][1]}],
+                  "Z3": [{whoop_zones['Z3'][0]}, {whoop_zones['Z3'][1]}],
+                  "Z4": [{whoop_zones['Z4'][0]}, {whoop_zones['Z4'][1]}],
+                  "Z5": [{whoop_zones['Z5'][0]}, {whoop_zones['Z5'][1]}]
+                }},
+                "time_in_zones_target_pct": {{
+                  "Z3": {constraints_data.get('z3_target', 60)},
+                  "Z4": {constraints_data.get('z4_target', 15)},
+                  "other": {100 - constraints_data.get('z3_target', 60) - constraints_data.get('z4_target', 15)}
+                }},
+                "segment_min_sec": 60,
+                "max_segments_above_7mph": 3,
+                "max_duration_above_7mph_sec": 60,
+                "min_recovery_after_7mph_sec": 90
+              }},
+              "segments": [
+                {{
+                  "order": <segment_number>,
+                  "duration_sec": <duration_in_seconds>,
+                  "speed_mph": <speed>,
+                  "incline_pct": <incline>,
+                  "intent": "<warmup|steady|surge|recovery|max_sprint|cooldown>",
+                  "target_hr_zone": "<Z2|Z3|Z4|Z5>"
+                }}
+              ],
+              "summary": {{
+                "target_mix": {{"Z3_pct": <percentage>, "Z4_pct": <percentage>}},
+                "avg_speed_mph": <average_speed>
+              }},
+              "printable": [
+                "<duration> min @ <speed> mph — <description>"
+              ]
+            }}
+            """
+
+            # Determine workout duration from user request
+            max_duration = constraints_data.get('max_duration', 30)
+            duration = min(max_duration, 30)  # default
+            
+            if "30" in user_request or "thirty" in user_request.lower():
+                duration = min(30, max_duration)
+            elif "40" in user_request or "forty" in user_request.lower():
+                duration = min(40, max_duration)
+            elif "45" in user_request or "forty-five" in user_request.lower():
+                duration = min(45, max_duration)
+            elif "20" in user_request or "twenty" in user_request.lower():
+                duration = min(20, max_duration)
+            elif "60" in user_request or "sixty" in user_request.lower():
+                duration = min(60, max_duration)
+
+            # Create structured prompt
+            structured_prompt = f"""
+            {athlete_profile}
+            
+            {constraints}
+            
+            {json_schema}
+            
+            USER REQUEST: {user_request}
+            TARGET DURATION: {duration} minutes
+            FITNESS LEVEL: {fitness_profile.get('fitness_level', 'intermediate')}
+            
+            Generate a structured treadmill workout that matches the user's request and follows all constraints. 
+            Return ONLY the JSON object, no additional text or explanations.
+            """
+
+            completion = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an expert running coach who creates structured, personalized treadmill workouts. You always return valid JSON that matches the exact schema provided."
+                    },
+                    {"role": "user", "content": structured_prompt},
+                ],
+                temperature=0.7,
+                max_tokens=1500,
+            )
+            
+            # Parse the JSON response
+            response_text = (completion.choices[0].message.content or "").strip()
+            
+            # Try to extract JSON from the response
+            import json
+            import re
+            
+            # Look for JSON in the response
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if json_match:
+                workout_json = json.loads(json_match.group())
+                
+                # Add metadata
+                workout_json["raw_request"] = user_request
+                workout_json["generated_at"] = datetime.now().isoformat()
+                workout_json["fitness_profile"] = fitness_profile
+                workout_json["whoop_zones"] = whoop_zones
+                
+                print(f"Generated personalized workout: {workout_json.get('title', 'Unknown')} for {fitness_profile.get('fitness_level', 'unknown')} level")
+                
+                return jsonify(success=True, workout=workout_json)
+                
+            else:
+                return jsonify(success=False, error="Failed to generate structured workout"), 500
+                
+        except Exception as openai_error:
+            print(f"OpenAI error: {openai_error}")
+            return jsonify(success=False, error="Failed to generate workout"), 500
+            
+    except Exception as e:
+        print(f"Error in generate_personalized_workout: {e}")
+        return jsonify(success=False, error=str(e)), 500
+
+# Add after the existing calibration functions
+def create_athlete_profile_from_data(profile_data):
+    """Create athlete profile from specific user data."""
+    
+    # Extract profile data
+    demographics = profile_data.get('demographics', {})
+    pace_anchors = profile_data.get('pace_anchors', {})
+    hr_zones = profile_data.get('hr_zones', {})
+    goals = profile_data.get('goals', {})
+    constraints = profile_data.get('constraints', {})
+    
+    # Create personalized athlete profile
+    athlete_profile = f"""
+    ATHLETE PROFILE:
+    - Demographics: {demographics.get('gender', 'unknown')}, {demographics.get('age', 'unknown')}, {demographics.get('height', 'unknown')}, {demographics.get('weight', 'unknown')}
+    - Device: Treadmill, speed in mph, show segment lengths
+    - Pace anchors (0-1% incline):
+      * {pace_anchors.get('walk', 3.9)} mph = brisk walk
+      * {pace_anchors.get('very_easy', 5.5)} mph = very easy jog (recovery)
+      * {pace_anchors.get('easy_moderate', 6.1)} mph = easy-moderate (steady)
+      * {pace_anchors.get('challenging', 6.5)} mph = challenging but doable
+      * {pace_anchors.get('comfortable_sprint', 7.0)} mph = comfortable sprint
+    - HR zones: Z2 {hr_zones.get('Z2', [140, 152])[0]}-{hr_zones.get('Z2', [140, 152])[1]}, Z3 {hr_zones.get('Z3', [153, 164])[0]}-{hr_zones.get('Z3', [153, 164])[1]}, Z4 {hr_zones.get('Z4', [165, 177])[0]}-{hr_zones.get('Z4', [165, 177])[1]}
+    - Goals: {goals.get('description', 'general fitness')}
+    - Preferences: variety but structured; keep mostly Z3 with controlled Z4 surges; use mild inclines
+    """
+    
+    return athlete_profile
+
+def create_constraints_from_data(constraints_data):
+    """Create constraints from specific user data."""
+    
+    constraints_text = f"""
+    CONSTRAINTS & DIFFICULTY KNOBS:
+    - Target intensity mix: {constraints_data.get('z3_target', 65)}% Z3, {constraints_data.get('z4_target', 15)}% Z4, remainder Z1-Z2
+    - Speed bounds: steady {constraints_data.get('steady_min', 5.8)}-{constraints_data.get('steady_max', 6.3)} mph; surges {constraints_data.get('surge_min', 6.7)}-{constraints_data.get('surge_max', 7.2)} mph; cap max at {constraints_data.get('max_speed', 8.0)} mph; recoveries {constraints_data.get('recovery_min', 4.5)}-{constraints_data.get('recovery_max', 5.3)} mph
+    - Incline rules: recoveries 0-{constraints_data.get('recovery_incline_max', 1)}%; steadies 0-{constraints_data.get('steady_incline_max', 1)}%; surges up to {constraints_data.get('surge_incline_max', 4)}%; no hills on sprints if using {constraints_data.get('sprint_no_hill_threshold', 7.0)}+ mph
+    - Work:recovery ratios: 1:{constraints_data.get('surge_recovery_ratio', 1)} for surges ≤{constraints_data.get('max_surge_duration', 60)}s, {constraints_data.get('steady_recovery_ratio', 2)}:1 for steadies; minimum interval length {constraints_data.get('min_interval_seconds', 60)}:00
+    - Cooldown: {constraints_data.get('cooldown_duration', 3)}:00 at {constraints_data.get('cooldown_speed', 4.0)} mph
+    - Output language: mph only; print by segment length
+    """
+    
+    return constraints_text
+
+@app.route("/generate_from_profile", methods=["POST"])
+def generate_from_profile():
+    """Generate workout using specific athlete profile data."""
+    try:
+        # Check API key
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            return jsonify(success=False, error="OpenAI API key not configured"), 500
+
+        # Validate input
+        body = request.get_json() or {}
+        user_request = (body.get("request") or "").strip()
+        profile_data = body.get("profile", {})
+        
+        if not user_request:
+            return jsonify(success=False, error="Please describe the workout"), 400
+        
+        if not profile_data:
+            return jsonify(success=False, error="Please provide athlete profile data"), 400
+
+        try:
+            from datetime import datetime
+            
+            # Initialize OpenAI client
+            try:
+                client = OpenAI(api_key=api_key)
+            except Exception as client_error:
+                print(f"OpenAI client init error: {client_error}")
+                client = OpenAI(api_key=api_key, base_url="https://api.openai.com/v1")
+
+            # Create personalized athlete profile
+            athlete_profile = create_athlete_profile_from_data(profile_data)
+            
+            # Create personalized constraints
+            constraints = create_constraints_from_data(profile_data.get('constraints', {}))
+            
+            # Get heart rate zones
+            hr_zones = profile_data.get('hr_zones', {
+                'Z2': [140, 152],
+                'Z3': [153, 164],
+                'Z4': [165, 177],
+                'Z5': [178, 999]
+            })
+            
+            # Get pace anchors
+            pace_anchors = profile_data.get('pace_anchors', {
+                'walk': 3.9,
+                'very_easy': 5.5,
+                'easy_moderate': 6.1,
+                'challenging': 6.5,
+                'comfortable_sprint': 7.0
+            })
+            
+            # Get constraints data
+            constraints_data = profile_data.get('constraints', {})
+            
+            # Strict JSON Schema with personalized data
+            json_schema = f"""
+            STRICT OUTPUT SCHEMA - Return ONLY valid JSON that matches this format:
+            {{
+              "title": "Workout title with duration and focus",
+              "total_time_min": <total_duration>,
+              "rules": {{
+                "speeds": {{
+                  "walk_brisk": {pace_anchors.get('walk', 3.9)},
+                  "recovery": [{constraints_data.get('recovery_min', 4.5)}, {constraints_data.get('recovery_max', 5.3)}],
+                  "steady": [{constraints_data.get('steady_min', 5.8)}, {constraints_data.get('steady_max', 6.3)}],
+                  "surge": [{constraints_data.get('surge_min', 6.7)}, {constraints_data.get('surge_max', 7.2)}],
+                  "max_sprint": [{pace_anchors.get('comfortable_sprint', 7.0)}, {constraints_data.get('max_speed', 8.0)}]
+                }},
+                "incline_pct": {{
+                  "recovery": [0, {constraints_data.get('recovery_incline_max', 1)}],
+                  "steady": [0, {constraints_data.get('steady_incline_max', 1)}],
+                  "surge": [0, {constraints_data.get('surge_incline_max', 4)}],
+                  "max_sprint": [0, 2]
+                }},
+                "zones": {{
+                  "Z2": [{hr_zones['Z2'][0]}, {hr_zones['Z2'][1]}],
+                  "Z3": [{hr_zones['Z3'][0]}, {hr_zones['Z3'][1]}],
+                  "Z4": [{hr_zones['Z4'][0]}, {hr_zones['Z4'][1]}],
+                  "Z5": [{hr_zones['Z5'][0]}, {hr_zones['Z5'][1]}]
+                }},
+                "time_in_zones_target_pct": {{
+                  "Z3": {constraints_data.get('z3_target', 65)},
+                  "Z4": {constraints_data.get('z4_target', 15)},
+                  "other": {100 - constraints_data.get('z3_target', 65) - constraints_data.get('z4_target', 15)}
+                }},
+                "segment_min_sec": {constraints_data.get('min_interval_seconds', 60)},
+                "max_segments_above_7mph": 3,
+                "max_duration_above_7mph_sec": {constraints_data.get('max_surge_duration', 60)},
+                "min_recovery_after_7mph_sec": 90
+              }},
+              "segments": [
+                {{
+                  "order": <segment_number>,
+                  "duration_sec": <duration_in_seconds>,
+                  "speed_mph": <speed>,
+                  "incline_pct": <incline>,
+                  "intent": "<warmup|steady|surge|recovery|max_sprint|cooldown>",
+                  "target_hr_zone": "<Z2|Z3|Z4|Z5>"
+                }}
+              ],
+              "summary": {{
+                "target_mix": {{"Z3_pct": <percentage>, "Z4_pct": <percentage>}},
+                "avg_speed_mph": <average_speed>
+              }},
+              "printable": [
+                "<duration> min @ <speed> mph — <description>"
+              ]
+            }}
+            """
+
+            # Determine workout duration from user request
+            duration = 30  # default
+            if "30" in user_request or "thirty" in user_request.lower():
+                duration = 30
+            elif "40" in user_request or "forty" in user_request.lower():
+                duration = 40
+            elif "45" in user_request or "forty-five" in user_request.lower():
+                duration = 45
+            elif "20" in user_request or "twenty" in user_request.lower():
+                duration = 20
+            elif "60" in user_request or "sixty" in user_request.lower():
+                duration = 60
+
+            # Create structured prompt
+            structured_prompt = f"""
+            You are a treadmill run planner. Use the athlete profile below and obey constraints and schema. If any constraint conflicts, adjust speed first, then incline. Return valid JSON only.
+
+            {athlete_profile}
+            
+            {constraints}
+            
+            {json_schema}
+            
+            USER REQUEST: {user_request}
+            TARGET DURATION: {duration} minutes
+            
+            Generate a structured treadmill workout that matches the user's request and follows all constraints. 
+            Return ONLY the JSON object, no additional text or explanations.
+            """
+
+            completion = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a treadmill run planner. Use the athlete profile below and obey constraints and schema. If any constraint conflicts, adjust speed first, then incline. Return valid JSON only."
+                    },
+                    {"role": "user", "content": structured_prompt},
+                ],
+                temperature=0.7,
+                max_tokens=1500,
+            )
+            
+            # Parse the JSON response
+            response_text = (completion.choices[0].message.content or "").strip()
+            
+            # Try to extract JSON from the response
+            import json
+            import re
+            
+            # Look for JSON in the response
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if json_match:
+                workout_json = json.loads(json_match.group())
+                
+                # Add metadata
+                workout_json["raw_request"] = user_request
+                workout_json["generated_at"] = datetime.now().isoformat()
+                workout_json["athlete_profile"] = profile_data
+                
+                print(f"Generated profile-based workout: {workout_json.get('title', 'Unknown')}")
+                
+                return jsonify(success=True, workout=workout_json)
+                
+            else:
+                return jsonify(success=False, error="Failed to generate structured workout"), 500
+                
+        except Exception as openai_error:
+            print(f"OpenAI error: {openai_error}")
+            return jsonify(success=False, error="Failed to generate workout"), 500
+            
+    except Exception as e:
+        print(f"Error in generate_from_profile: {e}")
+        return jsonify(success=False, error=str(e)), 500
+
+# Example function to create your specific profile
+def create_user_profile():
+    """Create the user's specific profile based on their data."""
+    return {
+        "demographics": {
+            "gender": "male",
+            "age": 40,
+            "height": "6'2\"",
+            "weight": "212 lb"
+        },
+        "pace_anchors": {
+            "walk": 3.9,
+            "very_easy": 5.5,
+            "easy_moderate": 6.1,
+            "challenging": 6.5,
+            "comfortable_sprint": 7.0
+        },
+        "hr_zones": {
+            "Z2": [140, 152],
+            "Z3": [153, 164],
+            "Z4": [165, 177],
+            "Z5": [178, 999]
+        },
+        "goals": {
+            "description": "30-min pace push with Z3 base and brief Z4 surges"
+        },
+        "constraints": {
+            "z3_target": 65,
+            "z4_target": 15,
+            "steady_min": 5.8,
+            "steady_max": 6.3,
+            "surge_min": 6.7,
+            "surge_max": 7.2,
+            "max_speed": 8.0,
+            "recovery_min": 4.5,
+            "recovery_max": 5.3,
+            "recovery_incline_max": 1,
+            "steady_incline_max": 1,
+            "surge_incline_max": 4,
+            "sprint_no_hill_threshold": 7.0,
+            "surge_recovery_ratio": 1,
+            "max_surge_duration": 60,
+            "steady_recovery_ratio": 2,
+            "min_interval_seconds": 60,
+            "cooldown_duration": 3,
+            "cooldown_speed": 4.0
+        }
+    }
 
 if __name__ == "__main__":
     init_db()
