@@ -203,6 +203,60 @@
           .controls button{ padding:8px 10px; min-width:72px; }
         }
 
+        /* Landscape compact mode: show only countdown + metrics; no scrolling */
+        body.landscape-compact {
+          height: 100vh;
+          overflow: hidden;
+          margin: 0;
+          padding: 0;
+        }
+        body.landscape-compact .tabs,
+        body.landscape-compact #generate-tab,
+        body.landscape-compact #manual-tab,
+        body.landscape-compact #saved-tab,
+        body.landscape-compact .summary,
+        body.landscape-compact .progress,
+        body.landscape-compact .reset-row,
+        body.landscape-compact .next-up,
+        body.landscape-compact .intervals-list,
+        body.landscape-compact .controls,
+        body.landscape-compact #eta-line,
+        body.landscape-compact .current-interval h3,
+        body.landscape-compact #current-description {
+          display: none !important;
+        }
+        body.landscape-compact #timer-section.timer-display {
+          display: block !important; /* ensure timer shows even if tabs hidden */
+          max-width: 100%;
+          border: none;
+          margin: 0;
+          padding: 10px 12px;
+        }
+        body.landscape-compact #timer-section {
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+        body.landscape-compact .countdown-wrap { margin: 0 0 8px; }
+        body.landscape-compact .countdown-pill {
+          min-width: 50vw;
+          height: 34vh;
+          font-size: 12vh;
+          border-width: 1px;
+        }
+        body.landscape-compact .interval-info {
+          gap: 10px;
+          margin: 6px 0 0;
+        }
+        body.landscape-compact .metric {
+          min-width: 38vw;
+          padding: 10px 12px;
+        }
+        body.landscape-compact .metric .metric-value {
+          font-size: 8vh;
+        }
+
         .time-remaining {
             font-size: 72px;
             font-weight: bold;
@@ -1060,6 +1114,15 @@
         loadMuted();
         updateStats();
         updateETA();
+
+        /* ---------- Orientation/height-aware compact mode ---------- */
+        function applyLandscapeCompact(){
+          const mq = window.matchMedia('(orientation: landscape) and (max-height: 480px)');
+          document.body.classList.toggle('landscape-compact', mq.matches);
+        }
+        applyLandscapeCompact();
+        window.addEventListener('resize', applyLandscapeCompact);
+        window.addEventListener('orientationchange', applyLandscapeCompact);
 
         /* ---------- Display refresh ---------- */
         function updateDisplay() {
