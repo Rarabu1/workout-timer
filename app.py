@@ -34,8 +34,17 @@ DATABASE = 'workouts.db'
 # WHOOP API Configuration
 WHOOP_CLIENT_ID = os.getenv('WHOOP_CLIENT_ID')
 WHOOP_CLIENT_SECRET = os.getenv('WHOOP_CLIENT_SECRET')
-WHOOP_REDIRECT_URI = os.getenv('WHOOP_REDIRECT_URI', 'http://localhost:5000/whoop/callback')
+WHOOP_REDIRECT_URI = os.getenv('WHOOP_REDIRECT_URI', 'https://workout-timer-dskb.onrender.com/whoop/callback')
 WHOOP_API_BASE = 'https://api.prod.whoop.com'
+
+# Debug: Print the actual values being used
+print(f"=== WHOOP CONFIG DEBUG ===")
+print(f"WHOOP_CLIENT_ID: {WHOOP_CLIENT_ID}")
+print(f"WHOOP_CLIENT_SECRET: {WHOOP_CLIENT_SECRET}")
+print(f"WHOOP_REDIRECT_URI: {WHOOP_REDIRECT_URI}")
+print(f"Client Secret Length: {len(WHOOP_CLIENT_SECRET) if WHOOP_CLIENT_SECRET else 0}")
+print(f"Expected Length: 64")
+print(f"=== END WHOOP CONFIG DEBUG ===")
 
 def get_db():
     db = getattr(g, '_database', None)
