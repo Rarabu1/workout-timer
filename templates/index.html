@@ -136,7 +136,49 @@
       box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
     }
 
-    .suggestions { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
+    .suggestions { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 20px; 
+      margin: 16px 0; 
+    }
+    
+    .suggestion-section {
+      background: var(--ios-light-gray);
+      border: 1px solid var(--ios-border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 8px;
+    }
+    
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--ios-border);
+    }
+    
+    .section-icon {
+      font-size: 18px;
+      width: 24px;
+      text-align: center;
+    }
+    
+    .section-title {
+      font-weight: 600;
+      font-size: 16px;
+      color: #1D1D1F;
+    }
+    
+    .section-subtitle {
+      font-size: 13px;
+      color: var(--ios-gray);
+      margin-left: auto;
+      font-style: italic;
+    }
+    
     .suggestion-toolbar { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; }
     .shuffle-row { margin: 8px 0; }
     .shuffle-primary { 
@@ -636,8 +678,26 @@
       
       .suggestions {
         display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
+        flex-direction: column;
+        gap: 12px;
+      }
+      
+      .suggestion-section {
+        padding: 12px;
+        border-radius: 12px;
+      }
+      
+      .section-header {
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+      }
+      
+      .section-title {
+        font-size: 14px;
+      }
+      
+      .section-subtitle {
+        font-size: 11px;
       }
       
       .suggestion-btn {
@@ -1313,27 +1373,51 @@
       <input type="text" id="workoutRequest" class="workout-request" placeholder="Describe your workout (e.g., '30 minute interval run for beginners')" />
 
       <div class="suggestions">
-        <div class="suggestion-toolbar"><div style="color:#666">How do you want to train <strong>today</strong>?</div></div>
-
-        <div class="chip-row" id="category-chips">
-          <button type="button" class="chip active" data-cat="endurance" onclick="selectCategory(this)">Endurance</button>
-          <button type="button" class="chip" data-cat="speed" onclick="selectCategory(this)">Speed</button>
-          <button type="button" class="chip" data-cat="hills" onclick="selectCategory(this)">Hills</button>
-          <button type="button" class="chip" data-cat="recovery" onclick="selectCategory(this)">Recovery</button>
-          <button type="button" class="chip" data-cat="race" onclick="selectCategory(this)">Race prep</button>
-          <button type="button" class="chip" data-cat="fartlek" onclick="selectCategory(this)">Fartlek</button>
+        <!-- Workout Type Section -->
+        <div class="suggestion-section">
+          <div class="section-header">
+            <span class="section-icon">🎯</span>
+            <span class="section-title">Workout Type</span>
+            <span class="section-subtitle">How do you want to train <strong>today</strong>?</span>
+          </div>
+          <div class="chip-row" id="category-chips">
+            <button type="button" class="chip active" data-cat="endurance" onclick="selectCategory(this)">Endurance</button>
+            <button type="button" class="chip" data-cat="speed" onclick="selectCategory(this)">Speed</button>
+            <button type="button" class="chip" data-cat="hills" onclick="selectCategory(this)">Hills</button>
+            <button type="button" class="chip" data-cat="recovery" onclick="selectCategory(this)">Recovery</button>
+            <button type="button" class="chip" data-cat="race" onclick="selectCategory(this)">Race prep</button>
+            <button type="button" class="chip" data-cat="fartlek" onclick="selectCategory(this)">Fartlek</button>
+          </div>
         </div>
 
-        <div class="chip-row" id="duration-chips">
-          <button type="button" class="chip secondary active" data-min="20" onclick="selectDuration(this)">20 min</button>
-          <button type="button" class="chip secondary" data-min="30" onclick="selectDuration(this)">30 min</button>
-          <button type="button" class="chip secondary" data-min="40" onclick="selectDuration(this)">40 min</button>
-          <button type="button" class="chip secondary" data-min="45" onclick="selectDuration(this)">45 min</button>
-          <button type="button" class="chip secondary" data-min="60" onclick="selectDuration(this)">60 min</button>
+        <!-- Duration Section -->
+        <div class="suggestion-section">
+          <div class="section-header">
+            <span class="section-icon">⏱️</span>
+            <span class="section-title">Duration</span>
+            <span class="section-subtitle">How long do you want to train?</span>
+          </div>
+          <div class="chip-row" id="duration-chips">
+            <button type="button" class="chip secondary active" data-min="20" onclick="selectDuration(this)">20 min</button>
+            <button type="button" class="chip secondary" data-min="30" onclick="selectDuration(this)">30 min</button>
+            <button type="button" class="chip secondary" data-min="40" onclick="selectDuration(this)">40 min</button>
+            <button type="button" class="chip secondary" data-min="45" onclick="selectDuration(this)">45 min</button>
+            <button type="button" class="chip secondary" data-min="60" onclick="selectDuration(this)">60 min</button>
+          </div>
         </div>
 
-        <div class="shuffle-row"><button type="button" class="shuffle-primary" onclick="shuffleSuggestions()">↻ Shuffle ideas</button></div>
-        <div id="suggestion-buttons" class="chip-row"></div>
+        <!-- Workout Ideas Section -->
+        <div class="suggestion-section">
+          <div class="section-header">
+            <span class="section-icon">💡</span>
+            <span class="section-title">Workout Ideas</span>
+            <span class="section-subtitle">AI-generated suggestions based on your preferences</span>
+          </div>
+          <div class="shuffle-row">
+            <button type="button" class="shuffle-primary" onclick="shuffleSuggestions()">↻ Shuffle ideas</button>
+          </div>
+          <div id="suggestion-buttons" class="chip-row"></div>
+        </div>
       </div>
 
       <button class="btn-generate" onclick="generateWorkout()">
