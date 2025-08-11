@@ -71,6 +71,40 @@
       overflow-x: hidden;
     }
 
+    /* App Header with Logo */
+    .app-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid var(--ios-border);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .app-logo {
+      width: 60px;
+      height: 60px;
+      flex-shrink: 0;
+    }
+    
+    .app-title h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+      color: #1D1D1F;
+      line-height: 1.2;
+    }
+    
+    .app-subtitle {
+      margin: 4px 0 0 0;
+      font-size: 14px;
+      color: var(--ios-gray);
+      font-weight: 500;
+    }
+    
     /* Enhanced iOS-style tabs */
     .tabs { 
       display: flex; 
@@ -960,7 +994,7 @@
     body.landscape-compact #eta-line,
     body.landscape-compact .current-interval,
     body.landscape-compact #current-description,
-    body.landscape-compact h1 { 
+    body.landscape-compact .app-header { 
       display: none !important; 
     }
     
@@ -1546,7 +1580,13 @@
   </style>
 </head>
 <body>
-  <h1>🏃 Treadmill Run Generator</h1>
+  <div class="app-header">
+    <img src="/static/logo.svg" alt="Workout Timer" class="app-logo">
+    <div class="app-title">
+      <h1>Workout Timer</h1>
+      <p class="app-subtitle">AI-Powered Treadmill Workouts</p>
+    </div>
+  </div>
 
   <!-- Landscape Summary Bar -->
   <div class="landscape-summary">
