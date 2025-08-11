@@ -1,31 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60">
-  <defs>
-    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#2196F3;stop-opacity:1" />
-    </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.3)"/>
-    </filter>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" width="300" height="80">
+  <!-- Dark blue background -->
+  <rect x="0" y="0" width="300" height="80" fill="#1e3a8a"/>
   
-  <!-- Background circle -->
-  <circle cx="30" cy="30" r="25" fill="url(#logoGradient)" filter="url(#shadow)"/>
-  
-  <!-- Running figure -->
-  <path d="M20 35 L25 25 L30 30 L35 20 L40 25 L35 35 L30 40 L25 35 Z" fill="white" opacity="0.9"/>
-  
-  <!-- Timer elements -->
-  <circle cx="30" cy="30" r="20" fill="none" stroke="white" stroke-width="2" opacity="0.7"/>
-  <line x1="30" y1="30" x2="30" y2="15" stroke="white" stroke-width="2" opacity="0.9"/>
-  <line x1="30" y1="30" x2="40" y2="30" stroke="white" stroke-width="2" opacity="0.9"/>
+  <!-- Running figure on treadmill -->
+  <g transform="translate(20, 20)">
+    <!-- Treadmill base (running belt) -->
+    <rect x="0" y="35" width="40" height="4" fill="white"/>
+    <!-- Treadmill console/handle -->
+    <rect x="35" y="25" width="3" height="20" fill="white"/>
+    <rect x="35" y="25" width="8" height="3" fill="white"/>
+    
+    <!-- Running figure -->
+    <g fill="white" stroke="white" stroke-width="2">
+      <!-- Head -->
+      <circle cx="15" cy="15" r="3"/>
+      <!-- Body -->
+      <line x1="15" y1="18" x2="15" y2="28"/>
+      <!-- Arms -->
+      <line x1="15" y1="20" x2="8" y2="18"/>
+      <line x1="15" y1="20" x2="22" y2="22"/>
+      <!-- Legs -->
+      <line x1="15" y1="28" x2="10" y2="35"/>
+      <line x1="15" y1="28" x2="20" y2="32"/>
+    </g>
+  </g>
   
   <!-- App name -->
-  <text x="70" y="25" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="600" fill="#333">The Treadmill</text>
-  <text x="70" y="45" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="600" fill="#666">Run Coach</text>
-  
-  <!-- Decorative elements -->
-  <circle cx="160" cy="20" r="3" fill="#4CAF50" opacity="0.6"/>
-  <circle cx="170" cy="25" r="2" fill="#2196F3" opacity="0.6"/>
-  <circle cx="165" cy="35" r="2.5" fill="#FF9800" opacity="0.6"/>
+  <text x="80" y="25" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="white">The</text>
+  <text x="80" y="40" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="white">Treadmill</text>
+  <text x="80" y="55" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="white">Run</text>
+  <text x="80" y="70" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="white">Coach</text>
 </svg>
