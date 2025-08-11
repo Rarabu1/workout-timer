@@ -144,6 +144,10 @@ def index():
 def manifest():
     return app.send_static_file("manifest.json")
 
+@app.route("/privacy")
+def privacy_policy():
+    return render_template("privacy_policy.html")
+
 @app.route("/workout_suggestions")
 def workout_suggestions():
     suggestions = [
