@@ -1516,17 +1516,33 @@ def exchange_whoop_code_for_token(code):
         return None
     
     try:
-        response = requests.post(f"{WHOOP_API_BASE}/oauth/oauth2/token", data={
+        print(f"Exchanging code for token - Code: {code[:10]}...")
+        print(f"Token URL: {WHOOP_API_BASE}/oauth/oauth2/token")
+        print(f"Client ID: {WHOOP_CLIENT_ID}")
+        print(f"Redirect URI: {WHOOP_REDIRECT_URI}")
+        
+        token_data = {
             'client_id': WHOOP_CLIENT_ID,
             'client_secret': WHOOP_CLIENT_SECRET,
             'grant_type': 'authorization_code',
             'code': code,
             'redirect_uri': WHOOP_REDIRECT_URI
-        })
+        }
+        
+        print(f"Token request data: {token_data}")
+        
+        response = requests.post(f"{WHOOP_API_BASE}/oauth/oauth2/token", data=token_data)
+        
+        print(f"Token response status: {response.status_code}")
+        print(f"Token response headers: {dict(response.headers)}")
+        print(f"Token response body: {response.text}")
+        
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
         print(f"Error exchanging code for token: {e}")
+        print(f"Response status: {getattr(e.response, 'status_code', 'N/A')}")
+        print(f"Response text: {getattr(e.response, 'text', 'N/A')}")
         return None
 
 def get_whoop_user_profile(access_token):
