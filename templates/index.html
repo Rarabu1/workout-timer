@@ -3145,15 +3145,18 @@
     }
     
     function displayWHOOPData(recoveryData, analysis) {
-      // Display recovery metrics
-      document.getElementById('recovery-score').textContent = 
-        analysis?.recovery_score || recoveryData?.recovery?.score?.recovery_score || '--';
-      document.getElementById('sleep-score').textContent = 
-        analysis?.sleep_score || recoveryData?.sleep?.score?.sleep_performance || '--';
-      document.getElementById('strain-score').textContent = 
-        analysis?.strain_score || recoveryData?.strain?.score?.strain || '--';
-      document.getElementById('hrv-value').textContent = 
-        analysis?.hrv || recoveryData?.recovery?.metrics?.hrv_rmssd || '--';
+      console.log('WHOOP Recovery Data:', recoveryData);
+      
+      // Display recovery metrics based on actual WHOOP API structure
+      const recoveryScore = recoveryData?.score || recoveryData?.recovery?.score?.recovery_score || '--';
+      const sleepScore = recoveryData?.sleep?.score?.sleep_performance || recoveryData?.sleep_score || '--';
+      const strainScore = recoveryData?.strain?.score?.strain || recoveryData?.strain_score || '--';
+      const hrvValue = recoveryData?.metrics?.hrv_rmssd || recoveryData?.hrv || '--';
+      
+      document.getElementById('recovery-score').textContent = recoveryScore;
+      document.getElementById('sleep-score').textContent = sleepScore;
+      document.getElementById('strain-score').textContent = strainScore;
+      document.getElementById('hrv-value').textContent = hrvValue;
       
       // Show sections
       showWHOOPSections();
