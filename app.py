@@ -337,7 +337,13 @@ def generate_workout():
             import random
             from datetime import datetime
             
-            client = OpenAI(api_key=api_key)
+            # Initialize OpenAI client with minimal parameters to avoid proxy issues
+            try:
+                client = OpenAI(api_key=api_key)
+            except Exception as client_error:
+                print(f"OpenAI client init error: {client_error}")
+                # Try alternative initialization
+                client = OpenAI(api_key=api_key, base_url="https://api.openai.com/v1")
             
             # Create dynamic system prompts for variety
             system_prompts = [
@@ -406,19 +412,43 @@ def generate_workout():
             workout_text = (completion.choices[0].message.content or "").strip()
         except Exception as openai_error:
             print(f"OpenAI error: {openai_error}")
-            # Fallback workouts with variety
-            fallback_workouts = [
-                """5 min @ 4.0 mph (warm up)
+            # Enhanced fallback workouts with variety based on user request
+            user_request_lower = user_request.lower()
+            
+            # Determine workout type from user request
+            if any(word in user_request_lower for word in ['endurance', 'steady', 'aerobic', 'long']):
+                workout_type = 'endurance'
+            elif any(word in user_request_lower for word in ['speed', 'interval', 'tempo', 'sprint', 'fast']):
+                workout_type = 'speed'
+            elif any(word in user_request_lower for word in ['hill', 'incline', 'mountain']):
+                workout_type = 'hills'
+            elif any(word in user_request_lower for word in ['recovery', 'easy', 'low', 'gentle']):
+                workout_type = 'recovery'
+            elif any(word in user_request_lower for word in ['race', 'marathon', '5k', '10k']):
+                workout_type = 'race'
+            elif any(word in user_request_lower for word in ['fartlek', 'varied', 'mixed']):
+                workout_type = 'fartlek'
+            else:
+                workout_type = 'endurance'  # default
+            
+            # Category-specific fallback workouts
+            fallback_workouts = {
+                'endurance': [
+                    """5 min @ 4.0 mph (warm up)
 20 min @ 5.5 mph (steady pace)
 5 min @ 4.0 mph (cool down)""",
-                
-                """3 min @ 4.0 mph (easy warm up)
-5 min @ 5.0 mph (build pace)
-10 min @ 6.0 mph (tempo work)
-5 min @ 5.0 mph (recovery)
+                    
+                    """3 min @ 4.0 mph (easy warm up)
+10 min @ 5.0 mph (build pace)
+12 min @ 5.5 mph (steady state)
 5 min @ 4.0 mph (cool down)""",
-                
-                """5 min @ 4.5 mph (warm up)
+                    
+                    """5 min @ 4.5 mph (warm up)
+15 min @ 5.5 mph (endurance pace)
+5 min @ 4.5 mph (cool down)"""
+                ],
+                'speed': [
+                    """5 min @ 4.0 mph (warm up)
 3 min @ 6.0 mph (speed interval)
 2 min @ 4.5 mph (recovery)
 3 min @ 6.5 mph (speed interval)
@@ -426,20 +456,74 @@ def generate_workout():
 3 min @ 7.0 mph (speed interval)
 2 min @ 4.5 mph (recovery)
 5 min @ 4.0 mph (cool down)""",
-                
-                """5 min @ 4.0 mph (easy start)
-10 min @ 5.5 mph (steady state)
+                    
+                    """5 min @ 4.5 mph (warm up)
 5 min @ 6.0 mph (tempo)
-5 min @ 5.5 mph (recovery)
-5 min @ 4.0 mph (cool down)""",
-                
-                """3 min @ 4.0 mph (warm up)
-5 min @ 5.0 mph (build)
-8 min @ 6.0 mph (threshold)
-5 min @ 5.0 mph (recovery)
+3 min @ 4.5 mph (recovery)
+5 min @ 6.5 mph (tempo)
+3 min @ 4.5 mph (recovery)
 4 min @ 4.0 mph (cool down)"""
-            ]
-            workout_text = random.choice(fallback_workouts)
+                ],
+                'hills': [
+                    """5 min @ 4.0 mph (warm up)
+5 min @ 5.0 mph, incline 2 (hill climb)
+3 min @ 4.5 mph, incline 0 (recovery)
+5 min @ 5.5 mph, incline 3 (hill climb)
+3 min @ 4.5 mph, incline 0 (recovery)
+4 min @ 4.0 mph (cool down)""",
+                    
+                    """3 min @ 4.0 mph (warm up)
+8 min @ 5.0 mph, incline 2 (rolling hills)
+4 min @ 4.5 mph, incline 0 (recovery)
+8 min @ 5.5 mph, incline 3 (rolling hills)
+2 min @ 4.0 mph (cool down)"""
+                ],
+                'recovery': [
+                    """5 min @ 3.5 mph (easy warm up)
+15 min @ 4.0 mph (recovery pace)
+5 min @ 3.5 mph (cool down)""",
+                    
+                    """3 min @ 3.0 mph (walk warm up)
+12 min @ 4.0 mph (easy jog)
+5 min @ 3.5 mph (walk cool down)"""
+                ],
+                'race': [
+                    """5 min @ 4.0 mph (warm up)
+5 min @ 6.0 mph (race pace)
+3 min @ 4.5 mph (recovery)
+5 min @ 6.5 mph (race pace)
+3 min @ 4.5 mph (recovery)
+4 min @ 4.0 mph (cool down)""",
+                    
+                    """3 min @ 4.0 mph (warm up)
+8 min @ 6.0 mph (tempo pace)
+4 min @ 4.5 mph (recovery)
+8 min @ 6.5 mph (tempo pace)
+2 min @ 4.0 mph (cool down)"""
+                ],
+                'fartlek': [
+                    """5 min @ 4.0 mph (warm up)
+2 min @ 6.0 mph (speed)
+3 min @ 4.5 mph (recovery)
+2 min @ 6.5 mph (speed)
+3 min @ 4.5 mph (recovery)
+2 min @ 7.0 mph (speed)
+3 min @ 4.5 mph (recovery)
+5 min @ 4.0 mph (cool down)""",
+                    
+                    """3 min @ 4.0 mph (warm up)
+3 min @ 5.5 mph (steady)
+2 min @ 6.5 mph (surge)
+3 min @ 5.0 mph (steady)
+2 min @ 7.0 mph (surge)
+3 min @ 5.0 mph (steady)
+3 min @ 4.0 mph (cool down)"""
+                ]
+            }
+            
+            # Get appropriate fallback workout
+            category_workouts = fallback_workouts.get(workout_type, fallback_workouts['endurance'])
+            workout_text = random.choice(category_workouts)
 
         # Parse the generated workout using our parser wrapper
         intervals = []
