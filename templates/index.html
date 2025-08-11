@@ -405,6 +405,9 @@
 
     <!-- Timer Section -->
     <div id="timer-section" class="timer-display">
+        <div class="countdown-wrap">
+          <div class="countdown-pill" aria-live="polite"><span id="timer">0:00</span></div>
+        </div>
         <div class="current-interval">
             <h3>Current Interval: <span id="current-section">-</span></h3>
             <div class="interval-info">
@@ -413,19 +416,11 @@
                     <div class="metric-value"><span id="current-speed">-</span><span class="metric-unit"> mph</span></div>
                 </div>
                 <div class="metric">
-                    <div class="metric-label">Duration</div>
-                    <div class="metric-value"><span id="current-duration">-</span><span class="metric-unit"> min</span></div>
-                </div>
-                <div class="metric">
                     <div class="metric-label">Incline</div>
                     <div class="metric-value"><span id="current-incline">0</span><span class="metric-unit"> %</span></div>
                 </div>
             </div>
             <div id="current-description">-</div>
-        </div>
-
-        <div class="countdown-wrap">
-          <div class="countdown-pill" aria-live="polite"><span id="timer">0:00</span></div>
         </div>
         <div id="eta-line" class="eta-line" aria-live="polite"></div>
 
