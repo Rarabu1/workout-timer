@@ -48,10 +48,17 @@ class WorkoutParser:
             interval_match = re.search(interval_pattern, line)
             
             if interval_match:
+                duration = int(interval_match.group(1))
+                speed = float(interval_match.group(2))
+                
+                # Validate inputs
+                if duration <= 0 or speed <= 0:
+                    continue  # Skip invalid intervals
+                
                 interval = {
                     'section': current_section,
-                    'duration_min': int(interval_match.group(1)),
-                    'speed_mph': float(interval_match.group(2)),
+                    'duration_min': duration,
+                    'speed_mph': speed,
                     'description': interval_match.group(3) or '',
                     'incline': 0  # We'll add incline parsing later
                 }

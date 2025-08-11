@@ -100,15 +100,16 @@ def save_workout():
     if not description or not intervals:
         return jsonify(success=False, error="Description and intervals required"), 400
     try:
-        import json
         intervals_json = json.dumps(intervals)
         db = get_db()
         cursor = db.cursor()
         cursor.execute("INSERT INTO workouts (description, intervals) VALUES (?, ?)", (description, intervals_json))
         db.commit()
         return jsonify(success=True, workout_id=cursor.lastrowid)
+    except sqlite3.Error as e:
+        return jsonify(success=False, error=f"Database error: {str(e)}"), 500
     except Exception as e:
-        return jsonify(success=False, error=str(e)), 500
+        return jsonify(success=False, error=f"Unexpected error: {str(e)}"), 500
 
 @app.route("/workouts")
 def get_workouts():
@@ -117,7 +118,6 @@ def get_workouts():
     cursor.execute("SELECT id, description, intervals FROM workouts ORDER BY id DESC")
     rows = cursor.fetchall()
     workouts = []
-    import json
     for row in rows:
         workouts.append({
             "id": row["id"],
