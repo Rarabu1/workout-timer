@@ -449,31 +449,31 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* Enhanced phase colors - More vibrant */
+    /* Enhanced phase colors */
     .timer-display.phase-blue .countdown-pill { 
-      background: var(--ios-blue); 
+      background: #E3F2FD; 
       border-color: var(--ios-blue); 
-      color: #fff; 
+      color: var(--ios-blue); 
     }
     .timer-display.phase-green .countdown-pill { 
-      background: var(--ios-green); 
+      background: #E8F5E9; 
       border-color: var(--ios-green); 
-      color: #fff; 
+      color: var(--ios-green); 
     }
     .timer-display.phase-yellow .countdown-pill { 
-      background: var(--ios-orange); 
+      background: #FFF8E1; 
       border-color: var(--ios-orange); 
-      color: #fff; 
+      color: var(--ios-orange); 
     }
     .timer-display.phase-orange .countdown-pill { 
-      background: #FF6B35; 
+      background: #FFF3E0; 
       border-color: #FF6B35; 
-      color: #fff; 
+      color: #FF6B35; 
     }
     .timer-display.phase-red .countdown-pill { 
-      background: var(--ios-red); 
+      background: #FFEBEE; 
       border-color: var(--ios-red); 
-      color: #fff; 
+      color: var(--ios-red); 
     }
 
     /* Enhanced metrics */
@@ -699,12 +699,6 @@
       background: #000; 
       color: #fff; 
       text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 9999;
     }
     
     /* Landscape mode for non-timer screens (like Generate AI Workout) */
@@ -798,32 +792,17 @@
       }
     }
     
-    body.landscape-compact.phase-blue { 
-      background: var(--ios-blue) !important; 
-      color: #fff !important;
-    }
-    body.landscape-compact.phase-green { 
-      background: var(--ios-green) !important; 
-      color: #fff !important;
-    }
-    body.landscape-compact.phase-yellow { 
-      background: var(--ios-orange) !important; 
-      color: #fff !important;
-    }
-    body.landscape-compact.phase-orange { 
-      background: #FF6B35 !important; 
-      color: #fff !important;
-    }
-    body.landscape-compact.phase-red { 
-      background: var(--ios-red) !important; 
-      color: #fff !important;
-    }
+    body.landscape-compact.phase-blue { background: #1E3A8A; }
+    body.landscape-compact.phase-green { background: #065F46; }
+    body.landscape-compact.phase-yellow { background: #92400E; }
+    body.landscape-compact.phase-orange { background: #9A3412; }
+    body.landscape-compact.phase-red { background: #991B1B; }
 
     /* Timer section in landscape */
     body.landscape-compact #timer-section.timer-display { 
-      background: transparent !important; 
-      border: none !important; 
-      box-shadow: none !important; 
+      background: transparent; 
+      border: none; 
+      box-shadow: none; 
       padding: 16px; 
       width: 100%;
       max-width: none;
@@ -834,30 +813,32 @@
     }
     
     body.landscape-compact .countdown-pill {
-      background: transparent !important;
+      background: #fff !important;
       border: none !important;
-      box-shadow: none !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2) !important;
       min-width: 70vw;
-      height: auto;
-      padding: 0;
-      color: #fff !important;
+      height: 120px;
+      padding: 20px;
+      border-radius: 16px;
+      color: #1D1D1F !important;
     }
     
     body.landscape-compact #timer { 
-      font-size: 20vh; 
+      font-size: 48px; 
       line-height: 1; 
       font-weight: 900; 
-      letter-spacing: 2px; 
-      color: #fff; 
+      letter-spacing: 1px; 
+      color: #1D1D1F; 
     }
 
     /* Enhanced landscape metrics */
     .landscape-metrics { 
       display: none; 
-      font-size: 6vh; 
-      font-weight: 700; 
+      font-size: 18px; 
+      font-weight: 600; 
       color: #fff; 
-      margin-top: 8px; 
+      margin-top: 16px; 
+      text-align: center;
     }
     body.landscape-compact .landscape-metrics { 
       display: block !important; 
@@ -873,13 +854,12 @@
     }
     
     .compact-controls button {
-      background: rgba(255,255,255,0.2);
-      border: 1px solid rgba(255,255,255,0.3);
+      background: #3B82F6;
+      border: none;
       color: #fff; 
       font-weight: 600; 
       padding: 12px 16px;
-      border-radius: 16px; 
-      backdrop-filter: blur(10px);
+      border-radius: 12px; 
       min-height: 48px;
       font-size: 15px;
       min-width: 80px;
