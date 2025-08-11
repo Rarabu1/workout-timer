@@ -1503,7 +1503,7 @@ def get_whoop_auth_url():
         'client_id': WHOOP_CLIENT_ID,
         'redirect_uri': WHOOP_REDIRECT_URI,
         'response_type': 'code',
-        'scope': 'read:recovery read:workouts read:profile read:cycles read:sleep',
+        'scope': 'read:recovery read:workout read:profile read:cycles read:sleep',
         'state': state
     }
     auth_url = f"{WHOOP_API_BASE}/oauth/oauth2/auth"
