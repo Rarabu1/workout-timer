@@ -2088,6 +2088,12 @@
         const p = JSON.parse(localStorage.getItem('wt.prefs') || 'null');
         if (p && p.category) currentCategory = p.category;
         if (p && p.minutes) currentMinutes = p.minutes;
+        
+        // Update prompt after loading preferences
+        setTimeout(() => {
+          updatePromptFromSelections();
+          updateActiveChips();
+        }, 100);
       } catch {}
     }
 
@@ -2177,14 +2183,64 @@
     function loadSuggestions(){ renderSuggestions(); }
     async function shuffleSuggestions(){ await renderSuggestions(); }
 
+    function updatePromptFromSelections() {
+      const workoutRequest = document.getElementById('workoutRequest');
+      if (!workoutRequest) return;
+      
+      // Create a prompt based on current selections
+      const categoryNames = {
+        'endurance': 'endurance',
+        'speed': 'speed training',
+        'hills': 'hill training',
+        'recovery': 'recovery',
+        'race': 'race preparation',
+        'fartlek': 'fartlek'
+      };
+      
+      const categoryName = categoryNames[currentCategory] || 'workout';
+      const prompt = `${currentMinutes} minute ${categoryName} workout`;
+      
+      // Only update if the field is empty or contains a generic placeholder
+      const currentValue = workoutRequest.value.trim();
+      if (!currentValue || currentValue === 'Describe your workout...' || currentValue.length < 10) {
+        workoutRequest.value = prompt;
+      }
+    }
+    
+    function updateActiveChips() {
+      // Update category chips
+      document.querySelectorAll('#category-chips .chip').forEach(chip => {
+        chip.classList.remove('active');
+        if (chip.getAttribute('data-cat') === currentCategory) {
+          chip.classList.add('active');
+        }
+      });
+      
+      // Update duration chips
+      document.querySelectorAll('#duration-chips .chip').forEach(chip => {
+        chip.classList.remove('active');
+        if (parseInt(chip.getAttribute('data-min')) === currentMinutes) {
+          chip.classList.add('active');
+        }
+      });
+    }
+
     function selectCategory(el){
       document.querySelectorAll('#category-chips .chip').forEach(c=>c.classList.remove('active'));
-      el.classList.add('active'); currentCategory = el.getAttribute('data-cat'); renderSuggestions(); savePrefs();
+      el.classList.add('active'); 
+      currentCategory = el.getAttribute('data-cat'); 
+      renderSuggestions(); 
+      updatePromptFromSelections();
+      savePrefs();
     }
 
     function selectDuration(el){
       document.querySelectorAll('#duration-chips .chip').forEach(c=>c.classList.remove('active'));
-      el.classList.add('active'); currentMinutes = parseInt(el.getAttribute('data-min'),10) || 20; renderSuggestions(); savePrefs();
+      el.classList.add('active'); 
+      currentMinutes = parseInt(el.getAttribute('data-min'),10) || 20; 
+      renderSuggestions(); 
+      updatePromptFromSelections();
+      savePrefs();
     }
 
     /* ---------- Session tracking variables ---------- */
