@@ -78,16 +78,25 @@
       border-radius: 12px; 
       border: 1px solid var(--ios-border); 
       margin-bottom: 20px; 
-      overflow: hidden;
+      overflow-x: auto;
+      overflow-y: hidden;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE and Edge */
     }
+    
+    .tabs::-webkit-scrollbar {
+      display: none; /* Chrome, Safari, Opera */
+    }
+    
     .tab { 
       padding: 16px 20px; 
       cursor: pointer; 
       background: #fff; 
       border: none; 
       color: var(--ios-gray); 
-      flex: 1; 
+      flex-shrink: 0;
+      min-width: 140px;
       text-align: center; 
       transition: all 0.2s ease;
       font-weight: 500;
@@ -96,6 +105,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      white-space: nowrap;
     }
     .tab.active { 
       background: var(--ios-blue); 
@@ -132,6 +142,9 @@
       font-size: 16px;
       font-family: inherit;
       transition: border-color 0.2s ease;
+      box-sizing: border-box;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
     }
     .workout-request:focus {
       outline: none;
@@ -506,11 +519,79 @@
     /* Enhanced mobile responsiveness */
     @media (max-width: 640px) {
       body {
-        padding: 16px;
-        padding-top: calc(16px + var(--safe-area-inset-top));
-        padding-bottom: calc(16px + var(--safe-area-inset-bottom));
-        padding-left: calc(16px + var(--safe-area-inset-left));
-        padding-right: calc(16px + var(--safe-area-inset-right));
+        padding: 12px;
+        padding-top: calc(12px + var(--safe-area-inset-top));
+        padding-bottom: calc(12px + var(--safe-area-inset-bottom));
+        padding-left: calc(12px + var(--safe-area-inset-left));
+        padding-right: calc(12px + var(--safe-area-inset-right));
+      }
+      
+      h1 {
+        font-size: 1.5rem;
+        margin: 8px 0;
+      }
+      
+      .tabs {
+        border-radius: 10px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+      
+      .tabs::-webkit-scrollbar {
+        display: none;
+      }
+      
+      .tab {
+        padding: 12px 16px;
+        font-size: 13px;
+        min-width: 120px;
+        flex-shrink: 0;
+        white-space: nowrap;
+      }
+      
+      .tab-content {
+        padding: 12px;
+        border-radius: 10px;
+        overflow-x: hidden;
+      }
+      
+      .workout-request {
+        padding: 12px;
+        font-size: 14px;
+        width: 100%;
+        box-sizing: border-box;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+      }
+      
+      .generate-section {
+        margin-bottom: 16px;
+      }
+      
+      .suggestions {
+        gap: 16px;
+        margin: 12px 0;
+      }
+      
+      .suggestion-section {
+        padding: 12px;
+        margin-bottom: 8px;
+      }
+      
+      .section-header {
+        margin-bottom: 12px;
+        padding: 8px 12px;
+        margin: -12px -12px 12px -12px;
+      }
+      
+      .section-title {
+        font-size: 14px;
+      }
+      
+      .section-subtitle {
+        font-size: 11px;
       }
       
       .countdown-pill { 
@@ -529,34 +610,17 @@
         font-size: 2rem;
       }
       
-      .tabs {
-        border-radius: 10px;
-      }
-      
-      .tab {
-        padding: 14px 16px;
-        font-size: 14px;
-      }
-      
-      .tab-content {
-        padding: 16px;
-        border-radius: 10px;
-      }
-      
       button {
         padding: 14px 20px;
         font-size: 15px;
         margin: 6px;
       }
       
-      .workout-request {
-        padding: 14px;
-        font-size: 15px;
-      }
-      
       .paste-area {
         padding: 14px;
         font-size: 13px;
+        width: 100%;
+        box-sizing: border-box;
       }
     }
 
