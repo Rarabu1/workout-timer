@@ -130,7 +130,23 @@
 
     body.landscape-compact #timer-section.timer-display{ background:transparent; border:none; box-shadow:none; padding:10px 12px; }
     body.landscape-compact .countdown-wrap{ margin:0 0 8px; }
-    body.landscape-compact .countdown-pill{ background:transparent; border:none; box-shadow:none; min-width:60vw; height:auto; padding:0; }
+    body.landscape-compact .countdown-pill{
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      min-width: 60vw;
+      height: auto;
+      padding: 0;
+    }
+    body.landscape-compact.phase-blue   .countdown-pill,
+    body.landscape-compact.phase-green  .countdown-pill,
+    body.landscape-compact.phase-yellow .countdown-pill,
+    body.landscape-compact.phase-orange .countdown-pill,
+    body.landscape-compact.phase-red    .countdown-pill{
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
     body.landscape-compact #timer{ font-size:18vh; line-height:1; font-weight:900; letter-spacing:1px; color:#fff; }
 
     .landscape-metrics{ display:none; font-size:6vh; font-weight:700; color:#fff; margin-top:6px; }
