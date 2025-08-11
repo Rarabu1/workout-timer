@@ -3148,7 +3148,12 @@
       console.log('WHOOP Recovery Data:', recoveryData);
       
       // Display recovery metrics based on actual WHOOP API structure
-      const recoveryScore = recoveryData?.score || recoveryData?.recovery?.score?.recovery_score || '--';
+      let recoveryScore = recoveryData?.score || recoveryData?.recovery?.score?.recovery_score || '--';
+      if (typeof recoveryScore === 'object' && recoveryScore !== null) {
+        console.log('Recovery score is an object:', recoveryScore);
+        recoveryScore = recoveryScore.recovery_score || recoveryScore.score || JSON.stringify(recoveryScore);
+      }
+      
       const sleepScore = recoveryData?.sleep?.score?.sleep_performance || recoveryData?.sleep_score || '--';
       const strainScore = recoveryData?.strain?.score?.strain || recoveryData?.strain_score || '--';
       const hrvValue = recoveryData?.metrics?.hrv_rmssd || recoveryData?.hrv || '--';
