@@ -1549,6 +1549,9 @@ def exchange_whoop_code_for_token(code):
             'Content-Type': 'application/x-www-form-urlencoded'
         }
         
+        print(f"Request data: {token_data}")
+        print(f"Client secret length: {len(WHOOP_CLIENT_SECRET) if WHOOP_CLIENT_SECRET else 0}")
+        
         response = requests.post(token_url, data=token_data, headers=headers)
         
         print(f"Token response status: {response.status_code}")
