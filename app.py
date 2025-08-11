@@ -318,7 +318,7 @@ def get_workouts():
 
 @app.route("/generate_workout", methods=["POST"])
 def generate_workout():
-    """Generate workout using OpenAI with robust error handling and safe fallback."""
+    """Generate structured workout using athlete profile, constraints, and JSON schema."""
     try:
         # Check API key
         api_key = os.environ.get("OPENAI_API_KEY")
@@ -332,7 +332,7 @@ def generate_workout():
         if not user_request:
             return jsonify(success=False, error="Please describe the workout"), 400
 
-        # Call OpenAI with proper error handling and dynamic prompts
+        # Call OpenAI with structured approach
         try:
             import random
             from datetime import datetime
@@ -345,71 +345,154 @@ def generate_workout():
                 # Try alternative initialization
                 client = OpenAI(api_key=api_key, base_url="https://api.openai.com/v1")
             
-            # Create dynamic system prompts for variety
-            system_prompts = [
-                "You are an experienced running coach specializing in treadmill workouts. Generate a unique treadmill workout as plain text, one interval per line. Use the exact format: `<minutes> min @ <speed> mph (<short label>)`. Optionally include 'incline X' like `, incline 2`. Keep total duration ≤ 60 minutes. Vary speeds between 4.0-8.0 mph and be creative with interval patterns.",
-                
-                "You are a professional running coach creating personalized treadmill sessions. Design a treadmill workout as plain text, one interval per line. Format: `<minutes> min @ <speed> mph (<short label>)`. Add incline variations like `, incline 1-3`. Total duration ≤ 60 minutes. Mix different intensities and create engaging patterns.",
-                
-                "You are a certified running coach developing innovative treadmill workouts. Create a treadmill session as plain text, one interval per line. Use format: `<minutes> min @ <speed> mph (<short label>)`. Include incline work like `, incline 2`. Keep under 60 minutes. Focus on progressive overload and varied intensity.",
-                
-                "You are a running coach expert in treadmill training. Generate a treadmill workout as plain text, one interval per line. Format: `<minutes> min @ <speed> mph (<short label>)`. Add incline variations like `, incline 1-4`. Maximum 60 minutes. Create dynamic patterns with speed and incline changes.",
-                
-                "You are a running coach specializing in treadmill interval training. Design a treadmill workout as plain text, one interval per line. Use: `<minutes> min @ <speed> mph (<short label>)`. Include incline work like `, incline 2-3`. Keep ≤ 60 minutes. Focus on interval variety and recovery periods."
-            ]
+            # Athlete Profile (personalized for the user)
+            athlete_profile = """
+            ATHLETE PROFILE:
+            - Device: Treadmill, speed in mph, show segment lengths
+            - Pace anchors (0-1% incline):
+              * 3.9 mph = brisk walk
+              * 5.5 mph = very easy jog (recovery)
+              * 6.1 mph = easy-moderate (steady)
+              * 6.5 mph = challenging but doable
+              * 7.0 mph = comfortable sprint
+            - HR zones (WHOOP): Z2 140-152, Z3 153-164, Z4 165-177
+            - Preferences: variety but structured; keep mostly Z3 with controlled Z4 surges; use mild inclines
+            - Duration defaults: 30, 40, or 45 min
+            """
+
+            # Constraints & Difficulty Knobs
+            constraints = """
+            CONSTRAINTS & DIFFICULTY KNOBS:
+            - Target intensity mix: 60-75% Z3, 10-20% Z4, remainder Z1-Z2
+            - Speed bounds: steady 5.8-6.3 mph; surges 6.7-7.2 mph; cap max at 8.0 mph; recoveries 4.5-5.3 mph
+            - Incline rules: recoveries 0-1%; steadies 0-1%; surges up to 3-4%; no hills on sprints if using 7.0+ mph
+            - Work:recovery ratios: 1:1 for surges ≤60s, 2:1 for steadies; minimum interval length 1:00
+            - Progression: if prior run felt ≤7/10 RPE or Z3 time <60%, add +0.1-0.2 mph to steady sections next time; otherwise keep speeds and add +1 min total time
+            - Output language: mph only; print by segment length
+            """
+
+            # Strict JSON Schema
+            json_schema = """
+            STRICT OUTPUT SCHEMA - Return ONLY valid JSON that matches this format:
+            {
+              "title": "Workout title with duration and focus",
+              "total_time_min": <total_duration>,
+              "rules": {
+                "speeds": {
+                  "walk_brisk": 3.9,
+                  "recovery": [4.5, 5.3],
+                  "steady": [5.8, 6.3],
+                  "surge": [6.7, 7.2],
+                  "max_sprint": [7.3, 8.0]
+                },
+                "incline_pct": {
+                  "recovery": [0, 1],
+                  "steady": [0, 1],
+                  "surge": [0, 4],
+                  "max_sprint": [0, 2]
+                },
+                "zones": {
+                  "Z2": [140, 152],
+                  "Z3": [153, 164],
+                  "Z4": [165, 177],
+                  "Z5": [178, 999]
+                },
+                "time_in_zones_target_pct": {
+                  "Z3": <60-75>,
+                  "Z4": <10-20>,
+                  "other": <remainder>
+                },
+                "segment_min_sec": 60,
+                "max_segments_above_7mph": 3,
+                "max_duration_above_7mph_sec": 60,
+                "min_recovery_after_7mph_sec": 90
+              },
+              "segments": [
+                {
+                  "order": <segment_number>,
+                  "duration_sec": <duration_in_seconds>,
+                  "speed_mph": <speed>,
+                  "incline_pct": <incline>,
+                  "intent": "<warmup|steady|surge|recovery|max_sprint|cooldown>",
+                  "target_hr_zone": "<Z2|Z3|Z4|Z5>"
+                }
+              ],
+              "summary": {
+                "target_mix": {"Z3_pct": <percentage>, "Z4_pct": <percentage>},
+                "avg_speed_mph": <average_speed>
+              },
+              "printable": [
+                "<duration> min @ <speed> mph — <description>"
+              ]
+            }
+            """
+
+            # Determine workout duration from user request
+            duration = 30  # default
+            if "30" in user_request or "thirty" in user_request.lower():
+                duration = 30
+            elif "40" in user_request or "forty" in user_request.lower():
+                duration = 40
+            elif "45" in user_request or "forty-five" in user_request.lower():
+                duration = 45
+            elif "20" in user_request or "twenty" in user_request.lower():
+                duration = 20
+            elif "60" in user_request or "sixty" in user_request.lower():
+                duration = 60
+
+            # Create structured prompt
+            structured_prompt = f"""
+            {athlete_profile}
             
-            # Add dynamic elements to user request
-            current_time = datetime.now()
-            time_context = ""
-            if 6 <= current_time.hour < 12:
-                time_context = " (morning energy focus)"
-            elif 12 <= current_time.hour < 17:
-                time_context = " (afternoon power session)"
-            elif 17 <= current_time.hour < 21:
-                time_context = " (evening strength workout)"
-            else:
-                time_context = " (late night recovery focus)"
+            {constraints}
             
-            # Add random intensity modifiers
-            intensity_modifiers = [
-                "with progressive speed increases",
-                "incorporating hill intervals",
-                "with tempo sections",
-                "focusing on endurance building",
-                "with speed variations",
-                "incorporating recovery periods",
-                "with threshold work",
-                "focusing on aerobic capacity",
-                "with anaerobic intervals",
-                "incorporating steady state work"
-            ]
+            {json_schema}
             
-            # Enhance user request with dynamic elements
-            enhanced_request = user_request
-            if random.random() < 0.7:  # 70% chance to add time context
-                enhanced_request += time_context
-            if random.random() < 0.5:  # 50% chance to add intensity modifier
-                enhanced_request += " " + random.choice(intensity_modifiers)
+            USER REQUEST: {user_request}
+            TARGET DURATION: {duration} minutes
             
-            # Add random seed for variety
-            random_seed = random.randint(1, 1000)
-            
-            # Vary temperature for more creativity
-            temperature = random.uniform(0.8, 1.2)
-            
+            Generate a structured treadmill workout that matches the user's request and follows all constraints. 
+            Return ONLY the JSON object, no additional text or explanations.
+            """
+
             completion = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
                     {
                         "role": "system",
-                        "content": random.choice(system_prompts)
+                        "content": "You are an expert running coach who creates structured, personalized treadmill workouts. You always return valid JSON that matches the exact schema provided."
                     },
-                    {"role": "user", "content": f"Create a unique workout: {enhanced_request}. Random seed: {random_seed}"},
+                    {"role": "user", "content": structured_prompt},
                 ],
-                temperature=temperature,
-                max_tokens=600,
+                temperature=0.7,
+                max_tokens=1500,
             )
-            workout_text = (completion.choices[0].message.content or "").strip()
+            
+            # Parse the JSON response
+            response_text = (completion.choices[0].message.content or "").strip()
+            
+            # Try to extract JSON from the response
+            import json
+            import re
+            
+            # Look for JSON in the response
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if json_match:
+                workout_json = json.loads(json_match.group())
+                
+                # Convert JSON to printable format
+                workout_text = "\n".join(workout_json.get("printable", []))
+                
+                # Store the structured data for future use
+                workout_json["raw_request"] = user_request
+                workout_json["generated_at"] = datetime.now().isoformat()
+                
+                # You could save this structured data to database here
+                print(f"Generated structured workout: {workout_json.get('title', 'Unknown')}")
+                
+            else:
+                # Fallback to plain text if JSON parsing fails
+                workout_text = response_text
         except Exception as openai_error:
             print(f"OpenAI error: {openai_error}")
             # Enhanced fallback workouts with variety based on user request
@@ -558,6 +641,195 @@ def generate_workout():
         import traceback
         traceback.print_exc()
         return jsonify(success=False, error=f"Generation failed: {str(e)}"), 500
+
+@app.route("/generate_structured_workout", methods=["POST"])
+def generate_structured_workout():
+    """Generate structured workout with athlete profile, constraints, and JSON schema."""
+    try:
+        # Check API key
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            return jsonify(success=False, error="OpenAI API key not configured"), 500
+
+        # Validate input
+        body = request.get_json() or {}
+        user_request = (body.get("request") or "").strip()
+        if not user_request:
+            return jsonify(success=False, error="Please describe the workout"), 400
+
+        # Get WHOOP data if available for personalized zones
+        whoop_zones = body.get("whoop_zones", {
+            "Z2": [140, 152],
+            "Z3": [153, 164], 
+            "Z4": [165, 177],
+            "Z5": [178, 999]
+        })
+
+        try:
+            import random
+            from datetime import datetime
+            
+            # Initialize OpenAI client
+            try:
+                client = OpenAI(api_key=api_key)
+            except Exception as client_error:
+                print(f"OpenAI client init error: {client_error}")
+                client = OpenAI(api_key=api_key, base_url="https://api.openai.com/v1")
+
+            # Personalized Athlete Profile
+            athlete_profile = f"""
+            ATHLETE PROFILE:
+            - Device: Treadmill, speed in mph, show segment lengths
+            - Pace anchors (0-1% incline):
+              * 3.9 mph = brisk walk
+              * 5.5 mph = very easy jog (recovery)
+              * 6.1 mph = easy-moderate (steady)
+              * 6.5 mph = challenging but doable
+              * 7.0 mph = comfortable sprint
+            - HR zones (WHOOP): Z2 {whoop_zones['Z2'][0]}-{whoop_zones['Z2'][1]}, Z3 {whoop_zones['Z3'][0]}-{whoop_zones['Z3'][1]}, Z4 {whoop_zones['Z4'][0]}-{whoop_zones['Z4'][1]}
+            - Preferences: variety but structured; keep mostly Z3 with controlled Z4 surges; use mild inclines
+            - Duration defaults: 30, 40, or 45 min
+            """
+
+            # Smart Constraints
+            constraints = """
+            CONSTRAINTS & DIFFICULTY KNOBS:
+            - Target intensity mix: 60-75% Z3, 10-20% Z4, remainder Z1-Z2
+            - Speed bounds: steady 5.8-6.3 mph; surges 6.7-7.2 mph; cap max at 8.0 mph; recoveries 4.5-5.3 mph
+            - Incline rules: recoveries 0-1%; steadies 0-1%; surges up to 3-4%; no hills on sprints if using 7.0+ mph
+            - Work:recovery ratios: 1:1 for surges ≤60s, 2:1 for steadies; minimum interval length 1:00
+            - Progression: if prior run felt ≤7/10 RPE or Z3 time <60%, add +0.1-0.2 mph to steady sections next time; otherwise keep speeds and add +1 min total time
+            - Output language: mph only; print by segment length
+            """
+
+            # Strict JSON Schema
+            json_schema = f"""
+            STRICT OUTPUT SCHEMA - Return ONLY valid JSON that matches this format:
+            {{
+              "title": "Workout title with duration and focus",
+              "total_time_min": <total_duration>,
+              "rules": {{
+                "speeds": {{
+                  "walk_brisk": 3.9,
+                  "recovery": [4.5, 5.3],
+                  "steady": [5.8, 6.3],
+                  "surge": [6.7, 7.2],
+                  "max_sprint": [7.3, 8.0]
+                }},
+                "incline_pct": {{
+                  "recovery": [0, 1],
+                  "steady": [0, 1],
+                  "surge": [0, 4],
+                  "max_sprint": [0, 2]
+                }},
+                "zones": {{
+                  "Z2": [{whoop_zones['Z2'][0]}, {whoop_zones['Z2'][1]}],
+                  "Z3": [{whoop_zones['Z3'][0]}, {whoop_zones['Z3'][1]}],
+                  "Z4": [{whoop_zones['Z4'][0]}, {whoop_zones['Z4'][1]}],
+                  "Z5": [{whoop_zones['Z5'][0]}, {whoop_zones['Z5'][1]}]
+                }},
+                "time_in_zones_target_pct": {{
+                  "Z3": <60-75>,
+                  "Z4": <10-20>,
+                  "other": <remainder>
+                }},
+                "segment_min_sec": 60,
+                "max_segments_above_7mph": 3,
+                "max_duration_above_7mph_sec": 60,
+                "min_recovery_after_7mph_sec": 90
+              }},
+              "segments": [
+                {{
+                  "order": <segment_number>,
+                  "duration_sec": <duration_in_seconds>,
+                  "speed_mph": <speed>,
+                  "incline_pct": <incline>,
+                  "intent": "<warmup|steady|surge|recovery|max_sprint|cooldown>",
+                  "target_hr_zone": "<Z2|Z3|Z4|Z5>"
+                }}
+              ],
+              "summary": {{
+                "target_mix": {{"Z3_pct": <percentage>, "Z4_pct": <percentage>}},
+                "avg_speed_mph": <average_speed>
+              }},
+              "printable": [
+                "<duration> min @ <speed> mph — <description>"
+              ]
+            }}
+            """
+
+            # Determine workout duration from user request
+            duration = 30  # default
+            if "30" in user_request or "thirty" in user_request.lower():
+                duration = 30
+            elif "40" in user_request or "forty" in user_request.lower():
+                duration = 40
+            elif "45" in user_request or "forty-five" in user_request.lower():
+                duration = 45
+            elif "20" in user_request or "twenty" in user_request.lower():
+                duration = 20
+            elif "60" in user_request or "sixty" in user_request.lower():
+                duration = 60
+
+            # Create structured prompt
+            structured_prompt = f"""
+            {athlete_profile}
+            
+            {constraints}
+            
+            {json_schema}
+            
+            USER REQUEST: {user_request}
+            TARGET DURATION: {duration} minutes
+            
+            Generate a structured treadmill workout that matches the user's request and follows all constraints. 
+            Return ONLY the JSON object, no additional text or explanations.
+            """
+
+            completion = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an expert running coach who creates structured, personalized treadmill workouts. You always return valid JSON that matches the exact schema provided."
+                    },
+                    {"role": "user", "content": structured_prompt},
+                ],
+                temperature=0.7,
+                max_tokens=1500,
+            )
+            
+            # Parse the JSON response
+            response_text = (completion.choices[0].message.content or "").strip()
+            
+            # Try to extract JSON from the response
+            import json
+            import re
+            
+            # Look for JSON in the response
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if json_match:
+                workout_json = json.loads(json_match.group())
+                
+                # Add metadata
+                workout_json["raw_request"] = user_request
+                workout_json["generated_at"] = datetime.now().isoformat()
+                workout_json["whoop_zones"] = whoop_zones
+                
+                print(f"Generated structured workout: {workout_json.get('title', 'Unknown')}")
+                
+                return jsonify(success=True, workout=workout_json)
+                
+            else:
+                return jsonify(success=False, error="Failed to generate structured workout"), 500
+                
+        except Exception as openai_error:
+            print(f"OpenAI error: {openai_error}")
+            return jsonify(success=False, error="Failed to generate workout"), 500
+            
+    except Exception as e:
+        print(f"Error in generate_structured_workout: {e}")
+        return jsonify(success=False, error=str(e)), 500
 
 @app.route("/saved_workouts")
 def saved_workouts():
