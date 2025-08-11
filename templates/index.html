@@ -2096,12 +2096,15 @@
       container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--ios-gray);">Loading suggestions...</div>';
       
       try {
-        // Fetch dynamic suggestions from backend
-        const response = await fetch('/workout_suggestions');
-        const suggestions = await response.json();
+        // First, generate suggestions based on current category and duration
+        const baseSuggestions = generateBaseSuggestions();
         
-        // Filter suggestions based on current category and duration
-        let filteredSuggestions = suggestions.filter(suggestion => {
+        // Then fetch additional dynamic suggestions from backend
+        const response = await fetch(`/workout_suggestions?category=${currentCategory}&duration=${currentMinutes}`);
+        const dynamicSuggestions = await response.json();
+        
+        // Filter dynamic suggestions based on current category
+        let filteredDynamicSuggestions = dynamicSuggestions.filter(suggestion => {
           const lowerSuggestion = suggestion.toLowerCase();
           const category = currentCategory.toLowerCase();
           
@@ -2124,11 +2127,15 @@
           return true;
         });
         
-        // Shuffle and take 6 suggestions
-        filteredSuggestions = filteredSuggestions.sort(() => Math.random() - 0.5).slice(0, 6);
+        // Combine base suggestions (duration-based) with dynamic suggestions
+        const allSuggestions = [...baseSuggestions, ...filteredDynamicSuggestions];
+        
+        // Shuffle and take 6 suggestions, prioritizing base suggestions
+        const shuffledSuggestions = allSuggestions.sort(() => Math.random() - 0.5);
+        const finalSuggestions = shuffledSuggestions.slice(0, 6);
         
         container.innerHTML = '';
-        filteredSuggestions.forEach(suggestion => {
+        finalSuggestions.forEach(suggestion => {
           const btn = document.createElement('button');
           btn.className = 'suggestion-btn';
           btn.textContent = suggestion;
@@ -2141,20 +2148,30 @@
       } catch (error) {
         console.error('Error loading suggestions:', error);
         // Fallback to static suggestions if backend fails
-        const pool = SUGGESTION_POOLS[currentCategory] || [];
+        const baseSuggestions = generateBaseSuggestions();
         container.innerHTML = '';
-        const make = (...arr)=>arr[Math.floor(Math.random()*arr.length)];
-        const picks = new Set();
-        while (picks.size < Math.min(6, pool.length)) { picks.add(make(...pool)); }
-        Array.from(picks).forEach(fn => {
-          const text = fn(currentMinutes);
+        baseSuggestions.forEach(suggestion => {
           const btn = document.createElement('button');
           btn.className = 'suggestion-btn';
-          btn.textContent = text;
-          btn.onclick = () => { const inp = document.getElementById('workoutRequest'); if (inp) inp.value = text; };
+          btn.textContent = suggestion;
+          btn.onclick = () => { 
+            const inp = document.getElementById('workoutRequest'); 
+            if (inp) inp.value = suggestion; 
+          };
           container.appendChild(btn);
         });
       }
+    }
+    
+    function generateBaseSuggestions() {
+      // Generate suggestions based on current category and duration
+      const pool = SUGGESTION_POOLS[currentCategory] || [];
+      const make = (...arr)=>arr[Math.floor(Math.random()*arr.length)];
+      const picks = new Set();
+      while (picks.size < Math.min(4, pool.length)) { 
+        picks.add(make(...pool)); 
+      }
+      return Array.from(picks).map(fn => fn(currentMinutes));
     }
 
     function loadSuggestions(){ renderSuggestions(); }

@@ -153,77 +153,122 @@ def workout_suggestions():
     import random
     from datetime import datetime
     
-    # Base suggestions with more variety
-    base_suggestions = [
-        "30 minute endurance run with steady pacing",
-        "20 minute VO2 max intervals (mph only)",
-        "40 minute hill repeats (incline work)",
-        "45 minute tempo with recoveries",
-        "60 minute long run with surges",
-        "30 minute fartlek: varied speeds",
-        "25 minute progressive speed build",
-        "35 minute interval ladder (increasing speeds)",
-        "50 minute mixed terrain simulation",
-        "20 minute sprint intervals with recovery",
-        "40 minute threshold pace workout",
-        "30 minute pyramid intervals",
-        "45 minute endurance with pickups",
-        "25 minute speed endurance session",
-        "35 minute hill climb simulation",
-        "20 minute anaerobic threshold work",
-        "40 minute marathon pace practice",
-        "30 minute mixed intensity intervals",
-        "50 minute long run with tempo sections",
-        "25 minute lactate threshold training"
-    ]
+    # Get query parameters for category and duration
+    category = request.args.get('category', 'endurance')
+    duration = request.args.get('duration', '30')
     
-    # Add dynamic elements based on time and randomization
-    current_hour = datetime.now().hour
-    current_minute = datetime.now().minute
-    
-    # Time-based variations
-    time_variations = [
-        f"morning energy boost workout",
-        f"afternoon power session",
-        f"evening recovery-focused run",
-        f"weekend long distance prep",
-        f"midweek intensity builder"
-    ]
-    
-    # Intensity variations based on time of day
-    if 6 <= current_hour < 12:
-        intensity = "morning energy"
-    elif 12 <= current_hour < 17:
-        intensity = "afternoon power"
-    elif 17 <= current_hour < 21:
-        intensity = "evening strength"
-    else:
-        intensity = "late night recovery"
-    
-    # Create dynamic suggestions
-    dynamic_suggestions = []
-    for base in base_suggestions[:10]:  # Take first 10 for variety
-        # Add time-based context
-        dynamic_suggestions.append(f"{base} ({intensity} focus)")
-        
-        # Add random modifiers
-        modifiers = [
-            "with breathing focus",
-            "incorporating cadence work",
-            "with mental toughness elements",
-            "focusing on form",
-            "with visualization techniques"
+    # Category-specific suggestions that work with any duration
+    category_suggestions = {
+        'endurance': [
+            "endurance run with steady pacing",
+            "aerobic base building session",
+            "progressive endurance workout",
+            "long distance preparation",
+            "steady state cardio session",
+            "endurance with short surges",
+            "aerobic threshold work",
+            "endurance base maintenance"
+        ],
+        'speed': [
+            "VO2 max intervals",
+            "tempo + sprint intervals",
+            "speed ladder workout",
+            "interval training session",
+            "anaerobic threshold work",
+            "speed endurance training",
+            "high-intensity intervals",
+            "sprint and recovery cycles"
+        ],
+        'hills': [
+            "hill repeats and inclines",
+            "rolling hills endurance",
+            "hill sprint intervals",
+            "incline strength work",
+            "mountain simulation",
+            "hill climb training",
+            "incline intervals",
+            "elevation gain focus"
+        ],
+        'recovery': [
+            "recovery run, low impact",
+            "easy jog with strides",
+            "walk-jog recovery mix",
+            "active recovery session",
+            "gentle cardio workout",
+            "recovery-focused training",
+            "easy pace maintenance",
+            "recovery and mobility"
+        ],
+        'race': [
+            "race-pace preparation",
+            "tempo with race intervals",
+            "marathon pace work",
+            "5K race simulation",
+            "10K tempo training",
+            "half-marathon prep",
+            "race-specific intervals",
+            "competitive pace work"
+        ],
+        'fartlek': [
+            "fartlek with varied speeds",
+            "fartlek with random surges",
+            "fartlek pyramid intervals",
+            "speed play training",
+            "fartlek with tempo sections",
+            "mixed intensity fartlek",
+            "fartlek with hill elements",
+            "creative speed variations"
         ]
-        if random.random() < 0.3:  # 30% chance to add modifier
+    }
+    
+    # Get suggestions for the current category
+    base_suggestions = category_suggestions.get(category, category_suggestions['endurance'])
+    
+    # Add dynamic elements based on time
+    current_hour = datetime.now().hour
+    
+    # Time-based intensity focus
+    if 6 <= current_hour < 12:
+        time_focus = "morning energy"
+    elif 12 <= current_hour < 17:
+        time_focus = "afternoon power"
+    elif 17 <= current_hour < 21:
+        time_focus = "evening strength"
+    else:
+        time_focus = "late night recovery"
+    
+    # Create enhanced suggestions
+    enhanced_suggestions = []
+    
+    # Add base suggestions with time context
+    for suggestion in base_suggestions:
+        enhanced_suggestions.append(f"{duration} minute {suggestion}")
+        enhanced_suggestions.append(f"{duration} minute {suggestion} ({time_focus} focus)")
+    
+    # Add random modifiers for variety
+    modifiers = [
+        "with breathing focus",
+        "incorporating cadence work",
+        "with mental toughness elements",
+        "focusing on form",
+        "with visualization techniques",
+        "with progressive overload",
+        "incorporating recovery periods",
+        "with threshold work"
+    ]
+    
+    # Add some suggestions with modifiers
+    for suggestion in base_suggestions[:4]:  # Take first 4 for variety
+        if random.random() < 0.4:  # 40% chance to add modifier
             modifier = random.choice(modifiers)
-            dynamic_suggestions.append(f"{base} {modifier}")
+            enhanced_suggestions.append(f"{duration} minute {suggestion} {modifier}")
     
     # Shuffle and return unique suggestions
-    all_suggestions = list(set(base_suggestions + dynamic_suggestions))
+    all_suggestions = list(set(enhanced_suggestions))
     random.shuffle(all_suggestions)
     
-    # Return 12-15 suggestions for variety
-    return jsonify(all_suggestions[:random.randint(12, 15)])
+    # Return 8-12 suggestions for variety
+    return jsonify(all_suggestions[:random.randint(8, 12)])
 
 @app.route("/parse", methods=["POST"])
 def parse():
