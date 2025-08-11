@@ -33,7 +33,7 @@ DATABASE = 'workouts.db'
 
 # WHOOP API Configuration
 WHOOP_CLIENT_ID = os.getenv('WHOOP_CLIENT_ID')
-WHOOP_CLIENT_SECRET = os.getenv('WHOOP_CLIENT_SECRET')
+WHOOP_CLIENT_SECRET = os.getenv('WHOOP_CLIENT_SECRET', '43d8c7a606083d063e422454bd593104fd66e1716b3900ff86d8752e87769db0')
 WHOOP_REDIRECT_URI = os.getenv('WHOOP_REDIRECT_URI', 'https://workout-timer-dskb.onrender.com/whoop/callback')
 WHOOP_API_BASE = 'https://api.prod.whoop.com'
 
