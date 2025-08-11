@@ -3155,20 +3155,23 @@
         recoveryScore = recoveryScore.recovery_score || recoveryScore.score || JSON.stringify(recoveryScore);
       }
       
-      // Try different possible data structures for sleep, strain, and HRV
-      let sleepScore = recoveryData?.sleep_data?.score?.sleep_performance || recoveryData?.sleep?.score?.sleep_performance || recoveryData?.sleep_score || '--';
+      // Extract data according to WHOOP API structure
+      // Sleep: sleep_data.score.sleep_performance_percentage
+      let sleepScore = recoveryData?.sleep_data?.score?.sleep_performance_percentage || recoveryData?.sleep?.score?.sleep_performance_percentage || '--';
       if (typeof sleepScore === 'object' && sleepScore !== null) {
-        sleepScore = sleepScore.sleep_performance || sleepScore.score || JSON.stringify(sleepScore);
+        sleepScore = sleepScore.sleep_performance_percentage || sleepScore.score || JSON.stringify(sleepScore);
       }
       
-      let strainScore = recoveryData?.strain_data?.score?.strain || recoveryData?.strain?.score?.strain || recoveryData?.strain_score || '--';
+      // Strain: strain_data.score.strain (from cycle endpoint)
+      let strainScore = recoveryData?.strain_data?.score?.strain || recoveryData?.strain?.score?.strain || '--';
       if (typeof strainScore === 'object' && strainScore !== null) {
         strainScore = strainScore.strain || strainScore.score || JSON.stringify(strainScore);
       }
       
-      let hrvValue = recoveryData?.metrics?.hrv_rmssd || recoveryData?.hrv || '--';
+      // HRV: score.hrv_rmssd_milli (from recovery endpoint)
+      let hrvValue = recoveryData?.score?.hrv_rmssd_milli || recoveryData?.hrv || '--';
       if (typeof hrvValue === 'object' && hrvValue !== null) {
-        hrvValue = hrvValue.hrv_rmssd || hrvValue.value || JSON.stringify(hrvValue);
+        hrvValue = hrvValue.hrv_rmssd_milli || hrvValue.value || JSON.stringify(hrvValue);
       }
       
       document.getElementById('recovery-score').textContent = recoveryScore;
