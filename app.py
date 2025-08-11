@@ -1516,43 +1516,46 @@ def exchange_whoop_code_for_token(code):
         return None
     
     try:
-        print(f"Exchanging code for token - Code: {code[:10]}...")
-        print(f"Token URL: {WHOOP_API_BASE}/oauth/oauth2/token")
-        print(f"Client ID: {WHOOP_CLIENT_ID}")
+        # Check if credentials are configured
+        if not WHOOP_CLIENT_ID or not WHOOP_CLIENT_SECRET:
+            print("Error: WHOOP credentials not configured")
+            return None
+            
+        print(f"Exchanging code for token...")
+        print(f"Client ID present: {bool(WHOOP_CLIENT_ID)}")
+        print(f"Client Secret present: {bool(WHOOP_CLIENT_SECRET)}")
         print(f"Redirect URI: {WHOOP_REDIRECT_URI}")
         
-        from urllib.parse import urlencode
+        token_url = f"{WHOOP_API_BASE}/oauth/oauth2/token"
         
         token_data = {
-            'client_id': WHOOP_CLIENT_ID,
-            'client_secret': WHOOP_CLIENT_SECRET,
             'grant_type': 'authorization_code',
             'code': code,
+            'client_id': WHOOP_CLIENT_ID,
+            'client_secret': WHOOP_CLIENT_SECRET,
             'redirect_uri': WHOOP_REDIRECT_URI
+        }
+        
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded'
         }
         
         print(f"Token request data: {token_data}")
         
-        # URL encode the data properly
-        encoded_data = urlencode(token_data)
-        print(f"Encoded data: {encoded_data}")
-        
-        response = requests.post(
-            f"{WHOOP_API_BASE}/oauth/oauth2/token", 
-            data=encoded_data,
-            headers={'Content-Type': 'application/x-www-form-urlencoded'}
-        )
+        response = requests.post(token_url, data=token_data, headers=headers)
         
         print(f"Token response status: {response.status_code}")
-        print(f"Token response headers: {dict(response.headers)}")
-        print(f"Token response body: {response.text}")
         
-        response.raise_for_status()
+        if response.status_code != 200:
+            print(f"Token exchange failed: {response.text}")
+            return None
+            
         return response.json()
+        
     except requests.exceptions.RequestException as e:
         print(f"Error exchanging code for token: {e}")
-        print(f"Response status: {getattr(e.response, 'status_code', 'N/A')}")
-        print(f"Response text: {getattr(e.response, 'text', 'N/A')}")
+        if hasattr(e, 'response'):
+            print(f"Response: {e.response.text}")
         return None
 
 def get_whoop_user_profile(access_token):
@@ -1670,17 +1673,44 @@ def whoop_callback():
         print(f"WHOOP Callback - State: {state}")
         
         if error:
+            error_msg = f"WHOOP OAuth Error: {error}"
+            if error_description:
+                error_msg += f" - {error_description}"
             print(f"WHOOP OAuth Error: {error} - {error_description}")
-            return jsonify(success=False, error=f"WHOOP OAuth Error: {error}"), 400
+            return f"""
+            <html>
+            <body style="font-family: sans-serif; padding: 20px;">
+                <h2>WHOOP Connection Failed</h2>
+                <p style="color: red;">{error_msg}</p>
+                <a href="/">Return to app</a>
+            </body>
+            </html>
+            """, 400
             
         if not code:
             print("No authorization code received from WHOOP")
-            return jsonify(success=False, error="No authorization code received"), 400
+            return """
+            <html>
+            <body style="font-family: sans-serif; padding: 20px;">
+                <h2>WHOOP Connection Failed</h2>
+                <p style="color: red;">No authorization code received</p>
+                <a href="/">Return to app</a>
+            </body>
+            </html>
+            """, 400
         
         # Exchange code for token
         token_data = exchange_whoop_code_for_token(code)
         if not token_data:
-            return jsonify(success=False, error="Failed to exchange code for token"), 400
+            return """
+            <html>
+            <body style="font-family: sans-serif; padding: 20px;">
+                <h2>WHOOP Connection Failed</h2>
+                <p style="color: red;">Failed to exchange code for token. Please check your WHOOP app configuration.</p>
+                <a href="/">Return to app</a>
+            </body>
+            </html>
+            """, 400
         
         # Store token in session
         session['whoop_access_token'] = token_data.get('access_token')
@@ -1693,10 +1723,20 @@ def whoop_callback():
             session['whoop_user_id'] = profile.get('id')
             session['whoop_user_email'] = profile.get('email')
         
-        return redirect(url_for('index'))
+        # Success - redirect to app
+        return redirect(url_for('index') + '#whoop')
         
     except Exception as e:
-        return jsonify(success=False, error=str(e)), 500
+        print(f"Error in whoop_callback: {e}")
+        return f"""
+        <html>
+        <body style="font-family: sans-serif; padding: 20px;">
+            <h2>WHOOP Connection Error</h2>
+            <p style="color: red;">An unexpected error occurred: {str(e)}</p>
+            <a href="/">Return to app</a>
+        </body>
+        </html>
+        """, 500
 
 @app.route("/whoop/recovery")
 def get_whoop_recovery():
