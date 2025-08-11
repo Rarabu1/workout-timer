@@ -290,6 +290,10 @@
     </div>
     <div class="d-flex align-items-center gap-2">
       <label class="toggle" title="Mute interval beeps"><input type="checkbox" id="mute-toggle" onchange="setMuted(this.checked)"> Mute beeps</label>
+      <label class="toggle" title="Prevent screen from sleeping">
+        <input type="checkbox" id="wakelock-toggle" onchange="setWakeLockEnabled(this.checked)">
+        Keep screen awake
+      </label>
       <button id="focus-toggle" class="btn btn-outline-secondary btn-sm" onclick="toggleFocus()">Focus mode</button>
     </div>
   </div>
@@ -357,6 +361,44 @@
     let isPaused = false;
     let deadlineTs = null;
     let muteBeeps = false;
+
+    // --- Wake Lock API ---
+    let wakeLock = null;
+    let wakeLockPref = false;
+
+    async function requestWakeLock(){
+      if (!('wakeLock' in navigator)) return;
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener?.('release', () => { wakeLock = null; });
+        document.addEventListener('visibilitychange', onVisibility, { once: true });
+      } catch (e) {
+        console.log('WakeLock error:', e?.message || e);
+      }
+    }
+    function onVisibility(){
+      if (document.visibilityState === 'visible' && wakeLockPref && (timerInterval || isPaused)) {
+        requestWakeLock();
+      }
+    }
+    function releaseWakeLock(){
+      try { document.removeEventListener('visibilitychange', onVisibility); } catch {}
+      try { wakeLock?.release(); } catch {}
+      wakeLock = null;
+    }
+    function setWakeLockEnabled(on){
+      wakeLockPref = !!on;
+      try { localStorage.setItem('wt.wakelock', wakeLockPref ? '1' : '0'); } catch {}
+      if (wakeLockPref && (timerInterval || isPaused)) requestWakeLock();
+      else if (!wakeLockPref) releaseWakeLock();
+    }
+    function loadWakeLockPref(){
+      const supported = 'wakeLock' in navigator;
+      const box = document.getElementById('wakelock-toggle');
+      if (!supported && box){ box.disabled = true; box.title = 'Not supported on this browser'; }
+      try { wakeLockPref = localStorage.getItem('wt.wakelock') === '1'; } catch {}
+      if (box) box.checked = !!wakeLockPref;
+    }
 
     function safeMinutes(it) {
       const v = Number(it && (it.duration_min ?? it.minutes ?? it.duration));
@@ -680,6 +722,7 @@
         timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
       }
       isPaused = false;
+      if (wakeLockPref) requestWakeLock();
       document.getElementById('btn-start').style.display = 'none';
       document.getElementById('btn-pause').style.display = 'inline-block';
 
@@ -731,6 +774,7 @@
     }
 
     function stopTimer(){
+      releaseWakeLock();
       clearInterval(timerInterval); timerInterval=null; isPaused=false;
       document.getElementById('btn-start').style.display='inline-block';
       document.getElementById('btn-pause').style.display='none';
@@ -760,6 +804,7 @@
     }
 
     function resetAll(){
+      releaseWakeLock();
       try { clearInterval(timerInterval); } catch {}
       timerInterval = null; intervals = []; currentIntervalIndex = 0; timeRemaining = 0; isPaused = false; deadlineTs = null;
       const ts = document.getElementById('timer-section'); ts?.classList.remove('active','phase-blue','phase-green','phase-yellow','phase-orange','phase-red');
@@ -822,7 +867,7 @@
     loadPrefs();
     document.querySelectorAll('#category-chips .chip').forEach(c=>c.classList.toggle('active', c.getAttribute('data-cat') === currentCategory));
     document.querySelectorAll('#duration-chips .chip').forEach(c=>c.classList.toggle('active', parseInt(c.getAttribute('data-min'),10) === currentMinutes));
-    loadSuggestions(); loadState(); loadMuted(); updateStats(); updateETA();
+    loadSuggestions(); loadState(); loadMuted(); updateStats(); updateETA(); loadWakeLockPref();
 
     /* ---------- Compact mode (landscape always) ---------- */
     function applyLandscapeCompact(){
