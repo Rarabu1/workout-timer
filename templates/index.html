@@ -67,6 +67,8 @@
       line-height: 1.4;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
 
     /* Enhanced iOS-style tabs */
@@ -112,6 +114,7 @@
       padding: 20px; 
       margin-bottom: 20px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      overflow: visible;
     }
     .tab-content.active { 
       display: block; 
@@ -2859,9 +2862,15 @@
       const isLandscape = mq.matches;
       const isSmallScreen = window.innerWidth < 768;
       
-      // Apply landscape mode for all small screens in landscape
+      // Only apply compact mode on small screens in landscape
       const shouldCompact = isLandscape && isSmallScreen;
       document.body.classList.toggle('landscape-compact', shouldCompact);
+      
+      // Ensure vertical mode has proper overflow
+      if (!shouldCompact) {
+        document.body.style.overflow = 'auto';
+        document.body.style.height = 'auto';
+      }
       
       // Update landscape metrics display
       const landscapeMetrics = document.getElementById('landscape-metrics');
