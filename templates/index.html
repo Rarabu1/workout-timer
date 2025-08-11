@@ -1,1171 +1,863 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8" />
-    <title>Treadmill Run Generator</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-    <!-- PWA Meta Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="Workout Timer">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#4CAF50">
-    <link rel="manifest" href="/static/manifest.json">
+  <meta charset="utf-8" />
+  <title>Treadmill Run Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <!-- PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Workout Timer">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#4CAF50">
+  <link rel="manifest" href="/static/manifest.json">
 
-    <!-- Icon for home screen -->
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
+  <!-- Icon for home screen -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
 
-    <!-- Prevent zooming on input focus -->
-    <style>
-      input, textarea, select {
-        font-size: 16px !important;
-      }
-    </style>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #f5f5f5;
-            color: #333;
-        }
+  <!-- Prevent zooming on input focus -->
+  <style> input, textarea, select { font-size: 16px !important; } </style>
 
-        .tabs {
-            display: flex;
-            background: #fff;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            margin-bottom: 20px;
-            overflow: hidden;
-        }
-        .tab {
-            padding: 15px 25px;
-            cursor: pointer;
-            background: #fff;
-            border: none;
-            color: #555;
-            flex: 1;
-            text-align: center;
-            transition: background 0.2s, color 0.2s;
-        }
-        .tab.active { background: #4CAF50; color: white; }
-        .tab:hover:not(.active) { background: #f0f0f0; }
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+      color: #333;
+    }
 
-        .tab-content {
-            display: none;
-            background: #fff;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .tab-content.active { display: block; }
+    .tabs { display:flex; background:#fff; border-radius:8px; border:1px solid #ddd; margin-bottom:20px; overflow:hidden; }
+    .tab { padding:15px 25px; cursor:pointer; background:#fff; border:none; color:#555; flex:1; text-align:center; transition: background .2s, color .2s; }
+    .tab.active { background:#4CAF50; color:#fff; }
+    .tab:hover:not(.active){ background:#f0f0f0; }
 
-        .generate-section { margin-bottom: 20px; }
-        .workout-request {
-            width: 100%;
-            padding: 12px;
-            background: #fff;
-            border: 1px solid #ddd;
-            color: #333;
-            border-radius: 6px;
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
+    .tab-content { display:none; background:#fff; border-radius:8px; border:1px solid #ddd; padding:20px; margin-bottom:20px; }
+    .tab-content.active { display:block; }
 
-        .suggestions { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
-        .suggestion-toolbar { display:flex; justify-content:space-between; align-items:center; margin: 6px 0 6px; }
-        .shuffle-row { margin: 4px 0 4px; }
-        .shuffle-primary { background:#2196F3; border:1px solid #2196F3; color:#fff; padding:8px 14px; font-size:13px; border-radius:999px; font-weight:600; cursor:pointer; }
-        .shuffle-primary:hover { background:#64b5f6; border-color:#64b5f6; }
+    .generate-section { margin-bottom:20px; }
+    .workout-request { width:100%; padding:12px; background:#fff; border:1px solid #ddd; color:#333; border-radius:6px; margin-bottom:10px; font-size:16px; }
 
-        .chip-row { display:flex; flex-wrap:wrap; gap:8px; }
-        .chip { border:1px solid #ddd; background:#fff; color:#444; padding:8px 12px; border-radius:999px; cursor:pointer; font-size:14px; }
-        .chip.active { background:#e8f5e9; border-color:#66bb6a; color:#1b5e20; }
-        .chip.secondary.active { background:#e3f2fd; border-color:#64b5f6; color:#0d47a1; }
+    .suggestions { display:flex; flex-direction:column; gap:8px; margin:10px 0; }
+    .suggestion-toolbar { display:flex; justify-content:space-between; align-items:center; margin:6px 0; }
+    .shuffle-row { margin:4px 0; }
+    .shuffle-primary { background:#2196F3; border:1px solid #2196F3; color:#fff; padding:8px 14px; font-size:13px; border-radius:999px; font-weight:600; cursor:pointer; }
+    .shuffle-primary:hover { background:#64b5f6; border-color:#64b5f6; }
 
-        .suggestion-btn {
-            background: #f5f5f5;
-            border: 1px solid #ddd;
-            color: #555;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background 0.2s, color 0.2s;
-        }
-        .suggestion-btn:hover { background: #f0f0f0; }
+    .chip-row { display:flex; flex-wrap:wrap; gap:8px; }
+    .chip { border:1px solid #ddd; background:#fff; color:#444; padding:8px 12px; border-radius:999px; cursor:pointer; font-size:14px; }
+    .chip.active { background:#e8f5e9; border-color:#66bb6a; color:#1b5e20; }
+    .chip.secondary.active { background:#e3f2fd; border-color:#64b5f6; color:#0d47a1; }
 
-        .paste-area {
-            width: 100%;
-            height: 200px;
-            background: #fff;
-            border: 1px solid #ddd;
-            color: #333;
-            padding: 10px;
-            border-radius: 6px;
-            font-family: monospace;
-            font-size: 14px;
-        }
+    .suggestion-btn { background:#f5f5f5; border:1px solid #ddd; color:#555; padding:8px 12px; border-radius:4px; cursor:pointer; font-size:14px; transition: background .2s, color .2s; }
+    .suggestion-btn:hover { background:#f0f0f0; }
 
-        .saved-workouts { max-height: 300px; overflow-y: auto; }
-        .workout-item {
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            color: #333;
-            transition: background 0.2s, border 0.2s;
-        }
-        .workout-item:hover { background: #f0f0f0; border-color: #bbb; }
-        .workout-meta { font-size: 12px; color: #888; margin-top: 5px; }
+    .paste-area { width:100%; height:200px; background:#fff; border:1px solid #ddd; color:#333; padding:10px; border-radius:6px; font-family:monospace; font-size:14px; }
 
-        button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
-            cursor: pointer;
-            margin: 5px;
-            font-size: 16px;
-            transition: background 0.2s;
-        }
-        button:hover { background: #66bb6a; }
-        button:disabled { background: #bbb; cursor: not-allowed; color: #fff; }
+    .saved-workouts { max-height:300px; overflow-y:auto; }
+    .workout-item { background:#fff; border:1px solid #ddd; border-radius:6px; padding:12px; margin-bottom:8px; cursor:pointer; color:#333; transition: background .2s, border .2s; }
+    .workout-item:hover { background:#f0f0f0; border-color:#bbb; }
+    .workout-meta { font-size:12px; color:#888; margin-top:5px; }
 
-        .btn-generate { background: #9C27B0; }
-        .btn-generate:hover { background: #b266c2; }
+    button { background:#4CAF50; color:#fff; border:none; padding:12px 24px; border-radius:6px; cursor:pointer; margin:5px; font-size:16px; transition: background .2s; }
+    button:hover { background:#66bb6a; }
+    button:disabled { background:#bbb; cursor:not-allowed; color:#fff; }
+    .btn-generate { background:#9C27B0; }
+    .btn-generate:hover { background:#b266c2; }
 
-        /* Summary, progress, resets */
-        .summary { display:flex; justify-content:space-between; align-items:center; margin: 8px 0 12px; }
-        #summary-pill { font-size:.9rem; color:#6c757d; }
-        .progress { height:8px; background:#eee; border-radius:999px; overflow:hidden; }
-        .progress-bar { height:100%; background:#4CAF50; transition: width .2s ease; }
-        .stats-line { color:#6c757d; font-size:.9rem; margin-top:4px; }
-        .stats-line strong { color:#333; }
+    /* Summary, progress, resets */
+    .summary { display:flex; justify-content:space-between; align-items:center; margin:8px 0 12px; }
+    #summary-pill { font-size:.9rem; color:#6c757d; }
+    .progress { height:8px; background:#eee; border-radius:999px; overflow:hidden; }
+    .progress-bar { height:100%; background:#4CAF50; transition: width .2s ease; }
+    .stats-line { color:#6c757d; font-size:.9rem; margin-top:4px; }
+    .stats-line strong { color:#333; }
 
-        .eta-line { color:#6c757d; font-size:.95rem; margin-top:6px; }
-        .reset-row { display:flex; align-items:center; gap:10px; margin-top:8px; }
-        .reset-row .spacer { flex:1 1 auto; }
-        .reset-link { background:none; border:none; color:#555; cursor:pointer; font-size:.9rem; padding:4px 6px; }
-        .reset-link:hover { text-decoration:underline; color:#333; }
-        .reset-link:focus-visible { outline:2px solid #9ecbff; outline-offset:2px; border-radius:4px; }
+    .eta-line { color:#6c757d; font-size:.95rem; margin-top:6px; }
+    .reset-row { display:flex; align-items:center; gap:10px; margin-top:8px; }
+    .reset-row .spacer { flex:1 1 auto; }
+    .reset-link { background:none; border:none; color:#555; cursor:pointer; font-size:.9rem; padding:4px 6px; }
+    .reset-link:hover { text-decoration:underline; color:#333; }
 
-        /* Timer styles */
-        .timer-display {
-            background: #fff;
-            border-radius: 12px;
-            border: 1px solid #ddd;
-            padding: 30px;
-            margin: 20px 0;
-            text-align: center;
-            display: none;
-        }
-        .timer-display.active { display: block; }
-        .timer-display .time-remaining { font-size:64px; line-height:1; margin:4px 0 16px; }
+    /* Timer styles */
+    .timer-display { background:#fff; border-radius:12px; border:1px solid #ddd; padding:30px; margin:20px 0; text-align:center; display:none; }
+    .timer-display.active { display:block; }
 
-        /* Central countdown pill */
-        .countdown-wrap{ display:flex; justify-content:center; margin:10px 0 14px; }
-        .countdown-pill{
-          display:inline-flex; align-items:center; justify-content:center;
-          min-width: 260px; height: 140px; padding: 8px 18px;
-          border-radius: 20px; border: 2px solid #ddd;
-          background:#fff; color:#222;
-          font-weight: 900; font-size: 64px; line-height: 1; letter-spacing:.5px;
-          box-shadow: 0 2px 8px rgba(0,0,0,.06);
-        }
-        /* Effort-colored pill variants (reuse phase colors) */
-        .timer-display.phase-blue   .countdown-pill{ background:#eaf4ff; border-color:#90caf9; color:#1e88e5; }
-        .timer-display.phase-green  .countdown-pill{ background:#e8f5e9; border-color:#81c784; color:#2e7d32; }
-        .timer-display.phase-yellow .countdown-pill{ background:#fff8e1; border-color:#fbc02d; color:#f9a825; }
-        .timer-display.phase-orange .countdown-pill{ background:#fff3e0; border-color:#ffb74d; color:#fb8c00; }
-        .timer-display.phase-red    .countdown-pill{ background:#ffebee; border-color:#ef9a9a; color:#e53935; }
+    /* Central countdown pill */
+    .countdown-wrap{ display:flex; justify-content:center; margin:10px 0 14px; }
+    .countdown-pill{
+      display:inline-flex; align-items:center; justify-content:center;
+      min-width:260px; height:140px; padding:8px 18px;
+      border-radius:20px; border:2px solid #ddd;
+      background:#fff; color:#222;
+      font-weight:900; font-size:64px; line-height:1; letter-spacing:.5px;
+      box-shadow:0 2px 8px rgba(0,0,0,.06);
+    }
+    /* Effort-colored pill variants (reuse phase colors) */
+    .timer-display.phase-blue   .countdown-pill{ background:#eaf4ff; border-color:#90caf9; color:#1e88e5; }
+    .timer-display.phase-green  .countdown-pill{ background:#e8f5e9; border-color:#81c784; color:#2e7d32; }
+    .timer-display.phase-yellow .countdown-pill{ background:#fff8e1; border-color:#fbc02d; color:#f9a825; }
+    .timer-display.phase-orange .countdown-pill{ background:#fff3e0; border-color:#ffb74d; color:#fb8c00; }
+    .timer-display.phase-red    .countdown-pill{ background:#ffebee; border-color:#ef9a9a; color:#e53935; }
 
-        /* Metrics row under countdown (speed + incline only) */
-        .interval-info{ display:flex; justify-content:center; gap: 12px; margin: 10px 0; flex-wrap: wrap; }
-        .metric{ background:#f7f9fc; border:1px solid #e2e8f0; border-radius:12px; padding:12px 16px; min-width:150px; text-align:center; }
-        .metric .metric-label{ font-size:.75rem; color:#6c757d; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; }
-        .metric .metric-value{ font-weight:800; font-size:2.2rem; line-height:1; color:#222; }
-        .metric .metric-unit{ font-size:.95rem; color:#6c757d; margin-left:4px; }
+    /* Metrics row under countdown (portrait view)**/
+    .interval-info{ display:flex; justify-content:center; gap:12px; margin:10px 0; flex-wrap:wrap; }
+    .metric{ background:#f7f9fc; border:1px solid #e2e8f0; border-radius:12px; padding:12px 16px; min-width:150px; text-align:center; }
+    .metric .metric-label{ font-size:.75rem; color:#6c757d; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; }
+    .metric .metric-value{ font-weight:800; font-size:2.2rem; line-height:1; color:#222; }
+    .metric .metric-unit{ font-size:.95rem; color:#6c757d; margin-left:4px; }
 
-        /* Mobile tweaks for portrait & landscape */
-        @media (max-width: 640px){
-          .countdown-pill{ min-width: 220px; height: 120px; font-size: 52px; }
-          .metric{ min-width:140px; }
-        }
-        @media (max-height: 480px) and (orientation: landscape){
-          .timer-display{ padding:16px; }
-          .countdown-pill{ min-width: 200px; height: 104px; font-size: 44px; }
-          .controls button{ padding:8px 10px; min-width:72px; }
-        }
+    /* Mobile tweaks */
+    @media (max-width:640px){
+      .countdown-pill{ min-width:220px; height:120px; font-size:52px; }
+      .metric{ min-width:140px; }
+    }
 
-        /* Landscape compact mode: show only countdown + metrics; no scrolling */
-        body.landscape-compact {
-          height: 100vh;
-          overflow: hidden;
-          margin: 0;
-          padding: 0;
-        }
-        body.landscape-compact .tabs,
-        body.landscape-compact #generate-tab,
-        body.landscape-compact #manual-tab,
-        body.landscape-compact #saved-tab,
-        body.landscape-compact .summary,
-        body.landscape-compact .progress,
-        body.landscape-compact .reset-row,
-        body.landscape-compact .next-up,
-        body.landscape-compact .intervals-list,
-        body.landscape-compact .controls,
-        body.landscape-compact #eta-line,
-        body.landscape-compact .current-interval h3,
-        body.landscape-compact #current-description {
-          display: none !important;
-        }
-        body.landscape-compact #timer-section.timer-display {
-          display: block !important; /* ensure timer shows even if tabs hidden */
-          max-width: 100%;
-          border: none;
-          margin: 0;
-          padding: 10px 12px;
-        }
-        body.landscape-compact #timer-section {
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-        }
-        body.landscape-compact .countdown-wrap { margin: 0 0 8px; }
-        body.landscape-compact .countdown-pill {
-          min-width: 50vw;
-          height: 34vh;
-          font-size: 12vh;
-          border-width: 1px;
-        }
-        body.landscape-compact .interval-info {
-          gap: 10px;
-          margin: 6px 0 0;
-        }
-        body.landscape-compact .metric {
-          min-width: 38vw;
-          padding: 10px 12px;
-        }
-        body.landscape-compact .metric .metric-value {
-          font-size: 8vh;
-        }
+    /* Landscape compact mode: core hide/show */
+    body.landscape-compact { height:100vh; overflow:hidden; margin:0; padding:0; }
 
-        .time-remaining {
-            font-size: 72px;
-            font-weight: bold;
-            color: #4CAF50;
-            font-variant-numeric: tabular-nums;
-        }
+    /* Deep full‑bleed landscape visuals */
+    body.landscape-compact {
+      display:flex; flex-direction:column; justify-content:center; align-items:center;
+      background:#0b1020; color:#fff; text-shadow:0 2px 4px rgba(0,0,0,.25);
+    }
+    body.landscape-compact.phase-blue   { background:#0D47A1; }
+    body.landscape-compact.phase-green  { background:#1B5E20; }
+    body.landscape-compact.phase-yellow { background:#996300; }
+    body.landscape-compact.phase-orange { background:#E65100; }
+    body.landscape-compact.phase-red    { background:#B71C1C; }
 
-        .current-interval {
-            background: #fff;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            padding: 20px;
-            margin: 15px 0;
-            color: #333;
-        }
-        .current-interval h3 { color: #4CAF50; margin-top: 0; }
+    body.landscape-compact #timer-section.timer-display{ background:transparent; border:none; box-shadow:none; padding:10px 12px; }
+    body.landscape-compact .countdown-wrap{ margin:0 0 8px; }
+    body.landscape-compact .countdown-pill{ background:transparent; border:none; box-shadow:none; min-width:60vw; height:auto; padding:0; }
+    body.landscape-compact #timer{ font-size:18vh; line-height:1; font-weight:900; letter-spacing:1px; color:#fff; }
 
-        .interval-info { display: flex; justify-content: center; gap: 16px; margin: 10px 0; }
-        .metric { background:#f7f9fc; border:1px solid #e2e8f0; border-radius:12px; padding:14px 18px; min-width:180px; text-align:center; }
-        .metric-label { font-size:.8rem; color:#6c757d; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; }
-        .metric-value { font-weight:800; font-size:2.8rem; line-height:1; color:#222; }
-        .metric-unit { font-size:1rem; color:#6c757d; margin-left:4px; }
+    .landscape-metrics{ display:none; font-size:6vh; font-weight:700; color:#fff; margin-top:6px; }
+    body.landscape-compact .landscape-metrics{ display:block !important; }
 
-        .next-up {
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 10px;
-            color: #333;
-        }
+    .compact-controls{ display:none; gap:10px; margin-top:10px; }
+    .compact-controls button{
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.25);
+      color:#fff; font-weight:600; padding:10px 14px;
+      border-radius:12px; backdrop-filter: blur(2px);
+    }
+    .compact-controls button:hover{ background:rgba(255,255,255,.18); }
+    body.landscape-compact .compact-controls{ display:flex !important; justify-content:center; flex-wrap:wrap; }
 
-        .intervals-list {
-            background: #fff;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            padding: 15px;
-            margin-top: 20px;
-            max-height: 300px;
-            overflow-y: auto;
-            color: #333;
-        }
-        .interval-item { padding: 8px; border-bottom: 1px solid #eee; }
-        .interval-item.completed { opacity: 0.5; text-decoration: line-through; }
-        .interval-item.current { background: #f5f5f5; border-left: 3px solid #66bb6a; }
+    /* Hide non-essential UI in compact */
+    body.landscape-compact .tabs,
+    body.landscape-compact #generate-tab,
+    body.landscape-compact #manual-tab,
+    body.landscape-compact #saved-tab,
+    body.landscape-compact .summary,
+    body.landscape-compact .progress,
+    body.landscape-compact .reset-row,
+    body.landscape-compact .next-up,
+    body.landscape-compact .intervals-list,
+    body.landscape-compact .controls,
+    body.landscape-compact #eta-line,
+    body.landscape-compact .current-interval,
+    body.landscape-compact #current-description { display:none !important; }
 
-        /* Phase color window around the timer */
-        .timer-display.phase-blue   { background:#eaf4ff; border-color:#90caf9; }
-        .timer-display.phase-green  { background:#e8f5e9; border-color:#81c784; }
-        .timer-display.phase-yellow { background:#fff8e1; border-color:#fbc02d; }
-        .timer-display.phase-orange { background:#fff3e0; border-color:#ffb74d; }
-        .timer-display.phase-red    { background:#ffebee; border-color:#ef9a9a; }
+    .time-remaining { font-size:72px; font-weight:bold; color:#4CAF50; font-variant-numeric: tabular-nums; }
 
-        .timer-display.phase-blue   .time-remaining { color:#1e88e5; }
-        .timer-display.phase-green  .time-remaining { color:#2e7d32; }
-        .timer-display.phase-yellow .time-remaining { color:#f9a825; }
-        .timer-display.phase-orange .time-remaining { color:#fb8c00; }
-        .timer-display.phase-red    { color:#e53935; }
+    .current-interval { background:#fff; border-radius:8px; border:1px solid #ddd; padding:20px; margin:15px 0; color:#333; }
+    .current-interval h3 { color:#4CAF50; margin-top:0; }
 
-        .controls { text-align: center; margin: 20px 0; }
-        .controls button { min-width:84px; }
-        .btn-pause { background: #ff9800; }
-        .btn-pause:hover { background: #ffb84d; }
-        .btn-stop { background: #f44336; }
-        .btn-stop:hover { background: #e57373; }
-        .btn-skip, .btn-back { background: #2196F3; }
-        .btn-skip:hover, .btn-back:hover { background: #64b5f6; }
+    .next-up { background:#fff; border:1px solid #ddd; border-radius:8px; padding:15px; margin-top:10px; color:#333; }
 
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #9C27B0;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .intervals-list { background:#fff; border-radius:8px; border:1px solid #ddd; padding:15px; margin-top:20px; max-height:300px; overflow-y:auto; color:#333; }
+    .interval-item { padding:8px; border-bottom:1px solid #eee; }
+    .interval-item.completed { opacity:.5; text-decoration:line-through; }
+    .interval-item.current { background:#f5f5f5; border-left:3px solid #66bb6a; }
 
-        /* Focus mode */
-        .focus-mode .tabs,
-        .focus-mode #generate-tab,
-        .focus-mode #manual-tab,
-        .focus-mode #saved-tab { display:none !important; }
-        .focus-mode .timer-display { max-width:820px; margin:24px auto; }
+    /* Phase tint for list */
+    .interval-item.tint-blue   { background:#f4f8ff; border-left:3px solid #90caf9; }
+    .interval-item.tint-green  { background:#f4fbf6; border-left:3px solid #81c784; }
+    .interval-item.tint-yellow { background:#fffbef; border-left:3px solid #fbc02d; }
+    .interval-item.tint-orange { background:#fff7ef; border-left:3px solid #ffb74d; }
+    .interval-item.tint-red    { background:#fff2f2; border-left:3px solid #ef9a9a; }
 
-        .toggle { display:inline-flex; align-items:center; gap:6px; font-size:.9rem; color:#555; }
-        .toggle input { transform: translateY(1px); }
+    .controls { text-align:center; margin:20px 0; }
+    .controls button { min-width:84px; }
+    .btn-pause { background:#ff9800; }
+    .btn-pause:hover { background:#ffb84d; }
+    .btn-stop { background:#f44336; }
+    .btn-stop:hover { background:#e57373; }
+    .btn-skip, .btn-back { background:#2196F3; }
+    .btn-skip:hover, .btn-back:hover { background:#64b5f6; }
 
-        /* Interval-row tinting to match phase */
-        .interval-item.tint-blue   { background:#f4f8ff; border-left:3px solid #90caf9; }
-        .interval-item.tint-green  { background:#f4fbf6; border-left:3px solid #81c784; }
-        .interval-item.tint-yellow { background:#fffbef; border-left:3px solid #fbc02d; }
-        .interval-item.tint-orange { background:#fff7ef; border-left:3px solid #ffb74d; }
-        .interval-item.tint-red    { background:#fff2f2; border-left:3px solid #ef9a9a; }
+    .loading { display:inline-block; width:20px; height:20px; border:3px solid #f3f3f3; border-top:3px solid #9C27B0; border-radius:50%; animation: spin 1s linear infinite; }
+    @keyframes spin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
 
-        /* Sticky controls on small screens */
-        @media (max-width: 640px){
-          .controls { position: sticky; bottom: 8px; background: #fff; padding: 8px; border-radius: 10px; border:1px solid #ddd; }
-        }
-    </style>
+    .focus-mode .tabs,
+    .focus-mode #generate-tab,
+    .focus-mode #manual-tab,
+    .focus-mode #saved-tab { display:none !important; }
+    .focus-mode .timer-display { max-width:820px; margin:24px auto; }
+  </style>
 </head>
 <body>
-    <h1>🏃 Treadmill Run Generator</h1>
+  <h1>🏃 Treadmill Run Generator</h1>
 
-    <div class="tabs">
-        <button class="tab active" onclick="switchTab('generate', this)">🤖 Generate AI Workout</button>
-        <button class="tab" onclick="switchTab('manual', this)">📝 Paste Workout</button>
-        <button class="tab" onclick="switchTab('saved', this)">💾 Saved Workouts</button>
-    </div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('generate', this)">🤖 Generate AI Workout</button>
+    <button class="tab" onclick="switchTab('manual', this)">📝 Paste Workout</button>
+    <button class="tab" onclick="switchTab('saved', this)">💾 Saved Workouts</button>
+  </div>
 
-    <!-- AI Generation Tab -->
-    <div id="generate-tab" class="tab-content active">
-        <h2>Generate Workout with AI</h2>
-        <div class="generate-section">
-            <label for="workoutRequest" style="display:block; margin-bottom:6px; color:#666; font-size:14px;">Describe your workout</label>
-            <input type="text" id="workoutRequest" class="workout-request"
-                   placeholder="Describe your workout (e.g., '30 minute interval run for beginners')" />
+  <!-- AI Generation Tab -->
+  <div id="generate-tab" class="tab-content active">
+    <h2>Generate Workout with AI</h2>
+    <div class="generate-section">
+      <label for="workoutRequest" style="display:block; margin-bottom:6px; color:#666; font-size:14px;">Describe your workout</label>
+      <input type="text" id="workoutRequest" class="workout-request" placeholder="Describe your workout (e.g., '30 minute interval run for beginners')" />
 
-            <div class="suggestions">
-              <div class="suggestion-toolbar">
-                <div style="color:#666">How do you want to train <strong>today</strong>?</div>
-              </div>
+      <div class="suggestions">
+        <div class="suggestion-toolbar"><div style="color:#666">How do you want to train <strong>today</strong>?</div></div>
 
-              <div class="chip-row" id="category-chips">
-                <button type="button" class="chip active" data-cat="endurance" onclick="selectCategory(this)">Endurance</button>
-                <button type="button" class="chip" data-cat="speed" onclick="selectCategory(this)">Speed</button>
-                <button type="button" class="chip" data-cat="hills" onclick="selectCategory(this)">Hills</button>
-                <button type="button" class="chip" data-cat="recovery" onclick="selectCategory(this)">Recovery</button>
-                <button type="button" class="chip" data-cat="race" onclick="selectCategory(this)">Race prep</button>
-                <button type="button" class="chip" data-cat="fartlek" onclick="selectCategory(this)">Fartlek</button>
-              </div>
-
-              <div class="chip-row" id="duration-chips">
-                <button type="button" class="chip secondary active" data-min="20" onclick="selectDuration(this)">20 min</button>
-                <button type="button" class="chip secondary" data-min="30" onclick="selectDuration(this)">30 min</button>
-                <button type="button" class="chip secondary" data-min="40" onclick="selectDuration(this)">40 min</button>
-                <button type="button" class="chip secondary" data-min="45" onclick="selectDuration(this)">45 min</button>
-                <button type="button" class="chip secondary" data-min="60" onclick="selectDuration(this)">60 min</button>
-              </div>
-
-              <div class="shuffle-row">
-                <button type="button" class="shuffle-primary" onclick="shuffleSuggestions()">↻ Shuffle ideas</button>
-              </div>
-
-              <div id="suggestion-buttons" class="chip-row"></div>
-            </div>
-
-            <button class="btn-generate" onclick="generateWorkout()">
-                <span id="generate-btn-text">🚀 Generate Workout</span>
-                <span id="generate-loading" class="loading" style="display: none;"></span>
-            </button>
+        <div class="chip-row" id="category-chips">
+          <button type="button" class="chip active" data-cat="endurance" onclick="selectCategory(this)">Endurance</button>
+          <button type="button" class="chip" data-cat="speed" onclick="selectCategory(this)">Speed</button>
+          <button type="button" class="chip" data-cat="hills" onclick="selectCategory(this)">Hills</button>
+          <button type="button" class="chip" data-cat="recovery" onclick="selectCategory(this)">Recovery</button>
+          <button type="button" class="chip" data-cat="race" onclick="selectCategory(this)">Race prep</button>
+          <button type="button" class="chip" data-cat="fartlek" onclick="selectCategory(this)">Fartlek</button>
         </div>
 
-        <div id="generated-workout" style="display: none;">
-            <h3>Generated Workout:</h3>
-            <textarea id="generatedText" class="paste-area" readonly></textarea>
-            <button onclick="useGeneratedWorkout()">Use This Workout</button>
+        <div class="chip-row" id="duration-chips">
+          <button type="button" class="chip secondary active" data-min="20" onclick="selectDuration(this)">20 min</button>
+          <button type="button" class="chip secondary" data-min="30" onclick="selectDuration(this)">30 min</button>
+          <button type="button" class="chip secondary" data-min="40" onclick="selectDuration(this)">40 min</button>
+          <button type="button" class="chip secondary" data-min="45" onclick="selectDuration(this)">45 min</button>
+          <button type="button" class="chip secondary" data-min="60" onclick="selectDuration(this)">60 min</button>
         </div>
-    </div>
 
-    <!-- Manual Paste Tab -->
-    <div id="manual-tab" class="tab-content">
-        <h2>Paste Your Workout</h2>
-        <textarea id="workoutText" class="paste-area" placeholder="Paste your ChatGPT workout here..."></textarea>
-        <br>
-        <button onclick="parseWorkout()">Parse Workout</button>
-    </div>
-
-    <!-- Saved Workouts Tab -->
-    <div id="saved-tab" class="tab-content">
-        <h2>Your Saved Workouts</h2>
-        <div id="saved-workouts-list" class="saved-workouts"></div>
-        <button onclick="loadSavedWorkouts()">Refresh List</button>
-    </div>
-
-    <!-- Summary + progress -->
-    <div id="workout-summary" class="summary">
-      <div>
-        <span id="summary-pill">—</span>
-        <div id="stats-line" class="stats-line" aria-live="polite"></div>
+        <div class="shuffle-row"><button type="button" class="shuffle-primary" onclick="shuffleSuggestions()">↻ Shuffle ideas</button></div>
+        <div id="suggestion-buttons" class="chip-row"></div>
       </div>
-      <div class="d-flex align-items-center gap-2">
-        <label class="toggle" title="Mute interval beeps">
-          <input type="checkbox" id="mute-toggle" onchange="setMuted(this.checked)"> Mute beeps
-        </label>
-        <button id="focus-toggle" class="btn btn-outline-secondary btn-sm" onclick="toggleFocus()">Focus mode</button>
+
+      <button class="btn-generate" onclick="generateWorkout()">
+        <span id="generate-btn-text">🚀 Generate Workout</span>
+        <span id="generate-loading" class="loading" style="display:none;"></span>
+      </button>
+    </div>
+
+    <div id="generated-workout" style="display:none;">
+      <h3>Generated Workout:</h3>
+      <textarea id="generatedText" class="paste-area" readonly></textarea>
+      <button onclick="useGeneratedWorkout()">Use This Workout</button>
+    </div>
+  </div>
+
+  <!-- Manual Paste Tab -->
+  <div id="manual-tab" class="tab-content">
+    <h2>Paste Your Workout</h2>
+    <textarea id="workoutText" class="paste-area" placeholder="Paste your ChatGPT workout here..."></textarea><br>
+    <button onclick="parseWorkout()">Parse Workout</button>
+  </div>
+
+  <!-- Saved Workouts Tab -->
+  <div id="saved-tab" class="tab-content">
+    <h2>Your Saved Workouts</h2>
+    <div id="saved-workouts-list" class="saved-workouts"></div>
+    <button onclick="loadSavedWorkouts()">Refresh List</button>
+  </div>
+
+  <!-- Summary + progress -->
+  <div id="workout-summary" class="summary">
+    <div>
+      <span id="summary-pill">—</span>
+      <div id="stats-line" class="stats-line" aria-live="polite"></div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <label class="toggle" title="Mute interval beeps"><input type="checkbox" id="mute-toggle" onchange="setMuted(this.checked)"> Mute beeps</label>
+      <button id="focus-toggle" class="btn btn-outline-secondary btn-sm" onclick="toggleFocus()">Focus mode</button>
+    </div>
+  </div>
+
+  <div class="progress" aria-label="Workout progress">
+    <div id="progress-bar" class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width:0%"></div>
+  </div>
+  <div class="reset-row">
+    <span class="spacer"></span>
+    <button class="reset-link" onclick="resetTimerOnly()">Reset timer</button>
+    <span aria-hidden="true" style="color:#bbb;">•</span>
+    <button class="reset-link" onclick="resetAll()">Clear workout</button>
+  </div>
+
+  <!-- Timer Section -->
+  <div id="timer-section" class="timer-display">
+    <div class="countdown-wrap">
+      <div class="countdown-pill" aria-live="polite"><span id="timer">0:00</span></div>
+    </div>
+
+    <!-- Landscape-only metrics + compact controls -->
+    <div id="landscape-metrics" class="landscape-metrics" aria-live="polite" style="display:none;">—</div>
+    <div id="compact-controls" class="compact-controls" style="display:none;">
+      <button type="button" onclick="startTimer()">Start</button>
+      <button type="button" onclick="pauseTimer()">Pause</button>
+      <button type="button" onclick="prevInterval()">Back</button>
+      <button type="button" onclick="skipInterval()">Skip</button>
+      <button type="button" onclick="stopTimer()">Stop</button>
+    </div>
+
+    <div class="current-interval">
+      <h3>Current Interval: <span id="current-section">-</span></h3>
+      <div class="interval-info">
+        <div class="metric">
+          <div class="metric-label">Speed</div>
+          <div class="metric-value"><span id="current-speed">-</span><span class="metric-unit"> mph</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Incline</div>
+          <div class="metric-value"><span id="current-incline">0</span><span class="metric-unit"> %</span></div>
+        </div>
       </div>
+      <div id="current-description">-</div>
     </div>
 
-    <div class="progress" aria-label="Workout progress">
-        <div id="progress-bar" class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width:0%"></div>
-    </div>
-    <div class="reset-row">
-      <span class="spacer"></span>
-      <button class="reset-link" onclick="resetTimerOnly()" title="Stop and reset the countdown, keep workout">Reset timer</button>
-      <span aria-hidden="true" style="color:#bbb;">•</span>
-      <button class="reset-link" onclick="resetAll()" title="Clear the current workout and timer">Clear workout</button>
-    </div>
+    <div id="eta-line" class="eta-line" aria-live="polite"></div>
 
-    <!-- Timer Section -->
-    <div id="timer-section" class="timer-display">
-        <div class="countdown-wrap">
-          <div class="countdown-pill" aria-live="polite"><span id="timer">0:00</span></div>
-        </div>
-        <div class="current-interval">
-            <h3>Current Interval: <span id="current-section">-</span></h3>
-            <div class="interval-info">
-                <div class="metric">
-                    <div class="metric-label">Speed</div>
-                    <div class="metric-value"><span id="current-speed">-</span><span class="metric-unit"> mph</span></div>
-                </div>
-                <div class="metric">
-                    <div class="metric-label">Incline</div>
-                    <div class="metric-value"><span id="current-incline">0</span><span class="metric-unit"> %</span></div>
-                </div>
-            </div>
-            <div id="current-description">-</div>
-        </div>
-        <div id="eta-line" class="eta-line" aria-live="polite"></div>
-
-        <div class="controls">
-            <button id="btn-start" onclick="startTimer()">▶️ Start</button>
-            <button id="btn-pause" onclick="pauseTimer()" class="btn-pause" style="display:none;">⏸ Pause</button>
-            <button onclick="prevInterval()" class="btn-back">⏮ Back</button>
-            <button onclick="skipInterval()" class="btn-skip">⏭ Skip</button>
-            <button onclick="stopTimer()" class="btn-stop">⏹ Stop</button>
-        </div>
-
-        <div class="next-up" aria-live="polite">
-            <strong>Next Up:</strong> <span id="next-interval">-</span>
-        </div>
-
-        <div class="intervals-list" id="intervals-list"></div>
+    <div class="controls">
+      <button id="btn-start" onclick="startTimer()">▶️ Start</button>
+      <button id="btn-pause" onclick="pauseTimer()" class="btn-pause" style="display:none;">⏸ Pause</button>
+      <button onclick="prevInterval()" class="btn-back">⏮ Back</button>
+      <button onclick="skipInterval()" class="btn-skip">⏭ Skip</button>
+      <button onclick="stopTimer()" class="btn-stop">⏹ Stop</button>
     </div>
 
-    <script>
-        let intervals = [];
-        let currentIntervalIndex = 0;
-        let timeRemaining = 0;
-        let timerInterval = null;
-        let isPaused = false;
-        let deadlineTs = null;
-        let muteBeeps = false;
+    <div class="next-up" aria-live="polite"><strong>Next Up:</strong> <span id="next-interval">-</span></div>
+    <div class="intervals-list" id="intervals-list"></div>
+  </div>
 
-        function safeMinutes(it) {
-            const v = Number(it && (it.duration_min ?? it.minutes ?? it.duration));
-            return (isFinite(v) && v > 0) ? v : 1; // default to 1 minute
+  <script>
+    let intervals = [];
+    let currentIntervalIndex = 0;
+    let timeRemaining = 0;
+    let timerInterval = null;
+    let isPaused = false;
+    let deadlineTs = null;
+    let muteBeeps = false;
+
+    function safeMinutes(it) {
+      const v = Number(it && (it.duration_min ?? it.minutes ?? it.duration));
+      return (isFinite(v) && v > 0) ? v : 1; // default to 1 minute
+    }
+
+    /* ---------- UX helpers ---------- */
+    function esc(s){ return (s || '').replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m])); }
+    function toggleFocus(){ document.body.classList.toggle('focus-mode'); }
+    function totalMinutes(){ return (intervals || []).reduce((a,b)=> a + (parseInt(b.duration_min||0,10) || 0), 0); }
+
+    /* ---------- Summary & progress ---------- */
+    function updateProgress(){
+      const done = (intervals || []).slice(0, currentIntervalIndex)
+        .reduce((a,b)=> a + (parseInt(b.duration_min||0,10) || 0), 0);
+      const curMin = (intervals[currentIntervalIndex]?.duration_min) || 0;
+      const total = totalMinutes() || 1;
+      const elapsed = done + Math.max(0, (curMin*60 - timeRemaining)/60);
+      const pct = Math.min(100, Math.max(0, (elapsed/total)*100));
+      const bar = document.getElementById('progress-bar');
+      if (bar) { bar.style.width = pct + '%'; bar.setAttribute('aria-valuenow', Math.round(pct)); }
+      const pill = document.getElementById('summary-pill');
+      if (pill) pill.textContent = `${total} min · ${(intervals||[]).length} intervals`;
+    }
+
+    function remainingSecondsTotal(){
+      if (!intervals || !intervals.length) return 0;
+      let rem = 0;
+      if (currentIntervalIndex < intervals.length){
+        const curRem = Math.max(0, Number(timeRemaining)||0);
+        rem += curRem;
+        for (let i=currentIntervalIndex+1; i<intervals.length; i++){
+          rem += (Number(intervals[i].duration_min)||0) * 60;
         }
+      }
+      return rem;
+    }
 
-        /* ---------- UX helpers ---------- */
-        function esc(s){ return (s || '').replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m])); }
-        function toggleFocus(){ document.body.classList.toggle('focus-mode'); }
-        function totalMinutes(){ return (intervals || []).reduce((a,b)=> a + (parseInt(b.duration_min||0,10) || 0), 0); }
+    function updateETA(){
+      const etaNode = document.getElementById('eta-line');
+      if (!etaNode) return;
+      if (!intervals || !intervals.length){ etaNode.textContent=''; return; }
+      const running = !!timerInterval || isPaused;
+      const baseSec = running ? remainingSecondsTotal() : (totalMinutes()*60);
+      if (!baseSec){ etaNode.textContent=''; return; }
+      const end = new Date(Date.now() + baseSec*1000);
+      const opts = { hour: 'numeric', minute: '2-digit' };
+      etaNode.textContent = running ? `ETA: ${end.toLocaleTimeString([], opts)}` : `If you start now, finish by ${end.toLocaleTimeString([], opts)}`;
+    }
 
-        /* ---------- Summary & progress ---------- */
-        function updateProgress(){
-            const done = (intervals || []).slice(0, currentIntervalIndex)
-                .reduce((a,b)=> a + (parseInt(b.duration_min||0,10) || 0), 0);
-            const curMin = (intervals[currentIntervalIndex]?.duration_min) || 0;
-            const total = totalMinutes() || 1;
-            const elapsed = done + Math.max(0, (curMin*60 - timeRemaining)/60);
-            const pct = Math.min(100, Math.max(0, (elapsed/total)*100));
-            const bar = document.getElementById('progress-bar');
-            if (bar) { bar.style.width = pct + '%'; bar.setAttribute('aria-valuenow', Math.round(pct)); }
-            const pill = document.getElementById('summary-pill');
-            if (pill) pill.textContent = `${total} min · ${(intervals||[]).length} intervals`;
-        }
+    function updateStats(){
+      if (!intervals || !intervals.length) {
+        const node = document.getElementById('stats-line');
+        if (node) node.textContent = '';
+        return;
+      }
+      let totalMin = 0, weightedSpeed = 0, totalAscentFt = 0;
+      for (const it of intervals){
+        const min = parseFloat(it.duration_min || 0) || 0;
+        const mph = parseFloat(it.speed_mph || 0) || 0;
+        const inc = parseFloat(it.incline || 0) || 0; // percent
+        totalMin += min;
+        weightedSpeed += mph * min;
+        const miles = mph * (min/60);
+        totalAscentFt += miles * 5280 * (inc/100);
+      }
+      const avg = totalMin ? (weightedSpeed / totalMin) : 0;
+      const node = document.getElementById('stats-line');
+      if (node) node.innerHTML = `Avg speed: <strong>${avg.toFixed(1)}</strong> mph · Total climb: <strong>${Math.round(totalAscentFt)}</strong> ft`;
+    }
 
-        function remainingSecondsTotal(){
-            if (!intervals || !intervals.length) return 0;
-            let rem = 0;
-            if (currentIntervalIndex < intervals.length){
-                const curRem = Math.max(0, Number(timeRemaining)||0);
-                rem += curRem;
-                for (let i=currentIntervalIndex+1; i<intervals.length; i++){
-                    rem += (Number(intervals[i].duration_min)||0) * 60;
-                }
-            }
-            return rem;
-        }
+    /* ---------- Tabs ---------- */
+    function switchTab(tabName, el) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      document.getElementById(tabName + '-tab').classList.add('active');
+      if (el) el.classList.add('active');
+      if (tabName === 'saved') loadSavedWorkouts();
+      else if (tabName === 'generate') loadSuggestions();
+    }
 
-        function updateETA(){
-            const etaNode = document.getElementById('eta-line');
-            if (!etaNode) return;
-            if (!intervals || !intervals.length){ etaNode.textContent=''; return; }
-            const running = !!timerInterval || isPaused;
-            const baseSec = running ? remainingSecondsTotal() : (totalMinutes()*60);
-            if (!baseSec){ etaNode.textContent=''; return; }
-            const end = new Date(Date.now() + baseSec*1000);
-            const opts = { hour: 'numeric', minute: '2-digit' };
-            etaNode.textContent = running ? `ETA: ${end.toLocaleTimeString([], opts)}` : `If you start now, finish by ${end.toLocaleTimeString([], opts)}`;
-        }
+    /* ---------- Suggestion pools & shuffle ---------- */
+    const SUGGESTION_POOLS = {
+      endurance: [
+        (m)=>`${m} minute endurance run with steady pacing`,
+        (m)=>`${m} minute aerobic base run (easy)`,
+        (m)=>`${m} minute progression run, finish strong`,
+        (m)=>`${m} minute long run with short surges`,
+      ],
+      speed: [
+        (m)=>`${m} minute VO2 max intervals (mph only)`,
+        (m)=>`${m} minute tempo + 400m-style sprints`,
+        (m)=>`${m} minute ladder: 1-2-3-2-1 hard`,
+        (m)=>`${m} minute 1 on / 1 off speed session`,
+      ],
+      hills: [
+        (m)=>`${m} minute hill repeats (incline work)`,
+        (m)=>`${m} minute rolling hills endurance`,
+        (m)=>`${m} minute hill sprints + recovery jogs`,
+      ],
+      recovery: [
+        (m)=>`${m} minute recovery run, low impact`,
+        (m)=>`${m} minute easy jog with strides`,
+        (m)=>`${m} minute walk-jog mix for recovery`,
+      ],
+      race: [
+        (m)=>`${m} minute 5K race-pace prep`,
+        (m)=>`${m} minute 10K tempo with intervals`,
+        (m)=>`${m} minute half-marathon pace work`,
+      ],
+      fartlek: [
+        (m)=>`${m} minute fartlek: varied speeds`,
+        (m)=>`${m} minute fartlek with random surges`,
+        (m)=>`${m} minute fartlek pyramids`,
+      ]
+    };
 
-        function updateStats(){
-          if (!intervals || !intervals.length) {
-            const node = document.getElementById('stats-line');
-            if (node) node.textContent = '';
-            return;
-          }
-          let totalMin = 0, weightedSpeed = 0, totalAscentFt = 0;
-          for (const it of intervals){
-            const min = parseFloat(it.duration_min || 0) || 0;
-            const mph = parseFloat(it.speed_mph || 0) || 0;
-            const inc = parseFloat(it.incline || 0) || 0; // percent
-            totalMin += min;
-            weightedSpeed += mph * min;
-            const miles = mph * (min/60);
-            totalAscentFt += miles * 5280 * (inc/100);
-          }
-          const avg = totalMin ? (weightedSpeed / totalMin) : 0;
-          const node = document.getElementById('stats-line');
-          if (node) node.innerHTML = `Avg speed: <strong>${avg.toFixed(1)}</strong> mph · Total climb: <strong>${Math.round(totalAscentFt)}</strong> ft`;
-        }
+    let currentCategory = 'endurance';
+    let currentMinutes = 20;
 
-        /* ---------- Tabs ---------- */
-        function switchTab(tabName, el) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.getElementById(tabName + '-tab').classList.add('active');
-            if (el) el.classList.add('active');
-            if (tabName === 'saved') loadSavedWorkouts();
-            else if (tabName === 'generate') loadSuggestions();
-        }
+    function savePrefs(){ try { localStorage.setItem('wt.prefs', JSON.stringify({ category: currentCategory, minutes: currentMinutes })); } catch {} }
+    function loadPrefs(){
+      try {
+        const p = JSON.parse(localStorage.getItem('wt.prefs') || 'null');
+        if (p && p.category) currentCategory = p.category;
+        if (p && p.minutes) currentMinutes = p.minutes;
+      } catch {}
+    }
 
-        /* ---------- Suggestion pools & shuffle ---------- */
-        const SUGGESTION_POOLS = {
-          endurance: [
-            (m)=>`${m} minute endurance run with steady pacing`,
-            (m)=>`${m} minute aerobic base run (easy)`,
-            (m)=>`${m} minute progression run, finish strong`,
-            (m)=>`${m} minute long run with short surges`,
-          ],
-          speed: [
-            (m)=>`${m} minute VO2 max intervals (mph only)`,
-            (m)=>`${m} minute tempo + 400m-style sprints`,
-            (m)=>`${m} minute ladder: 1-2-3-2-1 hard`,
-            (m)=>`${m} minute 1 on / 1 off speed session`,
-          ],
-          hills: [
-            (m)=>`${m} minute hill repeats (incline work)`,
-            (m)=>`${m} minute rolling hills endurance`,
-            (m)=>`${m} minute hill sprints + recovery jogs`,
-          ],
-          recovery: [
-            (m)=>`${m} minute recovery run, low impact`,
-            (m)=>`${m} minute easy jog with strides`,
-            (m)=>`${m} minute walk-jog mix for recovery`,
-          ],
-          race: [
-            (m)=>`${m} minute 5K race-pace prep`,
-            (m)=>`${m} minute 10K tempo with intervals`,
-            (m)=>`${m} minute half-marathon pace work`,
-          ],
-          fartlek: [
-            (m)=>`${m} minute fartlek: varied speeds`,
-            (m)=>`${m} minute fartlek with random surges`,
-            (m)=>`${m} minute fartlek pyramids`,
-          ]
-        };
+    function renderSuggestions(){
+      const pool = SUGGESTION_POOLS[currentCategory] || [];
+      const container = document.getElementById('suggestion-buttons');
+      container.innerHTML = '';
+      const make = (...arr)=>arr[Math.floor(Math.random()*arr.length)];
+      const picks = new Set();
+      while (picks.size < Math.min(6, pool.length)) { picks.add(make(...pool)); }
+      Array.from(picks).forEach(fn => {
+        const text = fn(currentMinutes);
+        const btn = document.createElement('button');
+        btn.className = 'suggestion-btn';
+        btn.textContent = text;
+        btn.onclick = () => { const inp = document.getElementById('workoutRequest'); if (inp) inp.value = text; };
+        container.appendChild(btn);
+      });
+    }
 
-        let currentCategory = 'endurance';
-        let currentMinutes = 20;
+    function loadSuggestions(){ renderSuggestions(); }
+    function shuffleSuggestions(){ renderSuggestions(); }
 
-        function savePrefs(){
-          try { localStorage.setItem('wt.prefs', JSON.stringify({ category: currentCategory, minutes: currentMinutes })); } catch {}
-        }
-        function loadPrefs(){
-          try {
-            const p = JSON.parse(localStorage.getItem('wt.prefs') || 'null');
-            if (p && p.category) currentCategory = p.category;
-            if (p && p.minutes) currentMinutes = p.minutes;
-          } catch {}
-        }
+    function selectCategory(el){
+      document.querySelectorAll('#category-chips .chip').forEach(c=>c.classList.remove('active'));
+      el.classList.add('active'); currentCategory = el.getAttribute('data-cat'); renderSuggestions(); savePrefs();
+    }
 
-        function renderSuggestions(){
-          const pool = SUGGESTION_POOLS[currentCategory] || [];
-          const container = document.getElementById('suggestion-buttons');
-          container.innerHTML = '';
-          // build up to 6 random unique suggestions
-          const make = (...arr)=>arr[Math.floor(Math.random()*arr.length)];
-          const picks = new Set();
-          while (picks.size < Math.min(6, pool.length)) { picks.add(make(...pool)); }
-          Array.from(picks).forEach(fn => {
-            const text = fn(currentMinutes);
-            const btn = document.createElement('button');
-            btn.className = 'suggestion-btn';
-            btn.textContent = text;
-            btn.onclick = () => { const inp = document.getElementById('workoutRequest'); if (inp) inp.value = text; };
-            container.appendChild(btn);
-          });
-        }
+    function selectDuration(el){
+      document.querySelectorAll('#duration-chips .chip').forEach(c=>c.classList.remove('active'));
+      el.classList.add('active'); currentMinutes = parseInt(el.getAttribute('data-min'),10) || 20; renderSuggestions(); savePrefs();
+    }
 
-        function loadSuggestions(){ renderSuggestions(); }
-        function shuffleSuggestions(){ renderSuggestions(); }
+    /* ---------- Generate / parse / saved ---------- */
+    async function generateWorkout() {
+      const request = document.getElementById('workoutRequest').value;
+      if (!request.trim()) { alert('Please describe the workout you want'); return; }
 
-        function selectCategory(el){
-          document.querySelectorAll('#category-chips .chip').forEach(c=>c.classList.remove('active'));
-          el.classList.add('active');
-          currentCategory = el.getAttribute('data-cat');
-          renderSuggestions();
-          savePrefs();
-        }
+      const genTextEl = document.getElementById('generate-btn-text');
+      const genLoadEl = document.getElementById('generate-loading');
+      const btn = document.querySelector('.btn-generate');
+      if (genTextEl) genTextEl.style.display = 'none';
+      if (genLoadEl) genLoadEl.style.display = 'inline-block';
+      if (btn) btn.disabled = true;
 
-        function selectDuration(el){
-          document.querySelectorAll('#duration-chips .chip').forEach(c=>c.classList.remove('active'));
-          el.classList.add('active');
-          currentMinutes = parseInt(el.getAttribute('data-min'),10) || 20;
-          renderSuggestions();
-          savePrefs();
-        }
+      try {
+        const resp = await fetch('/generate_workout', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ request }) });
+        const ct = (resp.headers.get('content-type') || '').toLowerCase();
+        let data = null;
+        if (ct.includes('application/json')) { data = await resp.json(); }
+        else { const text = await resp.text(); try { data = JSON.parse(text); } catch (e) { throw new Error(`Server did not return JSON. Status ${resp.status}. Body: ${text ? text.slice(0,140) : '(empty)'}`); } }
+        if (!resp.ok) { const msg = (data && (data.error || data.message)) || `Request failed with status ${resp.status}`; throw new Error(msg); }
 
-        /* ---------- Generate / parse / saved ---------- */
-        async function generateWorkout() {
-            const request = document.getElementById('workoutRequest').value;
-            if (!request.trim()) { alert('Please describe the workout you want'); return; }
+        if (data.success) {
+          const genText = document.getElementById('generatedText'); if (genText) genText.value = data.workout_text || '';
+          const genBox = document.getElementById('generated-workout'); if (genBox) genBox.style.display='block';
+          intervals = Array.isArray(data.intervals) ? data.intervals : [];
+        } else { const msg = data && (data.error || data.message) ? (data.error || data.message) : 'Unknown error'; alert('Error: ' + msg); }
+      } catch (err) {
+        console.error('generate_workout failed:', err); alert('Error: ' + (err?.message || String(err)));
+      } finally {
+        if (btn) btn.disabled = false; if (genTextEl) genTextEl.style.display='inline-block'; if (genLoadEl) genLoadEl.style.display='none';
+      }
+    }
 
-            // Show loading state and disable button
-            const genTextEl = document.getElementById('generate-btn-text');
-            const genLoadEl = document.getElementById('generate-loading');
-            const btn = document.querySelector('.btn-generate');
-            if (genTextEl) genTextEl.style.display = 'none';
-            if (genLoadEl) genLoadEl.style.display = 'inline-block';
-            if (btn) btn.disabled = true;
+    function useGeneratedWorkout() {
+      if (!intervals.length) return;
+      displayIntervals();
+      document.getElementById('timer-section').classList.add('active');
+      resetTimer(); updateProgress(); saveState(); updateStats(); updateETA();
+    }
 
-            try {
-                const resp = await fetch('/generate_workout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ request })
-                });
-
-                // Try to parse JSON safely even if server returns text/html
-                const ct = (resp.headers.get('content-type') || '').toLowerCase();
-                let data = null;
-                if (ct.includes('application/json')) {
-                    data = await resp.json();
-                } else {
-                    const text = await resp.text();
-                    try {
-                        data = JSON.parse(text);
-                    } catch (e) {
-                        const snippet = text ? text.slice(0, 140) : '(empty response)';
-                        throw new Error(`Server did not return JSON. Status ${resp.status}. Body: ${snippet}`);
-                    }
-                }
-
-                if (!resp.ok) {
-                    const msg = (data && (data.error || data.message)) || `Request failed with status ${resp.status}`;
-                    throw new Error(msg);
-                }
-
-                if (data.success) {
-                    const genText = document.getElementById('generatedText');
-                    if (genText) genText.value = data.workout_text || '';
-                    const genBox = document.getElementById('generated-workout');
-                    if (genBox) genBox.style.display = 'block';
-                    intervals = Array.isArray(data.intervals) ? data.intervals : [];
-                } else {
-                    const msg = data && (data.error || data.message) ? (data.error || data.message) : 'Unknown error from server';
-                    alert('Error: ' + msg);
-                }
-            } catch (err) {
-                // Show a user-friendly error and log details
-                console.error('generate_workout failed:', err);
-                alert('Error: ' + (err && err.message ? err.message : String(err)));
-            } finally {
-                if (btn) btn.disabled = false;
-                if (genTextEl) genTextEl.style.display = 'inline-block';
-                if (genLoadEl) genLoadEl.style.display = 'none';
-            }
-        }
-
-        function useGeneratedWorkout() {
-            if (!intervals.length) return;
-            displayIntervals();
-            document.getElementById('timer-section').classList.add('active');
-            resetTimer();
-            updateProgress();
-            saveState();
-            updateStats();
-            updateETA();
-        }
-
-        async function loadSavedWorkouts() {
-            try {
-                const response = await fetch('/saved_workouts');
-                const workouts = await response.json();
-                const container = document.getElementById('saved-workouts-list');
-
-                if (workouts.length === 0) {
-                    container.innerHTML = '<p>No saved workouts yet. Generate or paste some workouts first!</p>';
-                    return;
-                }
-
-                container.innerHTML = '';
-                workouts.forEach(workout => {
-                    const div = document.createElement('div');
-                    div.className = 'workout-item';
-                    div.onclick = () => loadWorkout(workout.id);
-
-                    const method = workout.method === 'api_generated' ? '🤖 AI Generated' : '📝 Manual';
-                    div.innerHTML = `
-                        <div><strong>${workout.name}</strong></div>
-                        <div class="workout-meta">
-                            ${method} • ${workout.interval_count} intervals • ${workout.total_minutes} minutes
-                            <br>Created: ${new Date(workout.created).toLocaleDateString()}
-                        </div>
-                    `;
-                    container.appendChild(div);
-                });
-            } catch (e) {
-                console.error('Error loading saved workouts:', e);
-            }
-        }
-
-        async function loadWorkout(workoutId) {
-            try {
-                const response = await fetch(`/load_workout/${workoutId}`);
-                const data = await response.json();
-
-                if (data.success) {
-                    intervals = data.intervals;
-                    displayIntervals();
-                    document.getElementById('timer-section').classList.add('active');
-                    resetTimer();
-                    updateProgress();
-                    saveState();
-                    updateStats();
-                    updateETA();
-                    alert(`Loaded: ${data.name}`);
-                }
-            } catch (e) {
-                alert('Error loading workout: ' + e.message);
-            }
-        }
-
-        async function parseWorkout() {
-            const text = document.getElementById('workoutText').value;
-            if (!text.trim()) { alert('Please paste a workout first'); return; }
-
-            try {
-                const response = await fetch('/parse', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({text})
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    intervals = data.intervals;
-                    displayIntervals();
-                    document.getElementById('timer-section').classList.add('active');
-                    resetTimer();
-                    updateProgress();
-                    saveState();
-                    updateStats();
-                    updateETA();
-                } else {
-                    alert('Error: ' + data.error);
-                }
-            } catch (e) {
-                alert('Error parsing workout: ' + e.message);
-            }
-        }
-
-        /* ---------- Interval rendering & phases ---------- */
-        function phaseClassForInterval(interval){
-            if (!interval) return '';
-            const desc = (interval.description || '').toLowerCase();
-            const spd = Number(interval.speed_mph || 0);
-            if (desc.includes('warm') || desc.includes('cool')) return 'phase-blue';
-            if (spd >= 7.1) return 'phase-red';
-            if (spd > 6.8 && spd <= 7.1) return 'phase-orange';
-            if (spd >= 6.2 && spd <= 6.8) return 'phase-yellow';
-            if (spd >= 5.5 && spd <= 6.1) return 'phase-green';
-            if (spd > 0 && spd < 5.5) return 'phase-blue';
-            return '';
-        }
-
-        function sectionNameForInterval(interval){
-            if (!interval) return 'Interval';
-            const d = (interval.description || '').toLowerCase();
-            const spd = Number(interval.speed_mph || 0);
-            if (d.includes('warm')) return 'Warm-up';
-            if (d.includes('cool')) return 'Cool-down';
-            if (d.includes('recover')) return 'Recovery';
-            if (d.includes('tempo')) return 'Tempo';
-            if (d.includes('fartlek')) return 'Fartlek';
-            if (d.includes('hill')) return 'Hills';
-            if (d.includes('sprint') || d.includes('hard') || d.includes('vo2')) return 'Work';
-            if (spd >= 7.1) return 'Hard';
-            if (spd > 6.8 && spd <= 7.1) return 'Moderate-Hard';
-            if (spd >= 6.2 && spd <= 6.8) return 'Moderate';
-            if (spd >= 5.5 && spd <= 6.1) return 'Easy Jog';
-            if (spd > 0 && spd < 5.5) return 'Recovery';
-            return 'Interval';
-        }
-
-        function applyPhaseColor(){
-            const wrap = document.getElementById('timer-section');
-            if (!wrap) return;
-            wrap.classList.remove('phase-blue','phase-green','phase-yellow','phase-orange','phase-red');
-            const cur = intervals[currentIntervalIndex];
-            const cls = phaseClassForInterval(cur);
-            if (cls) wrap.classList.add(cls);
-        }
-
-        function displayIntervals() {
-            const list = document.getElementById('intervals-list');
-            list.innerHTML = '<h4>All Intervals (' + intervals.length + '):</h4>';
-
-            intervals.forEach((interval, i) => {
-                const tint = (function(){
-                  const ph = phaseClassForInterval(interval);
-                  if (ph === 'phase-blue') return 'tint-blue';
-                  if (ph === 'phase-green') return 'tint-green';
-                  if (ph === 'phase-yellow') return 'tint-yellow';
-                  if (ph === 'phase-orange') return 'tint-orange';
-                  if (ph === 'phase-red') return 'tint-red';
-                  return '';
-                })();
-                list.innerHTML += `
-                    <div class="interval-item ${tint}" id="interval-${i}">
-                        ${i+1}. ${interval.duration_min} min @ ${interval.speed_mph} mph 
-                        ${interval.description ? '- ' + esc(interval.description) : ''}
-                        ${interval.section ? '(' + interval.section + ')' : ''}
-                    </div>
-                `;
-            });
-
-            updateProgress();
-            updateStats();
-            updateETA();
-        }
-
-        /* ---------- Timer controls ---------- */
-        function formatTime(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return `${mins}:${secs.toString().padStart(2, '0')}`;
-        }
-
-        function startTimer() {
-            if (!intervals.length) return;
-
-            if (!isPaused) {
-                if (currentIntervalIndex >= intervals.length) resetTimer();
-                timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
-            }
-
-            isPaused = false;
-            document.getElementById('btn-start').style.display = 'none';
-            document.getElementById('btn-pause').style.display = 'inline-block';
-
-            deadlineTs = Date.now() + timeRemaining * 1000;
-
-            updateDisplay(); updateProgress(); applyPhaseColor(); updateETA();
-
-            clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                const now = Date.now();
-                timeRemaining = Math.max(0, Math.round((deadlineTs - now) / 1000));
-                document.getElementById('timer').textContent = formatTime(timeRemaining);
-
-                if (timeRemaining <= 0) {
-                    beep();
-                    currentIntervalIndex++;
-
-                    if (currentIntervalIndex < intervals.length) {
-                        timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
-                        deadlineTs = Date.now() + timeRemaining * 1000;
-                        updateDisplay(); updateProgress(); updateETA();
-                    } else {
-                        updateDisplay(); updateProgress(); updateETA();
-                        clearInterval(timerInterval);
-                    }
-                }
-            }, 250);
-        }
-
-        function pauseTimer() {
-            isPaused = true;
-            clearInterval(timerInterval);
-            timerInterval = null;
-            document.getElementById('btn-start').style.display = 'inline-block';
-            document.getElementById('btn-pause').style.display = 'none';
-            updateProgress();
-            updateETA();
-        }
-
-        function skipInterval() {
-            if (currentIntervalIndex < intervals.length - 1) {
-                currentIntervalIndex++;
-                timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
-                document.getElementById('timer').textContent = formatTime(timeRemaining);
-                updateDisplay(); updateProgress(); applyPhaseColor();
-                if (timerInterval) deadlineTs = Date.now() + timeRemaining * 1000;
-                updateETA();
-            }
-        }
-
-        function prevInterval(){
-            if (currentIntervalIndex > 0) {
-                currentIntervalIndex--;
-                timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
-                document.getElementById('timer').textContent = formatTime(timeRemaining);
-                updateDisplay(); updateProgress(); applyPhaseColor();
-                if (timerInterval) deadlineTs = Date.now() + timeRemaining * 1000;
-                updateETA();
-            }
-        }
-
-        function stopTimer() {
-            clearInterval(timerInterval);
-            timerInterval = null;
-            isPaused = false;
-            document.getElementById('btn-start').style.display = 'inline-block';
-            document.getElementById('btn-pause').style.display = 'none';
-            resetTimer();
-            updateProgress();
-            updateETA();
-        }
-
-        function resetTimer() {
-            currentIntervalIndex = 0;
-            if (intervals.length > 0) {
-                timeRemaining = Math.round(safeMinutes(intervals[0]) * 60);
-                document.getElementById('timer').textContent = formatTime(timeRemaining);
-                updateDisplay(); updateProgress(); applyPhaseColor(); updateStats(); updateETA();
-            }
-        }
-
-        function resetTimerOnly(){
-            try { clearInterval(timerInterval); } catch {}
-            timerInterval = null;
-            isPaused = false;
-            if (!intervals || !intervals.length) {
-                timeRemaining = 0; deadlineTs = null;
-                document.getElementById('timer').textContent = '0:00';
-                updateETA();
-                return;
-            }
-            const cur = intervals[currentIntervalIndex] || intervals[0];
-            timeRemaining = Math.round(safeMinutes(cur) * 60);
-            deadlineTs = null;
-            document.getElementById('timer').textContent = formatTime(timeRemaining);
-            updateDisplay(); updateProgress(); updateETA();
-        }
-
-        function resetAll(){
-            try { clearInterval(timerInterval); } catch {}
-            timerInterval = null;
-            intervals = [];
-            currentIntervalIndex = 0;
-            timeRemaining = 0;
-            isPaused = false;
-            deadlineTs = null;
-            const ts = document.getElementById('timer-section');
-            if (ts) ts.classList.remove('active','phase-blue','phase-green','phase-yellow','phase-orange','phase-red');
-            const list = document.getElementById('intervals-list'); if (list) list.innerHTML = '';
-            const next = document.getElementById('next-interval'); if (next) next.textContent = '-';
-            const pill = document.getElementById('summary-pill'); if (pill) pill.textContent = '—';
-            const stats = document.getElementById('stats-line'); if (stats) stats.textContent = '';
-            const bar = document.getElementById('progress-bar'); if (bar) { bar.style.width = '0%'; bar.setAttribute('aria-valuenow','0'); }
-            const t = document.getElementById('timer'); if (t) t.textContent = '0:00';
-            const cs = document.getElementById('current-section'); if (cs) cs.textContent='-';
-            const csp = document.getElementById('current-speed'); if (csp) csp.textContent='-';
-            const cd = document.getElementById('current-duration'); if (cd) cd.textContent='-';
-            const ci = document.getElementById('current-incline'); if (ci) ci.textContent='0';
-            const cdesc = document.getElementById('current-description'); if (cdesc) cdesc.textContent='-';
-            updateETA();
-            try { localStorage.removeItem('wt.last'); } catch {}
-        }
-
-        function beep() {
-            if (muteBeeps) return; // silenced
-            try {
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                const audioContext = new AudioCtx();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-
-                oscillator.frequency.value = 800;
-                oscillator.type = 'sine';
-
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.5);
-            } catch (e) {
-                console.log('Audio not available');
-            }
-        }
-
-        /* ---------- Persistence ---------- */
-        function saveState(){
-            try {
-                const req = document.getElementById('workoutRequest');
-                localStorage.setItem('wt.last', JSON.stringify({ intervals, request: (req ? req.value : '') }));
-            } catch {}
-        }
-        function loadState(){
-            try {
-                const s = JSON.parse(localStorage.getItem('wt.last') || 'null');
-                if (s?.intervals?.length) {
-                    intervals = s.intervals;
-                    displayIntervals();
-                    document.getElementById('timer-section').classList.add('active');
-                    resetTimer();
-                    updateProgress();
-                    updateStats();
-                }
-                if (s?.request) {
-                    const req = document.getElementById('workoutRequest');
-                    if (req) req.value = s.request;
-                }
-            } catch {}
-        }
-
-        function setMuted(on){
-          muteBeeps = !!on;
-          try { localStorage.setItem('wt.muted', muteBeeps ? '1' : '0'); } catch {}
-        }
-        function loadMuted(){
-          try {
-            const v = localStorage.getItem('wt.muted');
-            muteBeeps = v === '1';
-            const cb = document.getElementById('mute-toggle');
-            if (cb) cb.checked = muteBeeps;
-          } catch {}
-        }
-
-        /* ---------- Keyboard shortcuts ---------- */
-        document.addEventListener('keydown', (e) => {
-            const tag = (e.target && e.target.tagName) || '';
-            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-            if (e.code === 'Space') { e.preventDefault(); isPaused ? startTimer() : pauseTimer(); }
-            if (e.key === 'ArrowRight') skipInterval();
-            if (e.key === 'ArrowLeft') prevInterval();
-            if (e.key.toLowerCase && e.key.toLowerCase() === 's') stopTimer();
+    async function loadSavedWorkouts() {
+      try {
+        const response = await fetch('/saved_workouts');
+        const workouts = await response.json();
+        const container = document.getElementById('saved-workouts-list');
+        if (workouts.length === 0) { container.innerHTML = '<p>No saved workouts yet. Generate or paste some workouts first!</p>'; return; }
+        container.innerHTML = '';
+        workouts.forEach(workout => {
+          const div = document.createElement('div');
+          div.className = 'workout-item';
+          div.onclick = () => loadWorkout(workout.id);
+          const method = workout.method === 'api_generated' ? '🤖 AI Generated' : '📝 Manual';
+          div.innerHTML = `<div><strong>${workout.name}</strong></div>
+          <div class="workout-meta">${method} • ${workout.interval_count} intervals • ${workout.total_minutes} minutes<br>Created: ${new Date(workout.created).toLocaleDateString()}</div>`;
+          container.appendChild(div);
         });
+      } catch (e) { console.error('Error loading saved workouts:', e); }
+    }
 
-        /* ---------- Init ---------- */
-        window.addEventListener('beforeunload', saveState);
-        loadPrefs();
-        document.querySelectorAll('#category-chips .chip').forEach(c=>c.classList.toggle('active', c.getAttribute('data-cat') === currentCategory));
-        document.querySelectorAll('#duration-chips .chip').forEach(c=>c.classList.toggle('active', parseInt(c.getAttribute('data-min'),10) === currentMinutes));
-        loadSuggestions();
-        loadState();
-        loadMuted();
-        updateStats();
+    async function loadWorkout(workoutId) {
+      try {
+        const response = await fetch(`/load_workout/${workoutId}`);
+        const data = await response.json();
+        if (data.success) {
+          intervals = data.intervals;
+          displayIntervals();
+          document.getElementById('timer-section').classList.add('active');
+          resetTimer(); updateProgress(); saveState(); updateStats(); updateETA();
+          alert(`Loaded: ${data.name}`);
+        }
+      } catch (e) { alert('Error loading workout: ' + e.message); }
+    }
+
+    async function parseWorkout() {
+      const text = document.getElementById('workoutText').value;
+      if (!text.trim()) { alert('Please paste a workout first'); return; }
+      try {
+        const response = await fetch('/parse', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text}) });
+        const data = await response.json();
+        if (data.success) {
+          intervals = data.intervals;
+          displayIntervals();
+          document.getElementById('timer-section').classList.add('active');
+          resetTimer(); updateProgress(); saveState(); updateStats(); updateETA();
+        } else { alert('Error: ' + data.error); }
+      } catch (e) { alert('Error parsing workout: ' + e.message); }
+    }
+
+    /* ---------- Interval rendering & phases ---------- */
+    function phaseClassForInterval(interval){
+      if (!interval) return '';
+      const desc = (interval.description || '').toLowerCase();
+      const spd = Number(interval.speed_mph || 0);
+      if (desc.includes('warm') || desc.includes('cool')) return 'phase-blue';
+      if (spd >= 7.1) return 'phase-red';
+      if (spd > 6.8 && spd <= 7.1) return 'phase-orange';
+      if (spd >= 6.2 && spd <= 6.8) return 'phase-yellow';
+      if (spd >= 5.5 && spd <= 6.1) return 'phase-green';
+      if (spd > 0 && spd < 5.5) return 'phase-blue';
+      return '';
+    }
+
+    function sectionNameForInterval(interval){
+      if (!interval) return 'Interval';
+      const d = (interval.description || '').toLowerCase();
+      const spd = Number(interval.speed_mph || 0);
+      if (d.includes('warm')) return 'Warm-up';
+      if (d.includes('cool')) return 'Cool-down';
+      if (d.includes('recover')) return 'Recovery';
+      if (d.includes('tempo')) return 'Tempo';
+      if (d.includes('fartlek')) return 'Fartlek';
+      if (d.includes('hill')) return 'Hills';
+      if (d.includes('sprint') || d.includes('hard') || d.includes('vo2')) return 'Work';
+      if (spd >= 7.1) return 'Hard';
+      if (spd > 6.8 && spd <= 7.1) return 'Moderate-Hard';
+      if (spd >= 6.2 && spd <= 6.8) return 'Moderate';
+      if (spd >= 5.5 && spd <= 6.1) return 'Easy Jog';
+      if (spd > 0 && spd < 5.5) return 'Recovery';
+      return 'Interval';
+    }
+
+    function applyPhaseColor(){
+      const wrap = document.getElementById('timer-section');
+      const body = document.body;
+      const classes = ['phase-blue','phase-green','phase-yellow','phase-orange','phase-red'];
+      if (wrap) wrap.classList.remove(...classes);
+      if (body) body.classList.remove(...classes);
+      const cur = intervals[currentIntervalIndex];
+      const cls = phaseClassForInterval(cur);
+      if (cls){ wrap?.classList.add(cls); body?.classList.add(cls); }
+    }
+
+    function displayIntervals() {
+      const list = document.getElementById('intervals-list');
+      list.innerHTML = '<h4>All Intervals (' + intervals.length + '):</h4>';
+      intervals.forEach((interval, i) => {
+        const tint = (function(){
+          const ph = phaseClassForInterval(interval);
+          if (ph === 'phase-blue') return 'tint-blue';
+          if (ph === 'phase-green') return 'tint-green';
+          if (ph === 'phase-yellow') return 'tint-yellow';
+          if (ph === 'phase-orange') return 'tint-orange';
+          if (ph === 'phase-red') return 'tint-red';
+          return '';
+        })();
+        list.innerHTML += `
+          <div class="interval-item ${tint}" id="interval-${i}">
+            ${i+1}. ${interval.duration_min} min @ ${interval.speed_mph} mph 
+            ${interval.description ? '- ' + esc(interval.description) : ''}
+            ${interval.section ? '(' + interval.section + ')' : ''}
+          </div>`;
+      });
+      updateProgress(); updateStats(); updateETA();
+    }
+
+    /* ---------- Timer controls ---------- */
+    function formatTime(s) { const m = Math.floor(s/60); const sec = s%60; return `${m}:${String(sec).padStart(2,'0')}`; }
+
+    function startTimer() {
+      if (!intervals.length) return;
+      if (!isPaused) {
+        if (currentIntervalIndex >= intervals.length) resetTimer();
+        timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
+      }
+      isPaused = false;
+      document.getElementById('btn-start').style.display = 'none';
+      document.getElementById('btn-pause').style.display = 'inline-block';
+
+      deadlineTs = Date.now() + timeRemaining * 1000;
+      updateDisplay(); updateProgress(); applyPhaseColor(); updateETA();
+
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        const now = Date.now();
+        timeRemaining = Math.max(0, Math.round((deadlineTs - now)/1000));
+        document.getElementById('timer').textContent = formatTime(timeRemaining);
+
+        if (timeRemaining <= 0) {
+          beep(); currentIntervalIndex++;
+          if (currentIntervalIndex < intervals.length) {
+            timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
+            deadlineTs = Date.now() + timeRemaining * 1000;
+            updateDisplay(); updateProgress(); updateETA(); applyPhaseColor();
+          } else {
+            updateDisplay(); updateProgress(); updateETA();
+            clearInterval(timerInterval);
+          }
+        }
+      }, 250);
+    }
+
+    function pauseTimer(){ isPaused = true; clearInterval(timerInterval); timerInterval=null; document.getElementById('btn-start').style.display='inline-block'; document.getElementById('btn-pause').style.display='none'; updateProgress(); updateETA(); }
+
+    function skipInterval(){
+      if (currentIntervalIndex < intervals.length - 1) {
+        currentIntervalIndex++;
+        timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
+        document.getElementById('timer').textContent = formatTime(timeRemaining);
+        updateDisplay(); updateProgress(); applyPhaseColor();
+        if (timerInterval) deadlineTs = Date.now() + timeRemaining * 1000;
         updateETA();
+      }
+    }
 
-        /* ---------- Orientation/height-aware compact mode ---------- */
-        function applyLandscapeCompact(){
-          const mq = window.matchMedia('(orientation: landscape) and (max-height: 480px)');
-          document.body.classList.toggle('landscape-compact', mq.matches);
+    function prevInterval(){
+      if (currentIntervalIndex > 0) {
+        currentIntervalIndex--;
+        timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
+        document.getElementById('timer').textContent = formatTime(timeRemaining);
+        updateDisplay(); updateProgress(); applyPhaseColor();
+        if (timerInterval) deadlineTs = Date.now() + timeRemaining * 1000;
+        updateETA();
+      }
+    }
+
+    function stopTimer(){
+      clearInterval(timerInterval); timerInterval=null; isPaused=false;
+      document.getElementById('btn-start').style.display='inline-block';
+      document.getElementById('btn-pause').style.display='none';
+      resetTimer(); updateProgress(); updateETA();
+    }
+
+    function resetTimer(){
+      currentIntervalIndex = 0;
+      if (intervals.length > 0) {
+        timeRemaining = Math.round(safeMinutes(intervals[0]) * 60);
+        document.getElementById('timer').textContent = formatTime(timeRemaining);
+        updateDisplay(); updateProgress(); applyPhaseColor(); updateStats(); updateETA();
+      }
+    }
+
+    function resetTimerOnly(){
+      try { clearInterval(timerInterval); } catch {}
+      timerInterval = null; isPaused=false;
+      if (!intervals || !intervals.length) {
+        timeRemaining = 0; deadlineTs = null; document.getElementById('timer').textContent = '0:00'; updateETA(); return;
+      }
+      const cur = intervals[currentIntervalIndex] || intervals[0];
+      timeRemaining = Math.round(safeMinutes(cur) * 60);
+      deadlineTs = null;
+      document.getElementById('timer').textContent = formatTime(timeRemaining);
+      updateDisplay(); updateProgress(); updateETA();
+    }
+
+    function resetAll(){
+      try { clearInterval(timerInterval); } catch {}
+      timerInterval = null; intervals = []; currentIntervalIndex = 0; timeRemaining = 0; isPaused = false; deadlineTs = null;
+      const ts = document.getElementById('timer-section'); ts?.classList.remove('active','phase-blue','phase-green','phase-yellow','phase-orange','phase-red');
+      const list = document.getElementById('intervals-list'); if (list) list.innerHTML='';
+      const next = document.getElementById('next-interval'); if (next) next.textContent='-';
+      const pill = document.getElementById('summary-pill'); if (pill) pill.textContent='—';
+      const stats = document.getElementById('stats-line'); if (stats) stats.textContent='';
+      const bar = document.getElementById('progress-bar'); if (bar) { bar.style.width='0%'; bar.setAttribute('aria-valuenow','0'); }
+      const t = document.getElementById('timer'); if (t) t.textContent='0:00';
+      const cs = document.getElementById('current-section'); if (cs) cs.textContent='-';
+      const csp = document.getElementById('current-speed'); if (csp) csp.textContent='-';
+      const ci = document.getElementById('current-incline'); if (ci) ci.textContent='0';
+      const cdesc = document.getElementById('current-description'); if (cdesc) cdesc.textContent='-';
+      updateETA(); try { localStorage.removeItem('wt.last'); } catch {}
+    }
+
+    function beep(){
+      if (muteBeeps) return;
+      try{
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const audioContext = new AudioCtx();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        oscillator.connect(gainNode); gainNode.connect(audioContext.destination);
+        oscillator.frequency.value = 800; oscillator.type='sine';
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        oscillator.start(audioContext.currentTime); oscillator.stop(audioContext.currentTime + 0.5);
+      } catch(e){ console.log('Audio not available'); }
+    }
+
+    /* ---------- Persistence ---------- */
+    function saveState(){ try { const req = document.getElementById('workoutRequest'); localStorage.setItem('wt.last', JSON.stringify({ intervals, request: (req ? req.value : '') })); } catch {} }
+    function loadState(){
+      try {
+        const s = JSON.parse(localStorage.getItem('wt.last') || 'null');
+        if (s?.intervals?.length) {
+          intervals = s.intervals; displayIntervals(); document.getElementById('timer-section').classList.add('active');
+          resetTimer(); updateProgress(); updateStats();
         }
-        applyLandscapeCompact();
-        window.addEventListener('resize', applyLandscapeCompact);
-        window.addEventListener('orientationchange', applyLandscapeCompact);
+        if (s?.request) { const req = document.getElementById('workoutRequest'); if (req) req.value = s.request; }
+      } catch {}
+    }
 
-        /* ---------- Display refresh ---------- */
-        function updateDisplay() {
-            if (currentIntervalIndex >= intervals.length) {
-                alert('Workout Complete! Great job! 💪');
-                stopTimer();
-                return;
-            }
+    function setMuted(on){ muteBeeps = !!on; try { localStorage.setItem('wt.muted', muteBeeps ? '1' : '0'); } catch {} }
+    function loadMuted(){ try { const v = localStorage.getItem('wt.muted'); muteBeeps = v === '1'; const cb = document.getElementById('mute-toggle'); if (cb) cb.checked = muteBeeps; } catch {} }
 
-            const current = intervals[currentIntervalIndex];
-            const next = intervals[currentIntervalIndex + 1];
+    /* ---------- Keyboard shortcuts ---------- */
+    document.addEventListener('keydown', (e) => {
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.code === 'Space') { e.preventDefault(); isPaused ? startTimer() : pauseTimer(); }
+      if (e.key === 'ArrowRight') skipInterval();
+      if (e.key === 'ArrowLeft') prevInterval();
+      if (e.key.toLowerCase && e.key.toLowerCase() === 's') stopTimer();
+    });
 
-            document.getElementById('current-section').textContent = current.section || sectionNameForInterval(current);
-            document.getElementById('current-speed').textContent = current.speed_mph;
-            (function(){
-                const durEl = document.getElementById('current-duration');
-                if (durEl) {
-                    const d = Number(current.duration_min);
-                    durEl.textContent = (isFinite(d) && d > 0) ? d : 1;
-                }
-            })();
-            document.getElementById('current-incline').textContent = current.incline || 0;
-            document.getElementById('current-description').textContent = current.description || '';
-            applyPhaseColor();
+    /* ---------- Init ---------- */
+    window.addEventListener('beforeunload', saveState);
+    loadPrefs();
+    document.querySelectorAll('#category-chips .chip').forEach(c=>c.classList.toggle('active', c.getAttribute('data-cat') === currentCategory));
+    document.querySelectorAll('#duration-chips .chip').forEach(c=>c.classList.toggle('active', parseInt(c.getAttribute('data-min'),10) === currentMinutes));
+    loadSuggestions(); loadState(); loadMuted(); updateStats(); updateETA();
 
-            if (next) {
-                document.getElementById('next-interval').textContent =
-                    `${next.duration_min} min @ ${next.speed_mph} mph · ${sectionNameForInterval(next)}${next.description ? ' – ' + next.description : ''}`;
-            } else {
-                document.getElementById('next-interval').textContent = 'Final interval!';
-            }
+    /* ---------- Compact mode (landscape always) ---------- */
+    function applyLandscapeCompact(){
+      const mq = window.matchMedia('(orientation: landscape)');
+      document.body.classList.toggle('landscape-compact', mq.matches);
+    }
+    applyLandscapeCompact();
+    window.addEventListener('resize', applyLandscapeCompact);
+    window.addEventListener('orientationchange', applyLandscapeCompact);
 
-            document.querySelectorAll('.interval-item').forEach((item, i) => {
-                item.classList.remove('current', 'completed');
-                if (i < currentIntervalIndex) item.classList.add('completed');
-                if (i === currentIntervalIndex) item.classList.add('current');
-            });
+    /* ---------- Display refresh ---------- */
+    function updateDisplay() {
+      if (currentIntervalIndex >= intervals.length) { alert('Workout Complete! Great job! 💪'); stopTimer(); return; }
 
-            const currentElement = document.getElementById(`interval-${currentIntervalIndex}`);
-            if (currentElement) currentElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const current = intervals[currentIntervalIndex];
+      const next = intervals[currentIntervalIndex + 1];
 
-            updateProgress();
-        }
-    </script>
+      document.getElementById('current-section').textContent = current.section || sectionNameForInterval(current);
+      document.getElementById('current-speed').textContent = current.speed_mph;
+      document.getElementById('current-incline').textContent = current.incline || 0;
+      document.getElementById('current-description').textContent = current.description || '';
+
+      // Update simplified landscape metrics
+      (function(){
+        const m = document.getElementById('landscape-metrics');
+        if (!m) return;
+        const spd = (current && (current.speed_mph ?? current.speed)) || '-';
+        const inc = (current && (current.incline ?? 0)) || 0;
+        m.textContent = `${spd} mph · ${inc}%`;
+      })();
+
+      applyPhaseColor();
+
+      if (next) {
+        document.getElementById('next-interval').textContent =
+          `${next.duration_min} min @ ${next.speed_mph} mph · ${sectionNameForInterval(next)}${next.description ? ' – ' + next.description : ''}`;
+      } else {
+        document.getElementById('next-interval').textContent = 'Final interval!';
+      }
+
+      document.querySelectorAll('.interval-item').forEach((item, i) => {
+        item.classList.remove('current', 'completed');
+        if (i < currentIntervalIndex) item.classList.add('completed');
+        if (i === currentIntervalIndex) item.classList.add('current');
+      });
+
+      const curEl = document.getElementById(`interval-${currentIntervalIndex}`);
+      if (curEl) curEl.scrollIntoView({ behavior:'smooth', block:'nearest' });
+
+      updateProgress();
+    }
+  </script>
 </body>
 </html>
