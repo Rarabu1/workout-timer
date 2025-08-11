@@ -590,6 +590,79 @@
       text-shadow: 0 2px 4px rgba(0,0,0,0.5);
     }
     
+    /* Landscape mode for non-timer screens (like Generate AI Workout) */
+    @media (orientation: landscape) and (max-width: 768px) {
+      body {
+        padding: 8px;
+        padding-top: calc(8px + var(--safe-area-inset-top));
+        padding-bottom: calc(8px + var(--safe-area-inset-bottom));
+        padding-left: calc(8px + var(--safe-area-inset-left));
+        padding-right: calc(8px + var(--safe-area-inset-right));
+      }
+      
+      h1 {
+        font-size: 1.5rem;
+        margin: 8px 0;
+      }
+      
+      .tabs {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 4px;
+        padding: 8px;
+        border-radius: 8px;
+      }
+      
+      .tab {
+        flex-shrink: 0;
+        padding: 8px 12px;
+        font-size: 12px;
+        white-space: nowrap;
+        min-width: auto;
+      }
+      
+      .tab-content {
+        padding: 12px;
+        border-radius: 8px;
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;
+      }
+      
+      .workout-request {
+        padding: 8px;
+        font-size: 14px;
+      }
+      
+      .suggestions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      
+      .suggestion-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+        border-radius: 8px;
+      }
+      
+      .paste-area {
+        height: 120px;
+        padding: 8px;
+        font-size: 12px;
+      }
+      
+      button {
+        padding: 10px 16px;
+        font-size: 14px;
+        margin: 4px;
+      }
+      
+      .btn-generate {
+        margin: 12px 0;
+      }
+    }
+    
     body.landscape-compact.phase-blue { background: #007AFF; }
     body.landscape-compact.phase-green { background: #34C759; }
     body.landscape-compact.phase-yellow { background: #FF9500; }
@@ -2697,7 +2770,7 @@
       const isLandscape = mq.matches;
       const isSmallScreen = window.innerWidth < 768;
       
-      // Only apply compact mode on small screens in landscape
+      // Apply landscape mode for all small screens in landscape
       const shouldCompact = isLandscape && isSmallScreen;
       document.body.classList.toggle('landscape-compact', shouldCompact);
       
