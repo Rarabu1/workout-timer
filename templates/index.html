@@ -699,6 +699,12 @@
       background: #000; 
       color: #fff; 
       text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 9999;
     }
     
     /* Landscape mode for non-timer screens (like Generate AI Workout) */
@@ -792,11 +798,11 @@
       }
     }
     
-    body.landscape-compact.phase-blue { background: #1E3A8A; }
-    body.landscape-compact.phase-green { background: #065F46; }
-    body.landscape-compact.phase-yellow { background: #92400E; }
-    body.landscape-compact.phase-orange { background: #9A3412; }
-    body.landscape-compact.phase-red { background: #991B1B; }
+    body.landscape-compact.phase-blue { background: #0066FF; }
+    body.landscape-compact.phase-green { background: #00CC44; }
+    body.landscape-compact.phase-yellow { background: #FFAA00; }
+    body.landscape-compact.phase-orange { background: #FF6600; }
+    body.landscape-compact.phase-red { background: #FF3300; }
 
     /* Timer section in landscape */
     body.landscape-compact #timer-section.timer-display { 
@@ -816,34 +822,38 @@
     body.landscape-compact .countdown-pill {
       background: #fff !important;
       border: none !important;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.2) !important;
-      min-width: 70vw;
-      height: 120px;
-      padding: 20px;
-      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+      min-width: 85vw;
+      height: 200px;
+      padding: 40px;
+      border-radius: 24px;
       color: #1D1D1F !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     
     body.landscape-compact #timer { 
-      font-size: 48px; 
+      font-size: 96px; 
       line-height: 1; 
       font-weight: 900; 
-      letter-spacing: 1px; 
+      letter-spacing: 2px; 
       color: #1D1D1F; 
     }
 
     /* Enhanced landscape metrics */
     .landscape-metrics { 
       display: none; 
-      font-size: 18px; 
-      font-weight: 600; 
+      font-size: 32px; 
+      font-weight: 700; 
       color: #fff; 
-      margin-top: 16px; 
+      margin-top: 24px; 
       text-align: center;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
     body.landscape-compact .landscape-metrics { 
       display: block !important; 
-      margin-top: 16px;
+      margin-top: 24px;
     }
 
     /* Improved compact controls */
@@ -859,14 +869,15 @@
       background: #3B82F6;
       border: none;
       color: #fff; 
-      font-weight: 600; 
-      padding: 12px 16px;
-      border-radius: 12px; 
-      min-height: 48px;
-      font-size: 15px;
-      min-width: 80px;
+      font-weight: 700; 
+      padding: 16px 20px;
+      border-radius: 16px; 
+      min-height: 60px;
+      font-size: 18px;
+      min-width: 100px;
       flex: 1;
-      max-width: 120px;
+      max-width: 140px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
     
     .compact-controls button:active { 
@@ -2726,7 +2737,18 @@
       
       try{
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        const audioContext = new AudioCtx();
+        let audioContext = window.audioContext;
+        
+        // Create new audio context if it doesn't exist or is suspended
+        if (!audioContext || audioContext.state === 'suspended') {
+          audioContext = new AudioCtx();
+          window.audioContext = audioContext;
+          
+          // Resume audio context if suspended (required for iOS)
+          if (audioContext.state === 'suspended') {
+            audioContext.resume();
+          }
+        }
         
         // Create a bell-like sound using multiple oscillators
         const frequencies = [523.25, 659.25, 783.99]; // C5, E5, G5 chord
@@ -2745,10 +2767,10 @@
           
           // Stagger the start times slightly for a more natural bell sound
           const startTime = audioContext.currentTime + (index * 0.05);
-          const duration = 1.5;
+          const duration = 2.0; // Increased duration
           
           gainNode.gain.setValueAtTime(0, startTime);
-          gainNode.gain.linearRampToValueAtTime(0.15, startTime + 0.1);
+          gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.1); // Increased volume
           gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
           
           oscillator.start(startTime);
@@ -2758,8 +2780,18 @@
           gainNodes.push(gainNode);
         });
         
+        // Clean up oscillators after they finish
+        setTimeout(() => {
+          oscillators.forEach(osc => {
+            try { osc.disconnect(); } catch(e) {}
+          });
+          gainNodes.forEach(gain => {
+            try { gain.disconnect(); } catch(e) {}
+          });
+        }, duration * 1000 + 100);
+        
       } catch(e){ 
-        console.log('Bell audio not available'); 
+        console.log('Bell audio not available:', e); 
       }
     }
 
@@ -2769,6 +2801,11 @@
       buttons.forEach(button => {
         button.addEventListener('touchstart', () => {
           hapticFeedback('light');
+          // Initialize audio context on first user interaction (required for iOS)
+          if (!window.audioContext) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            window.audioContext = new AudioCtx();
+          }
         }, { passive: true });
       });
     }
