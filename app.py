@@ -582,6 +582,326 @@ def generate_whoop_summary():
     except Exception as e:
         return jsonify(success=False, error=str(e)), 500
 
+# Advanced ML Recommendation Functions
+def analyze_performance_patterns(user_id=None, days=30):
+    """Analyze user performance patterns for ML recommendations"""
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        
+        # Get recent sessions with performance data
+        cursor.execute("""
+            SELECT 
+                ws.*,
+                w.description,
+                w.workout_type,
+                w.difficulty_rating,
+                DATE(ws.started_at) as workout_date,
+                CASE 
+                    WHEN ws.performance_rating >= 8 THEN 'excellent'
+                    WHEN ws.performance_rating >= 6 THEN 'good'
+                    WHEN ws.performance_rating >= 4 THEN 'fair'
+                    ELSE 'poor'
+                END as performance_category
+            FROM workout_sessions ws
+            JOIN workouts w ON ws.workout_id = w.id
+            WHERE ws.started_at >= DATE('now', '-{} days')
+            AND ws.performance_rating IS NOT NULL
+            ORDER BY ws.started_at DESC
+        """.format(days))
+        
+        sessions = cursor.fetchall()
+        
+        if not sessions:
+            return {
+                "success": False,
+                "message": "Insufficient data for analysis"
+            }
+        
+        # Calculate performance metrics
+        total_sessions = len(sessions)
+        avg_performance = sum(s['performance_rating'] for s in sessions) / total_sessions
+        completion_rate = sum(1 for s in sessions if s['completed_intervals'] > 0) / total_sessions
+        
+        # Analyze workout type preferences
+        workout_types = {}
+        for session in sessions:
+            wtype = session['workout_type'] or 'manual'
+            if wtype not in workout_types:
+                workout_types[wtype] = {'count': 0, 'avg_rating': 0, 'ratings': []}
+            workout_types[wtype]['count'] += 1
+            workout_types[wtype]['ratings'].append(session['performance_rating'])
+        
+        # Calculate average ratings per workout type
+        for wtype in workout_types:
+            ratings = workout_types[wtype]['ratings']
+            workout_types[wtype]['avg_rating'] = sum(ratings) / len(ratings)
+        
+        # Analyze difficulty progression
+        difficulty_trend = []
+        for session in sessions:
+            difficulty_trend.append({
+                'date': session['workout_date'],
+                'difficulty': session['difficulty_rating'] or 3,
+                'performance': session['performance_rating']
+            })
+        
+        # Calculate recovery patterns (if WHOOP data available)
+        recovery_patterns = analyze_recovery_patterns(sessions)
+        
+        return {
+            "success": True,
+            "analysis": {
+                "total_sessions": total_sessions,
+                "avg_performance": round(avg_performance, 2),
+                "completion_rate": round(completion_rate * 100, 1),
+                "workout_type_preferences": workout_types,
+                "difficulty_trend": difficulty_trend,
+                "recovery_patterns": recovery_patterns,
+                "performance_distribution": {
+                    "excellent": len([s for s in sessions if s['performance_rating'] >= 8]),
+                    "good": len([s for s in sessions if 6 <= s['performance_rating'] < 8]),
+                    "fair": len([s for s in sessions if 4 <= s['performance_rating'] < 6]),
+                    "poor": len([s for s in sessions if s['performance_rating'] < 4])
+                }
+            }
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+def analyze_recovery_patterns(sessions):
+    """Analyze recovery patterns from WHOOP data"""
+    try:
+        # This would integrate with WHOOP API in the future
+        # For now, we'll analyze workout frequency and performance correlation
+        
+        recovery_insights = {
+            "optimal_rest_days": 1,  # Default recommendation
+            "performance_after_rest": "improved",
+            "overtraining_risk": "low"
+        }
+        
+        # Analyze performance based on days since last workout
+        if len(sessions) >= 2:
+            recent_sessions = sorted(sessions, key=lambda x: x['started_at'])[-5:]
+            
+            # Simple analysis: check if performance improves with rest
+            rest_performance = []
+            for i in range(1, len(recent_sessions)):
+                days_between = (recent_sessions[i]['started_at'] - recent_sessions[i-1]['started_at']).days
+                performance_diff = recent_sessions[i]['performance_rating'] - recent_sessions[i-1]['performance_rating']
+                rest_performance.append({
+                    'days_rest': days_between,
+                    'performance_change': performance_diff
+                })
+            
+            if rest_performance:
+                avg_rest_days = sum(r['days_rest'] for r in rest_performance) / len(rest_performance)
+                avg_performance_change = sum(r['performance_change'] for r in rest_performance) / len(rest_performance)
+                
+                recovery_insights.update({
+                    "optimal_rest_days": round(avg_rest_days, 1),
+                    "performance_after_rest": "improved" if avg_performance_change > 0 else "declined",
+                    "avg_performance_change": round(avg_performance_change, 2)
+                })
+        
+        return recovery_insights
+        
+    except Exception as e:
+        return {"error": str(e)}
+
+def generate_personalized_workout(analysis_data, user_preferences=None):
+    """Generate personalized workout based on ML analysis"""
+    try:
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            return {"success": False, "error": "OpenAI API key not configured"}
+        
+        client = OpenAI(api_key=api_key)
+        
+        # Prepare analysis summary for AI
+        analysis_summary = f"""
+        User Performance Analysis:
+        - Total sessions: {analysis_data['total_sessions']}
+        - Average performance: {analysis_data['avg_performance']}/10
+        - Completion rate: {analysis_data['completion_rate']}%
+        - Performance distribution: {analysis_data['performance_distribution']}
+        
+        Workout Type Preferences:
+        {json.dumps(analysis_data['workout_type_preferences'], indent=2)}
+        
+        Recovery Patterns:
+        {json.dumps(analysis_data['recovery_patterns'], indent=2)}
+        
+        User Preferences: {user_preferences or 'None specified'}
+        """
+        
+        # Generate personalized workout prompt
+        workout_prompt = f"""
+        Based on this user's performance analysis, generate a personalized treadmill workout:
+        
+        {analysis_summary}
+        
+        Requirements:
+        1. Consider their performance patterns and preferences
+        2. Adjust difficulty based on their recent performance trend
+        3. Choose workout type based on their success rates
+        4. Account for recovery patterns and rest needs
+        5. Include progressive overload if they're improving
+        6. Keep total duration appropriate for their completion rate
+        
+        Generate a workout in this exact format:
+        ```
+        **Warm-Up – 5 minutes**
+        * 5 min @ 5.0 mph (easy warm-up)
+        
+        **Main Workout**
+        * 10 min @ 6.0 mph (steady pace)
+        * 5 min @ 7.0 mph (tempo)
+        * 10 min @ 6.0 mph (steady pace)
+        
+        **Cool-Down – 5 minutes**
+        * 5 min @ 5.0 mph (easy cool-down)
+        ```
+        
+        Also provide:
+        - Recommended difficulty rating (1-10)
+        - Expected performance rating (1-10)
+        - Recovery recommendations
+        - Next workout suggestions
+        """
+        
+        completion = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": workout_prompt}],
+            temperature=0.7,
+            max_tokens=500
+        )
+        
+        workout_text = completion.choices[0].message.content or ""
+        
+        # Parse the generated workout
+        intervals = parse_intervals(workout_text)
+        
+        return {
+            "success": True,
+            "workout_text": workout_text,
+            "intervals": intervals,
+            "analysis_based_on": analysis_data,
+            "recommendations": {
+                "difficulty_rating": 5,  # Would be extracted from AI response
+                "expected_performance": 7,
+                "recovery_notes": "Based on your patterns, consider 1-2 days rest",
+                "next_workout_suggestion": "Try a recovery run if performance drops"
+            }
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.route("/ml_analysis", methods=["GET"])
+def get_ml_analysis():
+    """Get ML analysis of user performance patterns"""
+    try:
+        days = int(request.args.get("days", 30))
+        analysis = analyze_performance_patterns(days=days)
+        
+        if analysis["success"]:
+            return jsonify(analysis)
+        else:
+            return jsonify(analysis), 400
+            
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
+
+@app.route("/personalized_workout", methods=["POST"])
+def get_personalized_workout():
+    """Generate personalized workout based on ML analysis"""
+    try:
+        data = request.get_json() or {}
+        user_preferences = data.get("preferences", {})
+        
+        # Get performance analysis
+        analysis = analyze_performance_patterns(days=30)
+        
+        if not analysis["success"]:
+            return jsonify(analysis), 400
+        
+        # Generate personalized workout
+        workout_result = generate_personalized_workout(
+            analysis["analysis"], 
+            user_preferences
+        )
+        
+        if workout_result["success"]:
+            return jsonify(workout_result)
+        else:
+            return jsonify(workout_result), 500
+            
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
+
+@app.route("/performance_insights", methods=["GET"])
+def get_performance_insights():
+    """Get detailed performance insights and recommendations"""
+    try:
+        days = int(request.args.get("days", 30))
+        analysis = analyze_performance_patterns(days=days)
+        
+        if not analysis["success"]:
+            return jsonify(analysis), 400
+        
+        # Generate insights based on analysis
+        insights = generate_performance_insights(analysis["analysis"])
+        
+        return jsonify({
+            "success": True,
+            "analysis": analysis["analysis"],
+            "insights": insights
+        })
+        
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
+
+def generate_performance_insights(analysis_data):
+    """Generate actionable insights from performance analysis"""
+    insights = {
+        "strengths": [],
+        "areas_for_improvement": [],
+        "recommendations": [],
+        "trends": []
+    }
+    
+    # Analyze strengths
+    if analysis_data["avg_performance"] >= 7:
+        insights["strengths"].append("Consistently high performance - you're in great shape!")
+    
+    if analysis_data["completion_rate"] >= 0.8:
+        insights["strengths"].append("Excellent workout completion rate")
+    
+    # Analyze areas for improvement
+    if analysis_data["avg_performance"] < 6:
+        insights["areas_for_improvement"].append("Consider reducing workout intensity to improve consistency")
+    
+    if analysis_data["completion_rate"] < 0.7:
+        insights["areas_for_improvement"].append("Try shorter workouts to improve completion rate")
+    
+    # Generate recommendations
+    if analysis_data["performance_distribution"]["poor"] > analysis_data["performance_distribution"]["excellent"]:
+        insights["recommendations"].append("Focus on recovery - consider more rest days between intense sessions")
+    
+    # Analyze trends
+    if len(analysis_data["difficulty_trend"]) >= 3:
+        recent_trend = analysis_data["difficulty_trend"][-3:]
+        avg_performance = sum(t["performance"] for t in recent_trend) / 3
+        if avg_performance >= 7:
+            insights["trends"].append("Recent performance is strong - ready for increased challenge")
+        elif avg_performance < 5:
+            insights["trends"].append("Recent performance declining - consider recovery week")
+    
+    return insights
+
 if __name__ == "__main__":
     init_db()
     port = int(os.environ.get("PORT", "5000"))

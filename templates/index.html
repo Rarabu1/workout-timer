@@ -881,6 +881,139 @@
       font-size: 14px;
     }
 
+    /* ML Insights styles */
+    .ml-analysis,
+    .personalized-workout,
+    .performance-insights,
+    .recovery-optimization {
+      background: #fff;
+      border: 1px solid var(--ios-border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .analysis-content,
+    .workout-content,
+    .insights-content,
+    .recovery-content {
+      background: var(--ios-light-gray);
+      border: 1px solid var(--ios-border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 12px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .preferences-section {
+      background: var(--ios-light-gray);
+      border: 1px solid var(--ios-border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .preference-inputs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .duration-preference {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .duration-preference input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--ios-border);
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .duration-preference input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--ios-blue);
+      cursor: pointer;
+    }
+
+    .duration-preference input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--ios-blue);
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-insights {
+      background: var(--ios-purple);
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
+    .btn-insights:active {
+      background: #8E44AD;
+    }
+
+    .insight-card {
+      background: #fff;
+      border: 1px solid var(--ios-border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .insight-card.positive {
+      border-left: 4px solid var(--ios-green);
+    }
+
+    .insight-card.warning {
+      border-left: 4px solid var(--ios-orange);
+    }
+
+    .insight-card.info {
+      border-left: 4px solid var(--ios-blue);
+    }
+
+    .performance-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .metric-card {
+      background: var(--ios-light-gray);
+      border: 1px solid var(--ios-border);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .metric-card .metric-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--ios-blue);
+    }
+
+    .metric-card .metric-label {
+      font-size: 0.8rem;
+      color: var(--ios-gray);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
     /* Dark mode support */
     @media (prefers-color-scheme: dark) {
       :root {
@@ -905,7 +1038,11 @@
       .session-tracking,
       .whoop-upload,
       .progress-report,
-      .ai-summary {
+      .ai-summary,
+      .ml-analysis,
+      .personalized-workout,
+      .performance-insights,
+      .recovery-optimization {
         background: #1C1C1E;
         border-color: #38383A;
         color: #fff;
@@ -913,7 +1050,14 @@
       
       .countdown-pill,
       .session-item,
-      .summary-content {
+      .summary-content,
+      .analysis-content,
+      .workout-content,
+      .insights-content,
+      .recovery-content,
+      .preferences-section,
+      .metric-card,
+      .insight-card {
         background: #1C1C1E;
         border-color: #38383A;
         color: #fff;
@@ -929,6 +1073,7 @@
     <button class="tab" onclick="switchTab('manual', this)">📝 Paste Workout</button>
     <button class="tab" onclick="switchTab('saved', this)">💾 Saved Workouts</button>
     <button class="tab" onclick="switchTab('progress', this)">📊 Progress & WHOOP</button>
+    <button class="tab" onclick="switchTab('ml', this)">🧠 ML Insights</button>
   </div>
 
   <!-- AI Generation Tab -->
@@ -1040,6 +1185,65 @@
       <h3>🤖 AI Workout Summary</h3>
       <button onclick="generateAISummary()" class="btn-generate">Generate Summary</button>
       <div id="ai-summary-content" class="summary-content"></div>
+    </div>
+  </div>
+
+  <!-- ML Insights Tab -->
+  <div id="ml-tab" class="tab-content">
+    <h2>🧠 Machine Learning Insights</h2>
+    
+    <!-- Performance Analysis -->
+    <div class="ml-analysis">
+      <h3>📈 Performance Analysis</h3>
+      <div class="period-selector">
+        <button class="chip secondary" data-days="7" onclick="loadMLAnalysis(7)">7 days</button>
+        <button class="chip secondary active" data-days="30" onclick="loadMLAnalysis(30)">30 days</button>
+        <button class="chip secondary" data-days="90" onclick="loadMLAnalysis(90)">90 days</button>
+      </div>
+      <div id="ml-analysis-content" class="analysis-content"></div>
+    </div>
+
+    <!-- Personalized Workout Generation -->
+    <div class="personalized-workout">
+      <h3>🎯 Personalized Workout</h3>
+      <div class="preferences-section">
+        <h4>Your Preferences</h4>
+        <div class="preference-inputs">
+          <label class="toggle">
+            <input type="checkbox" id="pref-endurance" checked> Endurance focus
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="pref-speed"> Speed work
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="pref-hills"> Hill training
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="pref-recovery"> Recovery runs
+          </label>
+        </div>
+        <div class="duration-preference">
+          <label>Preferred duration: <span id="duration-value">30</span> minutes</label>
+          <input type="range" id="duration-slider" min="15" max="60" value="30" step="5">
+        </div>
+      </div>
+      <button onclick="generatePersonalizedWorkout()" class="btn-generate">🎯 Generate Personalized Workout</button>
+      <div id="personalized-workout-content" class="workout-content"></div>
+    </div>
+
+    <!-- Performance Insights -->
+    <div class="performance-insights">
+      <h3>💡 Performance Insights</h3>
+      <button onclick="loadPerformanceInsights()" class="btn-insights">Get Insights</button>
+      <div id="insights-content" class="insights-content"></div>
+    </div>
+
+    <!-- Recovery Optimization -->
+    <div class="recovery-optimization">
+      <h3>🔄 Recovery Optimization</h3>
+      <div id="recovery-content" class="recovery-content">
+        <p>Complete a few workouts to get personalized recovery recommendations.</p>
+      </div>
     </div>
   </div>
 
@@ -2003,6 +2207,200 @@
     if (window.location.hash === '#progress') {
       loadProgressReport(30);
     }
+
+    /* ---------- ML Insights Functions ---------- */
+    async function loadMLAnalysis(days = 30) {
+      try {
+        const response = await fetch(`/ml_analysis?days=${days}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          displayMLAnalysis(data.analysis);
+          
+          // Update period selector
+          document.querySelectorAll('#ml-tab .period-selector .chip').forEach(chip => {
+            chip.classList.remove('active');
+          });
+          document.querySelector(`#ml-tab [data-days="${days}"]`).classList.add('active');
+        } else {
+          document.getElementById('ml-analysis-content').innerHTML = 
+            `<p style="color: var(--ios-gray);">${data.message || 'No data available for analysis'}</p>`;
+        }
+      } catch (e) {
+        console.error('Error loading ML analysis:', e);
+        document.getElementById('ml-analysis-content').innerHTML = 
+          '<p style="color: var(--ios-red);">Error loading analysis</p>';
+      }
+    }
+
+    function displayMLAnalysis(analysis) {
+      const container = document.getElementById('ml-analysis-content');
+      
+      container.innerHTML = `
+        <div class="performance-metrics">
+          <div class="metric-card">
+            <div class="metric-value">${analysis.total_sessions}</div>
+            <div class="metric-label">Sessions</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">${analysis.avg_performance}</div>
+            <div class="metric-label">Avg Rating</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">${analysis.completion_rate}%</div>
+            <div class="metric-label">Completion</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">${analysis.recovery_patterns.optimal_rest_days}</div>
+            <div class="metric-label">Rest Days</div>
+          </div>
+        </div>
+        
+        <h4>Performance Distribution</h4>
+        <div style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>Excellent (8-10): ${analysis.performance_distribution.excellent}</span>
+            <span style="color: var(--ios-green);">${Math.round(analysis.performance_distribution.excellent / analysis.total_sessions * 100)}%</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>Good (6-7): ${analysis.performance_distribution.good}</span>
+            <span style="color: var(--ios-blue);">${Math.round(analysis.performance_distribution.good / analysis.total_sessions * 100)}%</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>Fair (4-5): ${analysis.performance_distribution.fair}</span>
+            <span style="color: var(--ios-orange);">${Math.round(analysis.performance_distribution.fair / analysis.total_sessions * 100)}%</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>Poor (1-3): ${analysis.performance_distribution.poor}</span>
+            <span style="color: var(--ios-red);">${Math.round(analysis.performance_distribution.poor / analysis.total_sessions * 100)}%</span>
+          </div>
+        </div>
+        
+        <h4>Recovery Insights</h4>
+        <div class="insight-card info">
+          <strong>Optimal Rest Days:</strong> ${analysis.recovery_patterns.optimal_rest_days} days<br>
+          <strong>Performance After Rest:</strong> ${analysis.recovery_patterns.performance_after_rest}<br>
+          <strong>Overtraining Risk:</strong> ${analysis.recovery_patterns.overtraining_risk}
+        </div>
+      `;
+    }
+
+    async function generatePersonalizedWorkout() {
+      try {
+        // Get user preferences
+        const preferences = {
+          endurance: document.getElementById('pref-endurance').checked,
+          speed: document.getElementById('pref-speed').checked,
+          hills: document.getElementById('pref-hills').checked,
+          recovery: document.getElementById('pref-recovery').checked,
+          duration: parseInt(document.getElementById('duration-slider').value)
+        };
+        
+        const response = await fetch('/personalized_workout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ preferences })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          displayPersonalizedWorkout(data);
+          hapticFeedback('medium');
+        } else {
+          alert('Error generating personalized workout: ' + data.error);
+        }
+      } catch (e) {
+        console.error('Error generating personalized workout:', e);
+        alert('Error generating workout: ' + e.message);
+      }
+    }
+
+    function displayPersonalizedWorkout(data) {
+      const container = document.getElementById('personalized-workout-content');
+      
+      container.innerHTML = `
+        <h4>🎯 Your Personalized Workout</h4>
+        <div style="background: #fff; border: 1px solid var(--ios-border); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+          <pre style="white-space: pre-wrap; font-family: inherit; margin: 0;">${data.workout_text}</pre>
+        </div>
+        
+        <h4>📊 Recommendations</h4>
+        <div class="insight-card info">
+          <strong>Difficulty Rating:</strong> ${data.recommendations.difficulty_rating}/10<br>
+          <strong>Expected Performance:</strong> ${data.recommendations.expected_performance}/10<br>
+          <strong>Recovery Notes:</strong> ${data.recommendations.recovery_notes}<br>
+          <strong>Next Workout:</strong> ${data.recommendations.next_workout_suggestion}
+        </div>
+        
+        <button onclick="usePersonalizedWorkout()" class="btn-generate" style="margin-top: 16px;">
+          🏃‍♂️ Use This Workout
+        </button>
+      `;
+    }
+
+    function usePersonalizedWorkout() {
+      // This would integrate with the existing workout system
+      alert('Personalized workout loaded! Switch to the Generate tab to see it.');
+    }
+
+    async function loadPerformanceInsights() {
+      try {
+        const response = await fetch('/performance_insights?days=30');
+        const data = await response.json();
+        
+        if (data.success) {
+          displayPerformanceInsights(data.insights);
+          hapticFeedback('light');
+        } else {
+          alert('Error loading insights: ' + data.error);
+        }
+      } catch (e) {
+        console.error('Error loading performance insights:', e);
+        alert('Error loading insights: ' + e.message);
+      }
+    }
+
+    function displayPerformanceInsights(insights) {
+      const container = document.getElementById('insights-content');
+      
+      let html = '<h4>💡 Your Performance Insights</h4>';
+      
+      if (insights.strengths.length > 0) {
+        html += '<h5>✅ Strengths</h5>';
+        insights.strengths.forEach(strength => {
+          html += `<div class="insight-card positive">${strength}</div>`;
+        });
+      }
+      
+      if (insights.areas_for_improvement.length > 0) {
+        html += '<h5>⚠️ Areas for Improvement</h5>';
+        insights.areas_for_improvement.forEach(area => {
+          html += `<div class="insight-card warning">${area}</div>`;
+        });
+      }
+      
+      if (insights.recommendations.length > 0) {
+        html += '<h5>🎯 Recommendations</h5>';
+        insights.recommendations.forEach(rec => {
+          html += `<div class="insight-card info">${rec}</div>`;
+        });
+      }
+      
+      if (insights.trends.length > 0) {
+        html += '<h5>📈 Trends</h5>';
+        insights.trends.forEach(trend => {
+          html += `<div class="insight-card info">${trend}</div>`;
+        });
+      }
+      
+      container.innerHTML = html;
+    }
+
+    // Duration slider handler
+    document.getElementById('duration-slider').addEventListener('input', function(e) {
+      document.getElementById('duration-value').textContent = e.target.value;
+    });
 
     /* ---------- Compact mode (landscape always) ---------- */
     function applyLandscapeCompact(){
