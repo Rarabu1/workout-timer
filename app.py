@@ -1605,16 +1605,21 @@ def get_whoop_recovery_data(access_token, date=None):
             date = datetime.now().strftime('%Y-%m-%d')
         
         headers = {'Authorization': f'Bearer {access_token}'}
-        # Use the v1 endpoint
+        # Try without date parameters first (get latest)
         response = requests.get(
             f"{WHOOP_API_BASE_V1}/recovery",
-            headers=headers,
-            params={'start': date, 'end': date}
+            headers=headers
         )
         response.raise_for_status()
         data = response.json()
-        # Return the first record if available
+        
+        # If we have records, find the one for today's date
         if data.get('records'):
+            for record in data['records']:
+                record_date = record.get('created_at', '')[:10]  # Get YYYY-MM-DD part
+                if record_date == date:
+                    return record
+            # If no exact match, return the first record
             return data['records'][0]
         return data
     except requests.exceptions.RequestException as e:
