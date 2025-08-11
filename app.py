@@ -36,6 +36,7 @@ WHOOP_CLIENT_ID = os.getenv('WHOOP_CLIENT_ID')
 WHOOP_CLIENT_SECRET = os.getenv('WHOOP_CLIENT_SECRET', '43d8c7a606083d063e422454bd593104fd66e1716b3900ff86d8752e87769db0')
 WHOOP_REDIRECT_URI = os.getenv('WHOOP_REDIRECT_URI', 'https://workout-timer-dskb.onrender.com/whoop/callback')
 WHOOP_API_BASE = 'https://api.prod.whoop.com'
+WHOOP_API_BASE_V1 = 'https://api.prod.whoop.com/developer/v1'
 
 # Debug: Print the actual values being used
 print(f"=== WHOOP CONFIG DEBUG ===")
@@ -1579,11 +1580,19 @@ def get_whoop_user_profile(access_token):
     
     try:
         headers = {'Authorization': f'Bearer {access_token}'}
-        response = requests.get(f"{WHOOP_API_BASE}/user/profile", headers=headers)
+        # Try the v1 endpoint
+        response = requests.get(f"{WHOOP_API_BASE_V1}/user/profile/basic", headers=headers)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
         print(f"Error getting WHOOP profile: {e}")
+        # Try alternative endpoint
+        try:
+            response = requests.get(f"{WHOOP_API_BASE_V1}/user", headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except:
+            pass
         return None
 
 def get_whoop_recovery_data(access_token, date=None):
@@ -1596,9 +1605,18 @@ def get_whoop_recovery_data(access_token, date=None):
             date = datetime.now().strftime('%Y-%m-%d')
         
         headers = {'Authorization': f'Bearer {access_token}'}
-        response = requests.get(f"{WHOOP_API_BASE}/user/recovery", headers=headers, params={'date': date})
+        # Use the v1 endpoint
+        response = requests.get(
+            f"{WHOOP_API_BASE_V1}/recovery",
+            headers=headers,
+            params={'start': date, 'end': date}
+        )
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        # Return the first record if available
+        if data.get('records'):
+            return data['records'][0]
+        return data
     except requests.exceptions.RequestException as e:
         print(f"Error getting WHOOP recovery: {e}")
         return None
@@ -1613,9 +1631,10 @@ def get_whoop_workouts(access_token, start_date=None, end_date=None):
         
         headers = {'Authorization': f'Bearer {access_token}'}
         params = {'start': start_date, 'end': end_date}
-        response = requests.get(f"{WHOOP_API_BASE}/user/workouts", headers=headers, params=params)
+        response = requests.get(f"{WHOOP_API_BASE_V1}/workout", headers=headers, params=params)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        return data.get('records', [])
     except requests.exceptions.RequestException as e:
         print(f"Error getting WHOOP workouts: {e}")
         return None
@@ -1624,7 +1643,7 @@ def get_whoop_heart_rate_data(access_token, workout_id):
     """Get heart rate data for a specific workout"""
     try:
         headers = {'Authorization': f'Bearer {access_token}'}
-        response = requests.get(f"{WHOOP_API_BASE}/user/workouts/{workout_id}/heart_rate", headers=headers)
+        response = requests.get(f"{WHOOP_API_BASE_V1}/workout/{workout_id}/heart_rate", headers=headers)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -1801,6 +1820,40 @@ def get_whoop_workouts_route():
         
     except Exception as e:
         return jsonify(success=False, error=str(e)), 500
+
+@app.route("/whoop/test")
+def test_whoop_api():
+    """Test WHOOP API endpoints"""
+    access_token = session.get('whoop_access_token')
+    if not access_token:
+        return jsonify(success=False, error="Not authenticated with WHOOP"), 401
+    
+    results = {}
+    headers = {'Authorization': f'Bearer {access_token}'}
+    
+    # Test different endpoints
+    endpoints = [
+        f"{WHOOP_API_BASE_V1}/user/profile/basic",
+        f"{WHOOP_API_BASE_V1}/user",
+        f"{WHOOP_API_BASE_V1}/recovery",
+        f"{WHOOP_API_BASE_V1}/workout",
+        f"{WHOOP_API_BASE_V1}/cycle",
+        f"{WHOOP_API_BASE_V1}/sleep",
+    ]
+    
+    for endpoint in endpoints:
+        try:
+            response = requests.get(endpoint, headers=headers)
+            results[endpoint] = {
+                'status': response.status_code,
+                'success': response.status_code == 200
+            }
+            if response.status_code == 200:
+                results[endpoint]['sample'] = str(response.json())[:200]
+        except Exception as e:
+            results[endpoint] = {'error': str(e)}
+    
+    return jsonify(results)
 
 @app.route("/whoop/recommendations")
 def get_whoop_recommendations():
