@@ -150,15 +150,80 @@ def privacy_policy():
 
 @app.route("/workout_suggestions")
 def workout_suggestions():
-    suggestions = [
+    import random
+    from datetime import datetime
+    
+    # Base suggestions with more variety
+    base_suggestions = [
         "30 minute endurance run with steady pacing",
         "20 minute VO2 max intervals (mph only)",
         "40 minute hill repeats (incline work)",
         "45 minute tempo with recoveries",
         "60 minute long run with surges",
-        "30 minute fartlek: varied speeds"
+        "30 minute fartlek: varied speeds",
+        "25 minute progressive speed build",
+        "35 minute interval ladder (increasing speeds)",
+        "50 minute mixed terrain simulation",
+        "20 minute sprint intervals with recovery",
+        "40 minute threshold pace workout",
+        "30 minute pyramid intervals",
+        "45 minute endurance with pickups",
+        "25 minute speed endurance session",
+        "35 minute hill climb simulation",
+        "20 minute anaerobic threshold work",
+        "40 minute marathon pace practice",
+        "30 minute mixed intensity intervals",
+        "50 minute long run with tempo sections",
+        "25 minute lactate threshold training"
     ]
-    return jsonify(suggestions)
+    
+    # Add dynamic elements based on time and randomization
+    current_hour = datetime.now().hour
+    current_minute = datetime.now().minute
+    
+    # Time-based variations
+    time_variations = [
+        f"morning energy boost workout",
+        f"afternoon power session",
+        f"evening recovery-focused run",
+        f"weekend long distance prep",
+        f"midweek intensity builder"
+    ]
+    
+    # Intensity variations based on time of day
+    if 6 <= current_hour < 12:
+        intensity = "morning energy"
+    elif 12 <= current_hour < 17:
+        intensity = "afternoon power"
+    elif 17 <= current_hour < 21:
+        intensity = "evening strength"
+    else:
+        intensity = "late night recovery"
+    
+    # Create dynamic suggestions
+    dynamic_suggestions = []
+    for base in base_suggestions[:10]:  # Take first 10 for variety
+        # Add time-based context
+        dynamic_suggestions.append(f"{base} ({intensity} focus)")
+        
+        # Add random modifiers
+        modifiers = [
+            "with breathing focus",
+            "incorporating cadence work",
+            "with mental toughness elements",
+            "focusing on form",
+            "with visualization techniques"
+        ]
+        if random.random() < 0.3:  # 30% chance to add modifier
+            modifier = random.choice(modifiers)
+            dynamic_suggestions.append(f"{base} {modifier}")
+    
+    # Shuffle and return unique suggestions
+    all_suggestions = list(set(base_suggestions + dynamic_suggestions))
+    random.shuffle(all_suggestions)
+    
+    # Return 12-15 suggestions for variety
+    return jsonify(all_suggestions[:random.randint(12, 15)])
 
 @app.route("/parse", methods=["POST"])
 def parse():
@@ -222,32 +287,114 @@ def generate_workout():
         if not user_request:
             return jsonify(success=False, error="Please describe the workout"), 400
 
-        # Call OpenAI with proper error handling
+        # Call OpenAI with proper error handling and dynamic prompts
         try:
+            import random
+            from datetime import datetime
+            
             client = OpenAI(api_key=api_key)
+            
+            # Create dynamic system prompts for variety
+            system_prompts = [
+                "You are an experienced running coach specializing in treadmill workouts. Generate a unique treadmill workout as plain text, one interval per line. Use the exact format: `<minutes> min @ <speed> mph (<short label>)`. Optionally include 'incline X' like `, incline 2`. Keep total duration ≤ 60 minutes. Vary speeds between 4.0-8.0 mph and be creative with interval patterns.",
+                
+                "You are a professional running coach creating personalized treadmill sessions. Design a treadmill workout as plain text, one interval per line. Format: `<minutes> min @ <speed> mph (<short label>)`. Add incline variations like `, incline 1-3`. Total duration ≤ 60 minutes. Mix different intensities and create engaging patterns.",
+                
+                "You are a certified running coach developing innovative treadmill workouts. Create a treadmill session as plain text, one interval per line. Use format: `<minutes> min @ <speed> mph (<short label>)`. Include incline work like `, incline 2`. Keep under 60 minutes. Focus on progressive overload and varied intensity.",
+                
+                "You are a running coach expert in treadmill training. Generate a treadmill workout as plain text, one interval per line. Format: `<minutes> min @ <speed> mph (<short label>)`. Add incline variations like `, incline 1-4`. Maximum 60 minutes. Create dynamic patterns with speed and incline changes.",
+                
+                "You are a running coach specializing in treadmill interval training. Design a treadmill workout as plain text, one interval per line. Use: `<minutes> min @ <speed> mph (<short label>)`. Include incline work like `, incline 2-3`. Keep ≤ 60 minutes. Focus on interval variety and recovery periods."
+            ]
+            
+            # Add dynamic elements to user request
+            current_time = datetime.now()
+            time_context = ""
+            if 6 <= current_time.hour < 12:
+                time_context = " (morning energy focus)"
+            elif 12 <= current_time.hour < 17:
+                time_context = " (afternoon power session)"
+            elif 17 <= current_time.hour < 21:
+                time_context = " (evening strength workout)"
+            else:
+                time_context = " (late night recovery focus)"
+            
+            # Add random intensity modifiers
+            intensity_modifiers = [
+                "with progressive speed increases",
+                "incorporating hill intervals",
+                "with tempo sections",
+                "focusing on endurance building",
+                "with speed variations",
+                "incorporating recovery periods",
+                "with threshold work",
+                "focusing on aerobic capacity",
+                "with anaerobic intervals",
+                "incorporating steady state work"
+            ]
+            
+            # Enhance user request with dynamic elements
+            enhanced_request = user_request
+            if random.random() < 0.7:  # 70% chance to add time context
+                enhanced_request += time_context
+            if random.random() < 0.5:  # 50% chance to add intensity modifier
+                enhanced_request += " " + random.choice(intensity_modifiers)
+            
+            # Add random seed for variety
+            random_seed = random.randint(1, 1000)
+            
+            # Vary temperature for more creativity
+            temperature = random.uniform(0.8, 1.2)
+            
             completion = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
                     {
                         "role": "system",
-                        "content": (
-                            "You are a running coach. Generate a treadmill workout as plain text, one interval per line. "
-                            "Use the exact format: `<minutes> min @ <speed> mph (<short label>)`. "
-                            "Optionally include 'incline X' like `, incline 2`. Keep total duration ≤ 60 minutes."
-                        ),
+                        "content": random.choice(system_prompts)
                     },
-                    {"role": "user", "content": user_request},
+                    {"role": "user", "content": f"Create a unique workout: {enhanced_request}. Random seed: {random_seed}"},
                 ],
-                temperature=0.7,
+                temperature=temperature,
                 max_tokens=600,
             )
             workout_text = (completion.choices[0].message.content or "").strip()
         except Exception as openai_error:
             print(f"OpenAI error: {openai_error}")
-            # Fallback workout if OpenAI fails
-            workout_text = """5 min @ 4.0 mph (warm up)
+            # Fallback workouts with variety
+            fallback_workouts = [
+                """5 min @ 4.0 mph (warm up)
 20 min @ 5.5 mph (steady pace)
-5 min @ 4.0 mph (cool down)"""
+5 min @ 4.0 mph (cool down)""",
+                
+                """3 min @ 4.0 mph (easy warm up)
+5 min @ 5.0 mph (build pace)
+10 min @ 6.0 mph (tempo work)
+5 min @ 5.0 mph (recovery)
+5 min @ 4.0 mph (cool down)""",
+                
+                """5 min @ 4.5 mph (warm up)
+3 min @ 6.0 mph (speed interval)
+2 min @ 4.5 mph (recovery)
+3 min @ 6.5 mph (speed interval)
+2 min @ 4.5 mph (recovery)
+3 min @ 7.0 mph (speed interval)
+2 min @ 4.5 mph (recovery)
+5 min @ 4.0 mph (cool down)""",
+                
+                """5 min @ 4.0 mph (easy start)
+10 min @ 5.5 mph (steady state)
+5 min @ 6.0 mph (tempo)
+5 min @ 5.5 mph (recovery)
+5 min @ 4.0 mph (cool down)""",
+                
+                """3 min @ 4.0 mph (warm up)
+5 min @ 5.0 mph (build)
+8 min @ 6.0 mph (threshold)
+5 min @ 5.0 mph (recovery)
+4 min @ 4.0 mph (cool down)"""
+            ]
+            workout_text = random.choice(fallback_workouts)
 
         # Parse the generated workout using our parser wrapper
         intervals = []

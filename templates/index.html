@@ -692,9 +692,6 @@
       overflow: hidden; 
       margin: 0; 
       padding: 0; 
-    }
-
-    body.landscape-compact {
       display: flex; 
       flex-direction: column; 
       justify-content: center; 
@@ -2094,25 +2091,74 @@
       } catch {}
     }
 
-    function renderSuggestions(){
-      const pool = SUGGESTION_POOLS[currentCategory] || [];
+    async function renderSuggestions(){
       const container = document.getElementById('suggestion-buttons');
-      container.innerHTML = '';
-      const make = (...arr)=>arr[Math.floor(Math.random()*arr.length)];
-      const picks = new Set();
-      while (picks.size < Math.min(6, pool.length)) { picks.add(make(...pool)); }
-      Array.from(picks).forEach(fn => {
-        const text = fn(currentMinutes);
-        const btn = document.createElement('button');
-        btn.className = 'suggestion-btn';
-        btn.textContent = text;
-        btn.onclick = () => { const inp = document.getElementById('workoutRequest'); if (inp) inp.value = text; };
-        container.appendChild(btn);
-      });
+      container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--ios-gray);">Loading suggestions...</div>';
+      
+      try {
+        // Fetch dynamic suggestions from backend
+        const response = await fetch('/workout_suggestions');
+        const suggestions = await response.json();
+        
+        // Filter suggestions based on current category and duration
+        let filteredSuggestions = suggestions.filter(suggestion => {
+          const lowerSuggestion = suggestion.toLowerCase();
+          const category = currentCategory.toLowerCase();
+          
+          // Category-based filtering
+          if (category === 'endurance' && (lowerSuggestion.includes('endurance') || lowerSuggestion.includes('steady') || lowerSuggestion.includes('aerobic'))) {
+            return true;
+          } else if (category === 'speed' && (lowerSuggestion.includes('speed') || lowerSuggestion.includes('interval') || lowerSuggestion.includes('tempo') || lowerSuggestion.includes('sprint'))) {
+            return true;
+          } else if (category === 'hills' && (lowerSuggestion.includes('hill') || lowerSuggestion.includes('incline'))) {
+            return true;
+          } else if (category === 'recovery' && (lowerSuggestion.includes('recovery') || lowerSuggestion.includes('easy') || lowerSuggestion.includes('low'))) {
+            return true;
+          } else if (category === 'race' && (lowerSuggestion.includes('race') || lowerSuggestion.includes('pace') || lowerSuggestion.includes('marathon'))) {
+            return true;
+          } else if (category === 'fartlek' && lowerSuggestion.includes('fartlek')) {
+            return true;
+          }
+          
+          // If no category match, include it anyway for variety
+          return true;
+        });
+        
+        // Shuffle and take 6 suggestions
+        filteredSuggestions = filteredSuggestions.sort(() => Math.random() - 0.5).slice(0, 6);
+        
+        container.innerHTML = '';
+        filteredSuggestions.forEach(suggestion => {
+          const btn = document.createElement('button');
+          btn.className = 'suggestion-btn';
+          btn.textContent = suggestion;
+          btn.onclick = () => { 
+            const inp = document.getElementById('workoutRequest'); 
+            if (inp) inp.value = suggestion; 
+          };
+          container.appendChild(btn);
+        });
+      } catch (error) {
+        console.error('Error loading suggestions:', error);
+        // Fallback to static suggestions if backend fails
+        const pool = SUGGESTION_POOLS[currentCategory] || [];
+        container.innerHTML = '';
+        const make = (...arr)=>arr[Math.floor(Math.random()*arr.length)];
+        const picks = new Set();
+        while (picks.size < Math.min(6, pool.length)) { picks.add(make(...pool)); }
+        Array.from(picks).forEach(fn => {
+          const text = fn(currentMinutes);
+          const btn = document.createElement('button');
+          btn.className = 'suggestion-btn';
+          btn.textContent = text;
+          btn.onclick = () => { const inp = document.getElementById('workoutRequest'); if (inp) inp.value = text; };
+          container.appendChild(btn);
+        });
+      }
     }
 
     function loadSuggestions(){ renderSuggestions(); }
-    function shuffleSuggestions(){ renderSuggestions(); }
+    async function shuffleSuggestions(){ await renderSuggestions(); }
 
     function selectCategory(el){
       document.querySelectorAll('#category-chips .chip').forEach(c=>c.classList.remove('active'));
