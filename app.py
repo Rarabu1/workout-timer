@@ -35,7 +35,7 @@ DATABASE = 'workouts.db'
 WHOOP_CLIENT_ID = os.getenv('WHOOP_CLIENT_ID')
 WHOOP_CLIENT_SECRET = os.getenv('WHOOP_CLIENT_SECRET')
 WHOOP_REDIRECT_URI = os.getenv('WHOOP_REDIRECT_URI', 'http://localhost:5000/whoop/callback')
-WHOOP_API_BASE = 'https://api.whoop.com'
+WHOOP_API_BASE = 'https://api.prod.whoop.com'
 
 def get_db():
     db = getattr(g, '_database', None)
@@ -1500,7 +1500,7 @@ def get_whoop_auth_url():
         'response_type': 'code',
         'scope': 'read:recovery read:workouts read:profile read:cycles read:sleep'
     }
-    auth_url = f"{WHOOP_API_BASE}/oauth/authorize"
+    auth_url = f"{WHOOP_API_BASE}/oauth/oauth2/auth"
     query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
     return f"{auth_url}?{query_string}"
 
@@ -1510,7 +1510,7 @@ def exchange_whoop_code_for_token(code):
         return None
     
     try:
-        response = requests.post(f"{WHOOP_API_BASE}/oauth/token", data={
+        response = requests.post(f"{WHOOP_API_BASE}/oauth/oauth2/token", data={
             'client_id': WHOOP_CLIENT_ID,
             'client_secret': WHOOP_CLIENT_SECRET,
             'grant_type': 'authorization_code',
