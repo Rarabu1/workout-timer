@@ -413,6 +413,10 @@
                     <div class="metric-value"><span id="current-speed">-</span><span class="metric-unit"> mph</span></div>
                 </div>
                 <div class="metric">
+                    <div class="metric-label">Duration</div>
+                    <div class="metric-value"><span id="current-duration">-</span><span class="metric-unit"> min</span></div>
+                </div>
+                <div class="metric">
                     <div class="metric-label">Incline</div>
                     <div class="metric-value"><span id="current-incline">0</span><span class="metric-unit"> %</span></div>
                 </div>
@@ -448,6 +452,11 @@
         let isPaused = false;
         let deadlineTs = null;
         let muteBeeps = false;
+
+        function safeMinutes(it) {
+            const v = Number(it && (it.duration_min ?? it.minutes ?? it.duration));
+            return (isFinite(v) && v > 0) ? v : 1; // default to 1 minute
+        }
 
         /* ---------- UX helpers ---------- */
         function esc(s){ return (s || '').replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m])); }
@@ -847,7 +856,7 @@
 
             if (!isPaused) {
                 if (currentIntervalIndex >= intervals.length) resetTimer();
-                timeRemaining = (intervals[currentIntervalIndex].duration_min || 0) * 60;
+                timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
             }
 
             isPaused = false;
@@ -869,7 +878,7 @@
                     currentIntervalIndex++;
 
                     if (currentIntervalIndex < intervals.length) {
-                        timeRemaining = (intervals[currentIntervalIndex].duration_min || 0) * 60;
+                        timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
                         deadlineTs = Date.now() + timeRemaining * 1000;
                         updateDisplay(); updateProgress(); updateETA();
                     } else {
@@ -893,7 +902,7 @@
         function skipInterval() {
             if (currentIntervalIndex < intervals.length - 1) {
                 currentIntervalIndex++;
-                timeRemaining = intervals[currentIntervalIndex].duration_min * 60;
+                timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
                 document.getElementById('timer').textContent = formatTime(timeRemaining);
                 updateDisplay(); updateProgress(); applyPhaseColor();
                 if (timerInterval) deadlineTs = Date.now() + timeRemaining * 1000;
@@ -904,7 +913,7 @@
         function prevInterval(){
             if (currentIntervalIndex > 0) {
                 currentIntervalIndex--;
-                timeRemaining = (intervals[currentIntervalIndex].duration_min || 0) * 60;
+                timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
                 document.getElementById('timer').textContent = formatTime(timeRemaining);
                 updateDisplay(); updateProgress(); applyPhaseColor();
                 if (timerInterval) deadlineTs = Date.now() + timeRemaining * 1000;
@@ -926,7 +935,7 @@
         function resetTimer() {
             currentIntervalIndex = 0;
             if (intervals.length > 0) {
-                timeRemaining = intervals[0].duration_min * 60;
+                timeRemaining = Math.round(safeMinutes(intervals[0]) * 60);
                 document.getElementById('timer').textContent = formatTime(timeRemaining);
                 updateDisplay(); updateProgress(); applyPhaseColor(); updateStats(); updateETA();
             }
@@ -943,7 +952,7 @@
                 return;
             }
             const cur = intervals[currentIntervalIndex] || intervals[0];
-            timeRemaining = (Number(cur.duration_min)||0) * 60;
+            timeRemaining = Math.round(safeMinutes(cur) * 60);
             deadlineTs = null;
             document.getElementById('timer').textContent = formatTime(timeRemaining);
             updateDisplay(); updateProgress(); updateETA();
@@ -1070,7 +1079,13 @@
 
             document.getElementById('current-section').textContent = current.section || sectionNameForInterval(current);
             document.getElementById('current-speed').textContent = current.speed_mph;
-            document.getElementById('current-duration').textContent = current.duration_min;
+            (function(){
+                const durEl = document.getElementById('current-duration');
+                if (durEl) {
+                    const d = Number(current.duration_min);
+                    durEl.textContent = (isFinite(d) && d > 0) ? d : 1;
+                }
+            })();
             document.getElementById('current-incline').textContent = current.incline || 0;
             document.getElementById('current-description').textContent = current.description || '';
             applyPhaseColor();
