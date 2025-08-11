@@ -2,11 +2,18 @@ import os
 import sqlite3
 import json
 import traceback 
-import requests
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, g, redirect, url_for, session
 from dotenv import load_dotenv
 from openai import OpenAI
+
+# Optional WHOOP integration
+try:
+    import requests
+    WHOOP_AVAILABLE = True
+except ImportError:
+    WHOOP_AVAILABLE = False
+    print("Warning: requests module not available. WHOOP integration will be disabled.")
 
 # Prefer class-based parser if available; fall back to module-level parse()
 try:
@@ -913,6 +920,9 @@ def generate_performance_insights(analysis_data):
 # WHOOP API Integration Functions
 def get_whoop_auth_url():
     """Generate WHOOP OAuth authorization URL"""
+    if not WHOOP_AVAILABLE:
+        return None
+    
     params = {
         'client_id': WHOOP_CLIENT_ID,
         'redirect_uri': WHOOP_REDIRECT_URI,
@@ -925,6 +935,9 @@ def get_whoop_auth_url():
 
 def exchange_whoop_code_for_token(code):
     """Exchange authorization code for access token"""
+    if not WHOOP_AVAILABLE:
+        return None
+    
     try:
         response = requests.post(f"{WHOOP_API_BASE}/oauth/token", data={
             'client_id': WHOOP_CLIENT_ID,
@@ -941,6 +954,9 @@ def exchange_whoop_code_for_token(code):
 
 def get_whoop_user_profile(access_token):
     """Get WHOOP user profile"""
+    if not WHOOP_AVAILABLE:
+        return None
+    
     try:
         headers = {'Authorization': f'Bearer {access_token}'}
         response = requests.get(f"{WHOOP_API_BASE}/user/profile", headers=headers)
@@ -952,6 +968,9 @@ def get_whoop_user_profile(access_token):
 
 def get_whoop_recovery_data(access_token, date=None):
     """Get WHOOP recovery data for a specific date"""
+    if not WHOOP_AVAILABLE:
+        return None
+    
     try:
         if not date:
             date = datetime.now().strftime('%Y-%m-%d')
