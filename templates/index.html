@@ -4,163 +4,598 @@
   <meta charset="utf-8" />
   <title>Treadmill Run Generator</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <!-- PWA Meta Tags -->
+  
+  <!-- Enhanced PWA Meta Tags for iPhone -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Workout Timer">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#4CAF50">
+  <meta name="apple-touch-fullscreen" content="yes">
+  <meta name="format-detection" content="telephone=no">
   <link rel="manifest" href="/static/manifest.json">
 
-  <!-- Icon for home screen -->
+  <!-- Enhanced iPhone Icons -->
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
+  <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
+  <link rel="apple-touch-icon" sizes="152x152" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
+  <link rel="apple-touch-icon" sizes="120x120" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
 
   <!-- Prevent zooming on input focus -->
   <style> input, textarea, select { font-size: 16px !important; } </style>
 
   <style>
+    /* iOS-style variables */
+    :root {
+      --ios-blue: #007AFF;
+      --ios-green: #34C759;
+      --ios-red: #FF3B30;
+      --ios-orange: #FF9500;
+      --ios-purple: #AF52DE;
+      --ios-gray: #8E8E93;
+      --ios-light-gray: #F2F2F7;
+      --ios-border: #C6C6C8;
+      --safe-area-inset-top: env(safe-area-inset-top);
+      --safe-area-inset-bottom: env(safe-area-inset-bottom);
+      --safe-area-inset-left: env(safe-area-inset-left);
+      --safe-area-inset-right: env(safe-area-inset-right);
+    }
+
+    * {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    input, textarea {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif;
       max-width: 1000px;
       margin: 0 auto;
       padding: 20px;
-      background: #f5f5f5;
-      color: #333;
+      padding-top: calc(20px + var(--safe-area-inset-top));
+      padding-bottom: calc(20px + var(--safe-area-inset-bottom));
+      padding-left: calc(20px + var(--safe-area-inset-left));
+      padding-right: calc(20px + var(--safe-area-inset-right));
+      background: var(--ios-light-gray);
+      color: #1D1D1F;
+      line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
-    .tabs { display:flex; background:#fff; border-radius:8px; border:1px solid #ddd; margin-bottom:20px; overflow:hidden; }
-    .tab { padding:15px 25px; cursor:pointer; background:#fff; border:none; color:#555; flex:1; text-align:center; transition: background .2s, color .2s; }
-    .tab.active { background:#4CAF50; color:#fff; }
-    .tab:hover:not(.active){ background:#f0f0f0; }
-
-    .tab-content { display:none; background:#fff; border-radius:8px; border:1px solid #ddd; padding:20px; margin-bottom:20px; }
-    .tab-content.active { display:block; }
-
-    .generate-section { margin-bottom:20px; }
-    .workout-request { width:100%; padding:12px; background:#fff; border:1px solid #ddd; color:#333; border-radius:6px; margin-bottom:10px; font-size:16px; }
-
-    .suggestions { display:flex; flex-direction:column; gap:8px; margin:10px 0; }
-    .suggestion-toolbar { display:flex; justify-content:space-between; align-items:center; margin:6px 0; }
-    .shuffle-row { margin:4px 0; }
-    .shuffle-primary { background:#2196F3; border:1px solid #2196F3; color:#fff; padding:8px 14px; font-size:13px; border-radius:999px; font-weight:600; cursor:pointer; }
-    .shuffle-primary:hover { background:#64b5f6; border-color:#64b5f6; }
-
-    .chip-row { display:flex; flex-wrap:wrap; gap:8px; }
-    .chip { border:1px solid #ddd; background:#fff; color:#444; padding:8px 12px; border-radius:999px; cursor:pointer; font-size:14px; }
-    .chip.active { background:#e8f5e9; border-color:#66bb6a; color:#1b5e20; }
-    .chip.secondary.active { background:#e3f2fd; border-color:#64b5f6; color:#0d47a1; }
-
-    .suggestion-btn { background:#f5f5f5; border:1px solid #ddd; color:#555; padding:8px 12px; border-radius:4px; cursor:pointer; font-size:14px; transition: background .2s, color .2s; }
-    .suggestion-btn:hover { background:#f0f0f0; }
-
-    .paste-area { width:100%; height:200px; background:#fff; border:1px solid #ddd; color:#333; padding:10px; border-radius:6px; font-family:monospace; font-size:14px; }
-
-    .saved-workouts { max-height:300px; overflow-y:auto; }
-    .workout-item { background:#fff; border:1px solid #ddd; border-radius:6px; padding:12px; margin-bottom:8px; cursor:pointer; color:#333; transition: background .2s, border .2s; }
-    .workout-item:hover { background:#f0f0f0; border-color:#bbb; }
-    .workout-meta { font-size:12px; color:#888; margin-top:5px; }
-
-    button { background:#4CAF50; color:#fff; border:none; padding:12px 24px; border-radius:6px; cursor:pointer; margin:5px; font-size:16px; transition: background .2s; }
-    button:hover { background:#66bb6a; }
-    button:disabled { background:#bbb; cursor:not-allowed; color:#fff; }
-    .btn-generate { background:#9C27B0; }
-    .btn-generate:hover { background:#b266c2; }
-
-    /* Summary, progress, resets */
-    .summary { display:flex; justify-content:space-between; align-items:center; margin:8px 0 12px; }
-    #summary-pill { font-size:.9rem; color:#6c757d; }
-    .progress { height:8px; background:#eee; border-radius:999px; overflow:hidden; }
-    .progress-bar { height:100%; background:#4CAF50; transition: width .2s ease; }
-    .stats-line { color:#6c757d; font-size:.9rem; margin-top:4px; }
-    .stats-line strong { color:#333; }
-
-    .eta-line { color:#6c757d; font-size:.95rem; margin-top:6px; }
-    .reset-row { display:flex; align-items:center; gap:10px; margin-top:8px; }
-    .reset-row .spacer { flex:1 1 auto; }
-    .reset-link { background:none; border:none; color:#555; cursor:pointer; font-size:.9rem; padding:4px 6px; }
-    .reset-link:hover { text-decoration:underline; color:#333; }
-
-    /* Timer styles */
-    .timer-display { background:#fff; border-radius:12px; border:1px solid #ddd; padding:30px; margin:20px 0; text-align:center; display:none; }
-    .timer-display.active { display:block; }
-
-    /* Central countdown pill */
-    .countdown-wrap{ display:flex; justify-content:center; margin:10px 0 14px; }
-    .countdown-pill{
-      display:inline-flex; align-items:center; justify-content:center;
-      min-width:260px; height:140px; padding:8px 18px;
-      border-radius:20px; border:2px solid #ddd;
-      background:#fff; color:#222;
-      font-weight:900; font-size:64px; line-height:1; letter-spacing:.5px;
-      box-shadow:0 2px 8px rgba(0,0,0,.06);
+    /* Enhanced iOS-style tabs */
+    .tabs { 
+      display: flex; 
+      background: #fff; 
+      border-radius: 12px; 
+      border: 1px solid var(--ios-border); 
+      margin-bottom: 20px; 
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
-    /* Effort-colored pill variants (reuse phase colors) */
-    .timer-display.phase-blue   .countdown-pill{ background:#eaf4ff; border-color:#90caf9; color:#1e88e5; }
-    .timer-display.phase-green  .countdown-pill{ background:#e8f5e9; border-color:#81c784; color:#2e7d32; }
-    .timer-display.phase-yellow .countdown-pill{ background:#fff8e1; border-color:#fbc02d; color:#f9a825; }
-    .timer-display.phase-orange .countdown-pill{ background:#fff3e0; border-color:#ffb74d; color:#fb8c00; }
-    .timer-display.phase-red    .countdown-pill{ background:#ffebee; border-color:#ef9a9a; color:#e53935; }
-
-    /* Metrics row under countdown (portrait view)**/
-    .interval-info{ display:flex; justify-content:center; gap:12px; margin:10px 0; flex-wrap:wrap; }
-    .metric{ background:#f7f9fc; border:1px solid #e2e8f0; border-radius:12px; padding:12px 16px; min-width:150px; text-align:center; }
-    .metric .metric-label{ font-size:.75rem; color:#6c757d; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; }
-    .metric .metric-value{ font-weight:800; font-size:2.2rem; line-height:1; color:#222; }
-    .metric .metric-unit{ font-size:.95rem; color:#6c757d; margin-left:4px; }
-
-    /* Mobile tweaks */
-    @media (max-width:640px){
-      .countdown-pill{ min-width:220px; height:120px; font-size:52px; }
-      .metric{ min-width:140px; }
+    .tab { 
+      padding: 16px 20px; 
+      cursor: pointer; 
+      background: #fff; 
+      border: none; 
+      color: var(--ios-gray); 
+      flex: 1; 
+      text-align: center; 
+      transition: all 0.2s ease;
+      font-weight: 500;
+      font-size: 15px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .tab.active { 
+      background: var(--ios-blue); 
+      color: #fff; 
+      font-weight: 600;
+    }
+    .tab:active:not(.active) { 
+      background: var(--ios-light-gray); 
     }
 
-    /* Landscape compact mode: core hide/show */
-    body.landscape-compact { height:100vh; overflow:hidden; margin:0; padding:0; }
+    .tab-content { 
+      display: none; 
+      background: #fff; 
+      border-radius: 12px; 
+      border: 1px solid var(--ios-border); 
+      padding: 20px; 
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .tab-content.active { 
+      display: block; 
+    }
 
-    /* Deep full‑bleed landscape visuals */
+    .generate-section { margin-bottom: 20px; }
+    .workout-request { 
+      width: 100%; 
+      padding: 16px; 
+      background: #fff; 
+      border: 1px solid var(--ios-border); 
+      color: #1D1D1F; 
+      border-radius: 12px; 
+      margin-bottom: 16px; 
+      font-size: 16px;
+      font-family: inherit;
+      transition: border-color 0.2s ease;
+    }
+    .workout-request:focus {
+      outline: none;
+      border-color: var(--ios-blue);
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+    }
+
+    .suggestions { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
+    .suggestion-toolbar { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; }
+    .shuffle-row { margin: 8px 0; }
+    .shuffle-primary { 
+      background: var(--ios-blue); 
+      border: none; 
+      color: #fff; 
+      padding: 12px 20px; 
+      font-size: 15px; 
+      border-radius: 20px; 
+      font-weight: 600; 
+      cursor: pointer;
+      min-height: 44px;
+      transition: all 0.2s ease;
+    }
+    .shuffle-primary:active { 
+      background: #0056CC; 
+      transform: scale(0.98);
+    }
+
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip { 
+      border: 1px solid var(--ios-border); 
+      background: #fff; 
+      color: #1D1D1F; 
+      padding: 12px 16px; 
+      border-radius: 20px; 
+      cursor: pointer; 
+      font-size: 15px;
+      font-weight: 500;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+    .chip.active { 
+      background: var(--ios-blue); 
+      border-color: var(--ios-blue); 
+      color: #fff; 
+    }
+    .chip.secondary.active { 
+      background: var(--ios-purple); 
+      border-color: var(--ios-purple); 
+      color: #fff; 
+    }
+    .chip:active:not(.active) {
+      background: var(--ios-light-gray);
+      transform: scale(0.98);
+    }
+
+    .suggestion-btn { 
+      background: var(--ios-light-gray); 
+      border: 1px solid var(--ios-border); 
+      color: #1D1D1F; 
+      padding: 12px 16px; 
+      border-radius: 12px; 
+      cursor: pointer; 
+      font-size: 15px; 
+      transition: all 0.2s ease;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .suggestion-btn:active { 
+      background: #E5E5EA; 
+      transform: scale(0.98);
+    }
+
+    .paste-area { 
+      width: 100%; 
+      height: 200px; 
+      background: #fff; 
+      border: 1px solid var(--ios-border); 
+      color: #1D1D1F; 
+      padding: 16px; 
+      border-radius: 12px; 
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace; 
+      font-size: 14px;
+      resize: vertical;
+      transition: border-color 0.2s ease;
+    }
+    .paste-area:focus {
+      outline: none;
+      border-color: var(--ios-blue);
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+    }
+
+    .saved-workouts { max-height: 300px; overflow-y: auto; }
+    .workout-item { 
+      background: #fff; 
+      border: 1px solid var(--ios-border); 
+      border-radius: 12px; 
+      padding: 16px; 
+      margin-bottom: 12px; 
+      cursor: pointer; 
+      color: #1D1D1F; 
+      transition: all 0.2s ease;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+    }
+    .workout-item:active { 
+      background: var(--ios-light-gray); 
+      transform: scale(0.98);
+    }
+    .workout-meta { font-size: 13px; color: var(--ios-gray); margin-top: 8px; }
+
+    /* Enhanced iOS-style buttons */
+    button { 
+      background: var(--ios-blue); 
+      color: #fff; 
+      border: none; 
+      padding: 16px 24px; 
+      border-radius: 12px; 
+      cursor: pointer; 
+      margin: 8px; 
+      font-size: 16px; 
+      font-weight: 600;
+      transition: all 0.2s ease;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: inherit;
+    }
+    button:active { 
+      background: #0056CC; 
+      transform: scale(0.98);
+    }
+    button:disabled { 
+      background: var(--ios-gray); 
+      cursor: not-allowed; 
+      color: #fff;
+      opacity: 0.6;
+    }
+    .btn-generate { 
+      background: var(--ios-purple); 
+      width: 100%;
+      margin: 16px 0;
+    }
+    .btn-generate:active { 
+      background: #8E44AD; 
+    }
+
+    /* Enhanced summary and progress */
+    .summary { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      margin: 12px 0 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    #summary-pill { 
+      font-size: 15px; 
+      color: var(--ios-gray); 
+      font-weight: 500;
+    }
+    .progress { 
+      height: 8px; 
+      background: var(--ios-light-gray); 
+      border-radius: 4px; 
+      overflow: hidden;
+      margin: 12px 0;
+    }
+    .progress-bar { 
+      height: 100%; 
+      background: var(--ios-green); 
+      transition: width 0.3s ease;
+      border-radius: 4px;
+    }
+    .stats-line { 
+      color: var(--ios-gray); 
+      font-size: 14px; 
+      margin-top: 8px; 
+    }
+    .stats-line strong { 
+      color: #1D1D1F; 
+    }
+
+    .eta-line { 
+      color: var(--ios-gray); 
+      font-size: 15px; 
+      margin-top: 12px; 
+      font-weight: 500;
+    }
+    .reset-row { 
+      display: flex; 
+      align-items: center; 
+      gap: 16px; 
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .reset-row .spacer { flex: 1 1 auto; }
+    .reset-link { 
+      background: none; 
+      border: none; 
+      color: var(--ios-blue); 
+      cursor: pointer; 
+      font-size: 15px; 
+      padding: 8px 12px;
+      font-weight: 500;
+      border-radius: 8px;
+      transition: background-color 0.2s ease;
+    }
+    .reset-link:active { 
+      background: rgba(0, 122, 255, 0.1);
+    }
+
+    /* Enhanced timer display */
+    .timer-display { 
+      background: #fff; 
+      border-radius: 16px; 
+      border: 1px solid var(--ios-border); 
+      padding: 24px; 
+      margin: 20px 0; 
+      text-align: center; 
+      display: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .timer-display.active { 
+      display: block; 
+    }
+
+    /* Enhanced countdown pill */
+    .countdown-wrap { 
+      display: flex; 
+      justify-content: center; 
+      margin: 16px 0 20px; 
+    }
+    .countdown-pill {
+      display: inline-flex; 
+      align-items: center; 
+      justify-content: center;
+      min-width: 280px; 
+      height: 160px; 
+      padding: 16px 24px;
+      border-radius: 24px; 
+      border: 2px solid var(--ios-border);
+      background: #fff; 
+      color: #1D1D1F;
+      font-weight: 900; 
+      font-size: 72px; 
+      line-height: 1; 
+      letter-spacing: 1px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Enhanced phase colors */
+    .timer-display.phase-blue .countdown-pill { 
+      background: #E3F2FD; 
+      border-color: var(--ios-blue); 
+      color: var(--ios-blue); 
+    }
+    .timer-display.phase-green .countdown-pill { 
+      background: #E8F5E9; 
+      border-color: var(--ios-green); 
+      color: var(--ios-green); 
+    }
+    .timer-display.phase-yellow .countdown-pill { 
+      background: #FFF8E1; 
+      border-color: var(--ios-orange); 
+      color: var(--ios-orange); 
+    }
+    .timer-display.phase-orange .countdown-pill { 
+      background: #FFF3E0; 
+      border-color: #FF6B35; 
+      color: #FF6B35; 
+    }
+    .timer-display.phase-red .countdown-pill { 
+      background: #FFEBEE; 
+      border-color: var(--ios-red); 
+      color: var(--ios-red); 
+    }
+
+    /* Enhanced metrics */
+    .interval-info { 
+      display: flex; 
+      justify-content: center; 
+      gap: 16px; 
+      margin: 16px 0; 
+      flex-wrap: wrap; 
+    }
+    .metric { 
+      background: var(--ios-light-gray); 
+      border: 1px solid var(--ios-border); 
+      border-radius: 16px; 
+      padding: 16px 20px; 
+      min-width: 160px; 
+      text-align: center;
+      flex: 1;
+      min-width: 140px;
+    }
+    .metric .metric-label { 
+      font-size: 12px; 
+      color: var(--ios-gray); 
+      text-transform: uppercase; 
+      letter-spacing: 0.5px; 
+      margin-bottom: 8px; 
+      font-weight: 600;
+    }
+    .metric .metric-value { 
+      font-weight: 900; 
+      font-size: 2.4rem; 
+      line-height: 1; 
+      color: #1D1D1F;
+      font-variant-numeric: tabular-nums;
+    }
+    .metric .metric-unit { 
+      font-size: 1rem; 
+      color: var(--ios-gray); 
+      margin-left: 4px; 
+      font-weight: 500;
+    }
+
+    /* Enhanced mobile responsiveness */
+    @media (max-width: 640px) {
+      body {
+        padding: 16px;
+        padding-top: calc(16px + var(--safe-area-inset-top));
+        padding-bottom: calc(16px + var(--safe-area-inset-bottom));
+        padding-left: calc(16px + var(--safe-area-inset-left));
+        padding-right: calc(16px + var(--safe-area-inset-right));
+      }
+      
+      .countdown-pill { 
+        min-width: 240px; 
+        height: 140px; 
+        font-size: 60px; 
+        padding: 12px 20px;
+      }
+      
+      .metric { 
+        min-width: 120px; 
+        padding: 12px 16px;
+      }
+      
+      .metric .metric-value {
+        font-size: 2rem;
+      }
+      
+      .tabs {
+        border-radius: 10px;
+      }
+      
+      .tab {
+        padding: 14px 16px;
+        font-size: 14px;
+      }
+      
+      .tab-content {
+        padding: 16px;
+        border-radius: 10px;
+      }
+      
+      button {
+        padding: 14px 20px;
+        font-size: 15px;
+        margin: 6px;
+      }
+      
+      .workout-request {
+        padding: 14px;
+        font-size: 15px;
+      }
+      
+      .paste-area {
+        padding: 14px;
+        font-size: 13px;
+      }
+    }
+
+    /* Enhanced landscape compact mode */
+    body.landscape-compact { 
+      height: 100vh; 
+      overflow: hidden; 
+      margin: 0; 
+      padding: 0; 
+    }
+
     body.landscape-compact {
-      display:flex; flex-direction:column; justify-content:center; align-items:center;
-      background:#0b1020; color:#fff; text-shadow:0 2px 4px rgba(0,0,0,.25);
+      display: flex; 
+      flex-direction: column; 
+      justify-content: center; 
+      align-items: center;
+      background: #000; 
+      color: #fff; 
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
     }
-    body.landscape-compact.phase-blue   { background:#0D47A1; }
-    body.landscape-compact.phase-green  { background:#1B5E20; }
-    body.landscape-compact.phase-yellow { background:#996300; }
-    body.landscape-compact.phase-orange { background:#E65100; }
-    body.landscape-compact.phase-red    { background:#B71C1C; }
+    
+    body.landscape-compact.phase-blue { background: #007AFF; }
+    body.landscape-compact.phase-green { background: #34C759; }
+    body.landscape-compact.phase-yellow { background: #FF9500; }
+    body.landscape-compact.phase-orange { background: #FF6B35; }
+    body.landscape-compact.phase-red { background: #FF3B30; }
 
-    body.landscape-compact #timer-section.timer-display{ background:transparent; border:none; box-shadow:none; padding:10px 12px; }
-    body.landscape-compact .countdown-wrap{ margin:0 0 8px; }
-    body.landscape-compact .countdown-pill{
+    body.landscape-compact #timer-section.timer-display { 
+      background: transparent; 
+      border: none; 
+      box-shadow: none; 
+      padding: 16px; 
+    }
+    body.landscape-compact .countdown-wrap { 
+      margin: 0 0 12px; 
+    }
+    body.landscape-compact .countdown-pill {
       background: transparent !important;
       border: none !important;
       box-shadow: none !important;
-      min-width: 60vw;
+      min-width: 70vw;
       height: auto;
       padding: 0;
     }
-    body.landscape-compact.phase-blue   .countdown-pill,
-    body.landscape-compact.phase-green  .countdown-pill,
-    body.landscape-compact.phase-yellow .countdown-pill,
-    body.landscape-compact.phase-orange .countdown-pill,
-    body.landscape-compact.phase-red    .countdown-pill{
-      background: transparent !important;
-      border: none !important;
-      box-shadow: none !important;
+    
+    body.landscape-compact #timer { 
+      font-size: 20vh; 
+      line-height: 1; 
+      font-weight: 900; 
+      letter-spacing: 2px; 
+      color: #fff; 
     }
-    body.landscape-compact #timer{ font-size:18vh; line-height:1; font-weight:900; letter-spacing:1px; color:#fff; }
 
-    .landscape-metrics{ display:none; font-size:6vh; font-weight:700; color:#fff; margin-top:6px; }
-    body.landscape-compact .landscape-metrics{ display:block !important; }
-
-    .compact-controls{ display:none; gap:10px; margin-top:10px; }
-    .compact-controls button{
-      background:rgba(255,255,255,.12);
-      border:1px solid rgba(255,255,255,.25);
-      color:#fff; font-weight:600; padding:10px 14px;
-      border-radius:12px; backdrop-filter: blur(2px);
+    .landscape-metrics { 
+      display: none; 
+      font-size: 6vh; 
+      font-weight: 700; 
+      color: #fff; 
+      margin-top: 8px; 
     }
-    .compact-controls button:hover{ background:rgba(255,255,255,.18); }
-    body.landscape-compact .compact-controls{ display:flex !important; justify-content:center; flex-wrap:wrap; }
+    body.landscape-compact .landscape-metrics { 
+      display: block !important; 
+    }
+
+    .compact-controls { 
+      display: none; 
+      gap: 12px; 
+      margin-top: 16px; 
+    }
+    .compact-controls button {
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff; 
+      font-weight: 600; 
+      padding: 12px 16px;
+      border-radius: 16px; 
+      backdrop-filter: blur(10px);
+      min-height: 48px;
+      font-size: 15px;
+    }
+    .compact-controls button:active { 
+      background: rgba(255,255,255,0.3); 
+      transform: scale(0.95);
+    }
+    body.landscape-compact .compact-controls { 
+      display: flex !important; 
+      justify-content: center; 
+      flex-wrap: wrap; 
+    }
 
     /* Hide non-essential UI in compact */
     body.landscape-compact .tabs,
@@ -175,44 +610,315 @@
     body.landscape-compact .controls,
     body.landscape-compact #eta-line,
     body.landscape-compact .current-interval,
-    body.landscape-compact #current-description { display:none !important; }
+    body.landscape-compact #current-description { 
+      display: none !important; 
+    }
 
-    .time-remaining { font-size:72px; font-weight:bold; color:#4CAF50; font-variant-numeric: tabular-nums; }
+    /* Enhanced current interval display */
+    .current-interval { 
+      background: #fff; 
+      border-radius: 16px; 
+      border: 1px solid var(--ios-border); 
+      padding: 20px; 
+      margin: 16px 0; 
+      color: #1D1D1F;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .current-interval h3 { 
+      color: var(--ios-blue); 
+      margin-top: 0; 
+      font-weight: 600;
+    }
 
-    .current-interval { background:#fff; border-radius:8px; border:1px solid #ddd; padding:20px; margin:15px 0; color:#333; }
-    .current-interval h3 { color:#4CAF50; margin-top:0; }
+    .next-up { 
+      background: #fff; 
+      border: 1px solid var(--ios-border); 
+      border-radius: 16px; 
+      padding: 16px; 
+      margin-top: 12px; 
+      color: #1D1D1F;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
 
-    .next-up { background:#fff; border:1px solid #ddd; border-radius:8px; padding:15px; margin-top:10px; color:#333; }
+    .intervals-list { 
+      background: #fff; 
+      border-radius: 16px; 
+      border: 1px solid var(--ios-border); 
+      padding: 16px; 
+      margin-top: 20px; 
+      max-height: 300px; 
+      overflow-y: auto; 
+      color: #1D1D1F;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .interval-item { 
+      padding: 12px; 
+      border-bottom: 1px solid var(--ios-light-gray); 
+      border-radius: 8px;
+      margin-bottom: 4px;
+      transition: background-color 0.2s ease;
+    }
+    .interval-item.completed { 
+      opacity: 0.6; 
+      text-decoration: line-through; 
+    }
+    .interval-item.current { 
+      background: var(--ios-light-gray); 
+      border-left: 4px solid var(--ios-blue); 
+      font-weight: 600;
+    }
 
-    .intervals-list { background:#fff; border-radius:8px; border:1px solid #ddd; padding:15px; margin-top:20px; max-height:300px; overflow-y:auto; color:#333; }
-    .interval-item { padding:8px; border-bottom:1px solid #eee; }
-    .interval-item.completed { opacity:.5; text-decoration:line-through; }
-    .interval-item.current { background:#f5f5f5; border-left:3px solid #66bb6a; }
+    /* Enhanced phase tints */
+    .interval-item.tint-blue { background: #E3F2FD; border-left: 4px solid var(--ios-blue); }
+    .interval-item.tint-green { background: #E8F5E9; border-left: 4px solid var(--ios-green); }
+    .interval-item.tint-yellow { background: #FFF8E1; border-left: 4px solid var(--ios-orange); }
+    .interval-item.tint-orange { background: #FFF3E0; border-left: 4px solid #FF6B35; }
+    .interval-item.tint-red { background: #FFEBEE; border-left: 4px solid var(--ios-red); }
 
-    /* Phase tint for list */
-    .interval-item.tint-blue   { background:#f4f8ff; border-left:3px solid #90caf9; }
-    .interval-item.tint-green  { background:#f4fbf6; border-left:3px solid #81c784; }
-    .interval-item.tint-yellow { background:#fffbef; border-left:3px solid #fbc02d; }
-    .interval-item.tint-orange { background:#fff7ef; border-left:3px solid #ffb74d; }
-    .interval-item.tint-red    { background:#fff2f2; border-left:3px solid #ef9a9a; }
+    /* Enhanced controls */
+    .controls { 
+      text-align: center; 
+      margin: 20px 0; 
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .controls button { 
+      min-width: 80px; 
+      flex: 1;
+      max-width: 120px;
+    }
+    .btn-pause { background: var(--ios-orange); }
+    .btn-pause:active { background: #E67E22; }
+    .btn-stop { background: var(--ios-red); }
+    .btn-stop:active { background: #E74C3C; }
+    .btn-skip, .btn-back { background: var(--ios-blue); }
+    .btn-skip:active, .btn-back:active { background: #0056CC; }
 
-    .controls { text-align:center; margin:20px 0; }
-    .controls button { min-width:84px; }
-    .btn-pause { background:#ff9800; }
-    .btn-pause:hover { background:#ffb84d; }
-    .btn-stop { background:#f44336; }
-    .btn-stop:hover { background:#e57373; }
-    .btn-skip, .btn-back { background:#2196F3; }
-    .btn-skip:hover, .btn-back:hover { background:#64b5f6; }
+    /* Enhanced loading animation */
+    .loading { 
+      display: inline-block; 
+      width: 20px; 
+      height: 20px; 
+      border: 3px solid var(--ios-light-gray); 
+      border-top: 3px solid var(--ios-purple); 
+      border-radius: 50%; 
+      animation: spin 1s linear infinite; 
+    }
+    @keyframes spin { 
+      0% { transform: rotate(0deg); } 
+      100% { transform: rotate(360deg); } 
+    }
 
-    .loading { display:inline-block; width:20px; height:20px; border:3px solid #f3f3f3; border-top:3px solid #9C27B0; border-radius:50%; animation: spin 1s linear infinite; }
-    @keyframes spin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
-
+    /* Enhanced focus mode */
     .focus-mode .tabs,
     .focus-mode #generate-tab,
     .focus-mode #manual-tab,
-    .focus-mode #saved-tab { display:none !important; }
-    .focus-mode .timer-display { max-width:820px; margin:24px auto; }
+    .focus-mode #saved-tab { 
+      display: none !important; 
+    }
+    .focus-mode .timer-display { 
+      max-width: 820px; 
+      margin: 24px auto; 
+    }
+
+    /* Enhanced toggle switches */
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      color: #1D1D1F;
+      cursor: pointer;
+    }
+    
+    .toggle input[type="checkbox"] {
+      appearance: none;
+      width: 44px;
+      height: 24px;
+      background: var(--ios-gray);
+      border-radius: 12px;
+      position: relative;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    
+    .toggle input[type="checkbox"]:checked {
+      background: var(--ios-blue);
+    }
+    
+    .toggle input[type="checkbox"]::before {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s ease;
+    }
+    
+    .toggle input[type="checkbox"]:checked::before {
+      transform: translateX(20px);
+    }
+
+    /* Enhanced focus button */
+    .btn-outline-secondary {
+      background: transparent;
+      border: 1px solid var(--ios-border);
+      color: #1D1D1F;
+    }
+    
+    .btn-outline-secondary:active {
+      background: var(--ios-light-gray);
+    }
+    
+    .btn-sm {
+      padding: 8px 16px;
+      font-size: 14px;
+      min-height: 36px;
+    }
+
+    /* Enhanced accessibility */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Progress tracking styles */
+    .session-tracking,
+    .whoop-upload,
+    .progress-report,
+    .ai-summary {
+      background: #fff;
+      border: 1px solid var(--ios-border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .period-selector {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .progress-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .recent-sessions {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .session-item {
+      background: var(--ios-light-gray);
+      border: 1px solid var(--ios-border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .session-item .session-info {
+      flex: 1;
+    }
+
+    .session-item .session-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-complete {
+      background: var(--ios-green);
+      width: 100%;
+      margin-top: 12px;
+    }
+
+    .btn-upload {
+      background: var(--ios-blue);
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
+    .btn-complete:active,
+    .btn-upload:active {
+      transform: scale(0.98);
+    }
+
+    .upload-preview {
+      margin-top: 12px;
+      text-align: center;
+    }
+
+    .upload-preview img {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 8px;
+      border: 1px solid var(--ios-border);
+    }
+
+    .summary-content {
+      background: var(--ios-light-gray);
+      border: 1px solid var(--ios-border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 12px;
+      white-space: pre-wrap;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 14px;
+    }
+
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --ios-light-gray: #1C1C1E;
+        --ios-border: #38383A;
+      }
+      
+      body {
+        background: #000;
+        color: #fff;
+      }
+      
+      .tab-content,
+      .workout-request,
+      .paste-area,
+      .workout-item,
+      .timer-display,
+      .current-interval,
+      .next-up,
+      .intervals-list,
+      .metric,
+      .session-tracking,
+      .whoop-upload,
+      .progress-report,
+      .ai-summary {
+        background: #1C1C1E;
+        border-color: #38383A;
+        color: #fff;
+      }
+      
+      .countdown-pill,
+      .session-item,
+      .summary-content {
+        background: #1C1C1E;
+        border-color: #38383A;
+        color: #fff;
+      }
+    }
   </style>
 </head>
 <body>
@@ -222,6 +928,7 @@
     <button class="tab active" onclick="switchTab('generate', this)">🤖 Generate AI Workout</button>
     <button class="tab" onclick="switchTab('manual', this)">📝 Paste Workout</button>
     <button class="tab" onclick="switchTab('saved', this)">💾 Saved Workouts</button>
+    <button class="tab" onclick="switchTab('progress', this)">📊 Progress & WHOOP</button>
   </div>
 
   <!-- AI Generation Tab -->
@@ -280,6 +987,60 @@
     <h2>Your Saved Workouts</h2>
     <div id="saved-workouts-list" class="saved-workouts"></div>
     <button onclick="loadSavedWorkouts()">Refresh List</button>
+  </div>
+
+  <!-- Progress & WHOOP Tab -->
+  <div id="progress-tab" class="tab-content">
+    <h2>📊 Progress Tracking & WHOOP Integration</h2>
+    
+    <!-- Session Tracking -->
+    <div class="session-tracking">
+      <h3>Current Session</h3>
+      <div id="current-session-info" style="display:none;">
+        <div class="metric">
+          <div class="metric-label">Session ID</div>
+          <div class="metric-value" id="session-id">-</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Started</div>
+          <div class="metric-value" id="session-start">-</div>
+        </div>
+        <button onclick="completeCurrentSession()" class="btn-complete">Complete Session</button>
+      </div>
+      <div id="no-session-info">
+        <p>No active session. Start a workout to begin tracking.</p>
+      </div>
+    </div>
+
+    <!-- WHOOP Screenshot Upload -->
+    <div class="whoop-upload">
+      <h3>📱 WHOOP Screenshot</h3>
+      <p>Upload a screenshot of your WHOOP workout summary to track progress</p>
+      <input type="file" id="whoop-screenshot" accept="image/*" capture="environment" style="display:none;">
+      <button onclick="document.getElementById('whoop-screenshot').click()" class="btn-upload">
+        📸 Upload WHOOP Screenshot
+      </button>
+      <div id="upload-preview"></div>
+    </div>
+
+    <!-- Progress Report -->
+    <div class="progress-report">
+      <h3>📈 Progress Report</h3>
+      <div class="period-selector">
+        <button class="chip secondary" data-days="7" onclick="loadProgressReport(7)">7 days</button>
+        <button class="chip secondary active" data-days="30" onclick="loadProgressReport(30)">30 days</button>
+        <button class="chip secondary" data-days="90" onclick="loadProgressReport(90)">90 days</button>
+      </div>
+      <div id="progress-stats" class="progress-stats"></div>
+      <div id="recent-sessions-list" class="recent-sessions"></div>
+    </div>
+
+    <!-- AI Summary -->
+    <div class="ai-summary">
+      <h3>🤖 AI Workout Summary</h3>
+      <button onclick="generateAISummary()" class="btn-generate">Generate Summary</button>
+      <div id="ai-summary-content" class="summary-content"></div>
+    </div>
   </div>
 
   <!-- Summary + progress -->
@@ -558,6 +1319,17 @@
       el.classList.add('active'); currentMinutes = parseInt(el.getAttribute('data-min'),10) || 20; renderSuggestions(); savePrefs();
     }
 
+    /* ---------- Session tracking variables ---------- */
+    let currentSessionId = null;
+    let sessionStartTime = null;
+    let performanceData = {
+        interval_metrics: [],
+        completed_intervals: 0,
+        skipped_intervals: 0,
+        notes: "",
+        performance_rating: 0
+    };
+
     /* ---------- Generate / parse / saved ---------- */
     async function generateWorkout() {
       const request = document.getElementById('workoutRequest').value;
@@ -595,6 +1367,9 @@
       displayIntervals();
       document.getElementById('timer-section').classList.add('active');
       resetTimer(); updateProgress(); saveState(); updateStats(); updateETA();
+      
+      // Start session tracking
+      startSessionTracking();
     }
 
     async function loadSavedWorkouts() {
@@ -852,6 +1627,146 @@
     function setMuted(on){ muteBeeps = !!on; try { localStorage.setItem('wt.muted', muteBeeps ? '1' : '0'); } catch {} }
     function loadMuted(){ try { const v = localStorage.getItem('wt.muted'); muteBeeps = v === '1'; const cb = document.getElementById('mute-toggle'); if (cb) cb.checked = muteBeeps; } catch {} }
 
+    /* ---------- Enhanced iPhone interactions ---------- */
+    
+    // Haptic feedback for iPhone
+    function hapticFeedback(type = 'light') {
+      if ('vibrate' in navigator) {
+        switch(type) {
+          case 'light':
+            navigator.vibrate(10);
+            break;
+          case 'medium':
+            navigator.vibrate(50);
+            break;
+          case 'heavy':
+            navigator.vibrate(100);
+            break;
+        }
+      }
+    }
+
+    // Enhanced touch gestures for timer control
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+
+    function handleGesture() {
+      const diffX = touchStartX - touchEndX;
+      const diffY = touchStartY - touchEndY;
+      const minSwipeDistance = 50;
+
+      if (Math.abs(diffX) > Math.abs(diffY)) {
+        // Horizontal swipe
+        if (Math.abs(diffX) > minSwipeDistance) {
+          if (diffX > 0) {
+            // Swipe left - skip interval
+            skipInterval();
+            hapticFeedback('medium');
+          } else {
+            // Swipe right - previous interval
+            prevInterval();
+            hapticFeedback('medium');
+          }
+        }
+      } else {
+        // Vertical swipe
+        if (Math.abs(diffY) > minSwipeDistance) {
+          if (diffY > 0) {
+            // Swipe up - start/pause timer
+            if (isPaused) {
+              startTimer();
+            } else {
+              pauseTimer();
+            }
+            hapticFeedback('light');
+          } else {
+            // Swipe down - stop timer
+            stopTimer();
+            hapticFeedback('heavy');
+          }
+        }
+      }
+    }
+
+    // Add touch event listeners to timer display
+    function addTouchGestures() {
+      const timerDisplay = document.getElementById('timer-section');
+      if (!timerDisplay) return;
+
+      timerDisplay.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+      }, { passive: true });
+
+      timerDisplay.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleGesture();
+      }, { passive: true });
+    }
+
+    // Enhanced beep with haptic feedback
+    function beep(){
+      if (muteBeeps) return;
+      
+      // Haptic feedback
+      hapticFeedback('light');
+      
+      try{
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const audioContext = new AudioCtx();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        oscillator.connect(gainNode); 
+        gainNode.connect(audioContext.destination);
+        oscillator.frequency.value = 800; 
+        oscillator.type='sine';
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        oscillator.start(audioContext.currentTime); 
+        oscillator.stop(audioContext.currentTime + 0.5);
+      } catch(e){ 
+        console.log('Audio not available'); 
+      }
+    }
+
+    // Enhanced button interactions with haptic feedback
+    function addHapticToButtons() {
+      const buttons = document.querySelectorAll('button');
+      buttons.forEach(button => {
+        button.addEventListener('touchstart', () => {
+          hapticFeedback('light');
+        }, { passive: true });
+      });
+    }
+
+    // iOS-specific optimizations
+    function optimizeForIOS() {
+      // Prevent zoom on double tap
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', (event) => {
+        const now = (new Date()).getTime();
+        if (now - lastTouchEnd <= 300) {
+          event.preventDefault();
+        }
+        lastTouchEnd = now;
+      }, false);
+
+      // Add iOS momentum scrolling to scrollable elements
+      const scrollableElements = document.querySelectorAll('.saved-workouts, .intervals-list');
+      scrollableElements.forEach(el => {
+        el.style.webkitOverflowScrolling = 'touch';
+      });
+
+      // Optimize for iPhone notch
+      if (window.innerWidth <= 414) { // iPhone width
+        document.body.style.paddingTop = 'env(safe-area-inset-top)';
+        document.body.style.paddingBottom = 'env(safe-area-inset-bottom)';
+      }
+    }
+
     /* ---------- Keyboard shortcuts ---------- */
     document.addEventListener('keydown', (e) => {
       const tag = (e.target && e.target.tagName) || '';
@@ -862,12 +1777,232 @@
       if (e.key.toLowerCase && e.key.toLowerCase() === 's') stopTimer();
     });
 
+    /* ---------- Session tracking functions ---------- */
+    async function startSessionTracking() {
+      try {
+        // For now, we'll create a session without a specific workout ID
+        // In a real implementation, you'd save the workout first
+        const response = await fetch('/start_session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ workout_id: 1 }) // Placeholder
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          currentSessionId = data.session_id;
+          sessionStartTime = new Date();
+          updateSessionDisplay();
+          hapticFeedback('light');
+        }
+      } catch (e) {
+        console.error('Error starting session:', e);
+      }
+    }
+
+    async function completeCurrentSession() {
+      if (!currentSessionId) return;
+      
+      try {
+        // Calculate performance data
+        const sessionDuration = sessionStartTime ? 
+          (new Date() - sessionStartTime) / (1000 * 60) : 0;
+        
+        performanceData.total_duration_minutes = sessionDuration;
+        performanceData.completed_intervals = currentIntervalIndex;
+        performanceData.skipped_intervals = intervals.length - currentIntervalIndex;
+        
+        const response = await fetch('/complete_session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: currentSessionId,
+            performance: performanceData
+          })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          alert('Session completed! Check the Progress tab for details.');
+          currentSessionId = null;
+          sessionStartTime = null;
+          updateSessionDisplay();
+          hapticFeedback('medium');
+        }
+      } catch (e) {
+        console.error('Error completing session:', e);
+        alert('Error completing session: ' + e.message);
+      }
+    }
+
+    function updateSessionDisplay() {
+      const sessionInfo = document.getElementById('current-session-info');
+      const noSessionInfo = document.getElementById('no-session-info');
+      
+      if (currentSessionId) {
+        sessionInfo.style.display = 'block';
+        noSessionInfo.style.display = 'none';
+        document.getElementById('session-id').textContent = currentSessionId;
+        document.getElementById('session-start').textContent = 
+          sessionStartTime ? sessionStartTime.toLocaleTimeString() : '-';
+      } else {
+        sessionInfo.style.display = 'none';
+        noSessionInfo.style.display = 'block';
+      }
+    }
+
+    async function loadProgressReport(days = 30) {
+      try {
+        const response = await fetch(`/progress_report?days=${days}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          displayProgressStats(data.statistics);
+          displayRecentSessions(data.recent_sessions);
+          
+          // Update period selector
+          document.querySelectorAll('.period-selector .chip').forEach(chip => {
+            chip.classList.remove('active');
+          });
+          document.querySelector(`[data-days="${days}"]`).classList.add('active');
+        }
+      } catch (e) {
+        console.error('Error loading progress report:', e);
+      }
+    }
+
+    function displayProgressStats(stats) {
+      const container = document.getElementById('progress-stats');
+      container.innerHTML = `
+        <div class="metric">
+          <div class="metric-label">Total Workouts</div>
+          <div class="metric-value">${stats.total_workouts}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Total Duration</div>
+          <div class="metric-value">${Math.round(stats.total_duration_minutes)}<span class="metric-unit"> min</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Avg Performance</div>
+          <div class="metric-value">${stats.avg_performance_rating ? stats.avg_performance_rating.toFixed(1) : 'N/A'}<span class="metric-unit">/10</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Active Days</div>
+          <div class="metric-value">${stats.active_days}</div>
+        </div>
+      `;
+    }
+
+    function displayRecentSessions(sessions) {
+      const container = document.getElementById('recent-sessions-list');
+      if (sessions.length === 0) {
+        container.innerHTML = '<p>No recent sessions found.</p>';
+        return;
+      }
+      
+      container.innerHTML = sessions.map(session => `
+        <div class="session-item">
+          <div class="session-info">
+            <div><strong>${session.description}</strong></div>
+            <div style="font-size: 14px; color: var(--ios-gray);">
+              ${new Date(session.started_at).toLocaleDateString()} • 
+              ${session.duration_minutes ? Math.round(session.duration_minutes) + ' min' : 'N/A'} • 
+              Rating: ${session.performance_rating || 'N/A'}/10
+            </div>
+          </div>
+          <div class="session-actions">
+            ${session.whoop_screenshot ? 
+              `<button onclick="viewWhoopScreenshot('${session.whoop_screenshot}')" style="font-size: 12px; padding: 4px 8px;">📱 View</button>` : 
+              ''
+            }
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function generateAISummary() {
+      if (!currentSessionId) {
+        alert('No active session to summarize. Complete a workout first.');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/generate_whoop_summary', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: currentSessionId })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          document.getElementById('ai-summary-content').textContent = data.summary;
+        } else {
+          alert('Error generating summary: ' + data.error);
+        }
+      } catch (e) {
+        console.error('Error generating AI summary:', e);
+        alert('Error generating summary: ' + e.message);
+      }
+    }
+
+    function viewWhoopScreenshot(path) {
+      window.open(path, '_blank');
+    }
+
+    // WHOOP screenshot upload handling
+    document.getElementById('whoop-screenshot').addEventListener('change', async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      if (!currentSessionId) {
+        alert('No active session. Start a workout first.');
+        return;
+      }
+      
+      const formData = new FormData();
+      formData.append('screenshot', file);
+      formData.append('session_id', currentSessionId);
+      
+      try {
+        const response = await fetch('/upload_whoop_screenshot', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          // Show preview
+          const preview = document.getElementById('upload-preview');
+          preview.innerHTML = `
+            <img src="${data.filepath}" alt="WHOOP Screenshot">
+            <p style="margin-top: 8px; color: var(--ios-green);">✅ Screenshot uploaded successfully!</p>
+          `;
+          hapticFeedback('light');
+        } else {
+          alert('Error uploading screenshot: ' + data.error);
+        }
+      } catch (e) {
+        console.error('Error uploading screenshot:', e);
+        alert('Error uploading screenshot: ' + e.message);
+      }
+    });
+
     /* ---------- Init ---------- */
     window.addEventListener('beforeunload', saveState);
     loadPrefs();
     document.querySelectorAll('#category-chips .chip').forEach(c=>c.classList.toggle('active', c.getAttribute('data-cat') === currentCategory));
     document.querySelectorAll('#duration-chips .chip').forEach(c=>c.classList.toggle('active', parseInt(c.getAttribute('data-min'),10) === currentMinutes));
     loadSuggestions(); loadState(); loadMuted(); updateStats(); updateETA(); loadWakeLockPref();
+    
+    // Initialize iPhone-specific features
+    addTouchGestures();
+    addHapticToButtons();
+    optimizeForIOS();
+    
+    // Load initial progress report
+    if (window.location.hash === '#progress') {
+      loadProgressReport(30);
+    }
 
     /* ---------- Compact mode (landscape always) ---------- */
     function applyLandscapeCompact(){

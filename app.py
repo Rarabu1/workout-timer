@@ -38,13 +38,74 @@ def init_db():
     with app.app_context():
         db = get_db()
         cursor = db.cursor()
+        
+        # Enhanced workouts table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS workouts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 description TEXT NOT NULL,
-                intervals TEXT NOT NULL
+                intervals TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                workout_type TEXT DEFAULT 'manual',
+                difficulty_rating INTEGER DEFAULT 3,
+                estimated_calories INTEGER,
+                tags TEXT
             )
         ''')
+        
+        # New workout sessions table for tracking actual performance
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS workout_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workout_id INTEGER,
+                started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                completed_at TIMESTAMP,
+                total_duration_minutes REAL,
+                completed_intervals INTEGER DEFAULT 0,
+                skipped_intervals INTEGER DEFAULT 0,
+                notes TEXT,
+                performance_rating INTEGER,
+                actual_calories INTEGER,
+                whoop_screenshot_path TEXT,
+                FOREIGN KEY (workout_id) REFERENCES workouts (id)
+            )
+        ''')
+        
+        # Performance metrics table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS performance_metrics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id INTEGER,
+                interval_index INTEGER,
+                planned_duration_min INTEGER,
+                actual_duration_min REAL,
+                planned_speed_mph REAL,
+                actual_speed_mph REAL,
+                planned_incline REAL,
+                actual_incline REAL,
+                heart_rate_avg INTEGER,
+                heart_rate_max INTEGER,
+                perceived_exertion INTEGER,
+                FOREIGN KEY (session_id) REFERENCES workout_sessions (id)
+            )
+        ''')
+        
+        # Progress tracking table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS progress_tracking (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date DATE DEFAULT CURRENT_DATE,
+                total_workouts INTEGER DEFAULT 0,
+                total_duration_minutes REAL DEFAULT 0,
+                total_distance_miles REAL DEFAULT 0,
+                avg_heart_rate INTEGER,
+                recovery_score REAL,
+                sleep_score REAL,
+                stress_score REAL,
+                notes TEXT
+            )
+        ''')
+        
         db.commit()
 
 def parse_intervals(text: str):
@@ -246,6 +307,280 @@ def load_workout(workout_id):
     except Exception as e:
         print(f"Error in load_workout: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/start_session", methods=["POST"])
+def start_session():
+    """Start a new workout session"""
+    try:
+        data = request.get_json() or {}
+        workout_id = data.get("workout_id")
+        
+        if not workout_id:
+            return jsonify(success=False, error="Workout ID required"), 400
+            
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            "INSERT INTO workout_sessions (workout_id) VALUES (?)",
+            (workout_id,)
+        )
+        session_id = cursor.lastrowid
+        db.commit()
+        
+        return jsonify(success=True, session_id=session_id)
+        
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
+
+@app.route("/complete_session", methods=["POST"])
+def complete_session():
+    """Complete a workout session with performance data"""
+    try:
+        data = request.get_json() or {}
+        session_id = data.get("session_id")
+        performance_data = data.get("performance", {})
+        
+        if not session_id:
+            return jsonify(success=False, error="Session ID required"), 400
+            
+        db = get_db()
+        cursor = db.cursor()
+        
+        # Update session completion
+        cursor.execute("""
+            UPDATE workout_sessions 
+            SET completed_at = CURRENT_TIMESTAMP,
+                total_duration_minutes = ?,
+                completed_intervals = ?,
+                skipped_intervals = ?,
+                notes = ?,
+                performance_rating = ?,
+                actual_calories = ?
+            WHERE id = ?
+        """, (
+            performance_data.get("total_duration_minutes", 0),
+            performance_data.get("completed_intervals", 0),
+            performance_data.get("skipped_intervals", 0),
+            performance_data.get("notes", ""),
+            performance_data.get("performance_rating"),
+            performance_data.get("actual_calories")
+        ))
+        
+        # Save interval performance metrics
+        interval_metrics = performance_data.get("interval_metrics", [])
+        for metric in interval_metrics:
+            cursor.execute("""
+                INSERT INTO performance_metrics 
+                (session_id, interval_index, planned_duration_min, actual_duration_min,
+                 planned_speed_mph, actual_speed_mph, planned_incline, actual_incline,
+                 heart_rate_avg, heart_rate_max, perceived_exertion)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                session_id,
+                metric.get("interval_index"),
+                metric.get("planned_duration_min"),
+                metric.get("actual_duration_min"),
+                metric.get("planned_speed_mph"),
+                metric.get("actual_speed_mph"),
+                metric.get("planned_incline"),
+                metric.get("actual_incline"),
+                metric.get("heart_rate_avg"),
+                metric.get("heart_rate_max"),
+                metric.get("perceived_exertion")
+            ))
+        
+        db.commit()
+        return jsonify(success=True)
+        
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
+
+@app.route("/upload_whoop_screenshot", methods=["POST"])
+def upload_whoop_screenshot():
+    """Upload WHOOP screenshot for a session"""
+    try:
+        session_id = request.form.get("session_id")
+        if not session_id:
+            return jsonify(success=False, error="Session ID required"), 400
+            
+        if "screenshot" not in request.files:
+            return jsonify(success=False, error="No screenshot uploaded"), 400
+            
+        file = request.files["screenshot"]
+        if file.filename == "":
+            return jsonify(success=False, error="No file selected"), 400
+            
+        # Save file with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"whoop_screenshot_{session_id}_{timestamp}.png"
+        filepath = os.path.join("static", "whoop_screenshots", filename)
+        
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        file.save(filepath)
+        
+        # Update database
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            "UPDATE workout_sessions SET whoop_screenshot_path = ? WHERE id = ?",
+            (f"/static/whoop_screenshots/{filename}", session_id)
+        )
+        db.commit()
+        
+        return jsonify(success=True, filepath=f"/static/whoop_screenshots/{filename}")
+        
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
+
+@app.route("/progress_report")
+def get_progress_report():
+    """Generate progress report for WHOOP integration"""
+    try:
+        days = int(request.args.get("days", 30))
+        
+        db = get_db()
+        cursor = db.cursor()
+        
+        # Get workout statistics
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as total_workouts,
+                SUM(total_duration_minutes) as total_duration,
+                AVG(performance_rating) as avg_performance,
+                COUNT(DISTINCT DATE(started_at)) as active_days
+            FROM workout_sessions 
+            WHERE started_at >= DATE('now', '-{} days')
+        """.format(days))
+        
+        stats = cursor.fetchone()
+        
+        # Get recent sessions
+        cursor.execute("""
+            SELECT 
+                ws.id,
+                w.description,
+                ws.started_at,
+                ws.total_duration_minutes,
+                ws.performance_rating,
+                ws.whoop_screenshot_path
+            FROM workout_sessions ws
+            JOIN workouts w ON ws.workout_id = w.id
+            WHERE ws.started_at >= DATE('now', '-{} days')
+            ORDER BY ws.started_at DESC
+        """.format(days))
+        
+        sessions = []
+        for row in cursor.fetchall():
+            sessions.append({
+                "id": row["id"],
+                "description": row["description"],
+                "started_at": row["started_at"],
+                "duration_minutes": row["total_duration_minutes"],
+                "performance_rating": row["performance_rating"],
+                "whoop_screenshot": row["whoop_screenshot_path"]
+            })
+        
+        return jsonify({
+            "success": True,
+            "period_days": days,
+            "statistics": {
+                "total_workouts": stats["total_workouts"] or 0,
+                "total_duration_minutes": stats["total_duration"] or 0,
+                "avg_performance_rating": stats["avg_performance"] or 0,
+                "active_days": stats["active_days"] or 0
+            },
+            "recent_sessions": sessions
+        })
+        
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
+
+@app.route("/generate_whoop_summary", methods=["POST"])
+def generate_whoop_summary():
+    """Generate AI summary for WHOOP integration"""
+    try:
+        data = request.get_json() or {}
+        session_id = data.get("session_id")
+        
+        if not session_id:
+            return jsonify(success=False, error="Session ID required"), 400
+            
+        # Get session data
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute("""
+            SELECT 
+                ws.*,
+                w.description,
+                w.intervals
+            FROM workout_sessions ws
+            JOIN workouts w ON ws.workout_id = w.id
+            WHERE ws.id = ?
+        """, (session_id,))
+        
+        session = cursor.fetchone()
+        if not session:
+            return jsonify(success=False, error="Session not found"), 404
+            
+        # Get performance metrics
+        cursor.execute("""
+            SELECT * FROM performance_metrics 
+            WHERE session_id = ? 
+            ORDER BY interval_index
+        """, (session_id,))
+        
+        metrics = cursor.fetchall()
+        
+        # Generate AI summary
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            return jsonify(success=False, error="OpenAI API key not configured"), 500
+            
+        client = OpenAI(api_key=api_key)
+        
+        summary_prompt = f"""
+        Generate a concise workout summary for WHOOP integration based on this treadmill session:
+        
+        Workout: {session['description']}
+        Duration: {session['total_duration_minutes']} minutes
+        Completed intervals: {session['completed_intervals']}
+        Performance rating: {session['performance_rating']}/10
+        Notes: {session['notes'] or 'None'}
+        
+        Performance metrics: {len(metrics)} intervals tracked
+        
+        Please provide:
+        1. Brief workout summary (2-3 sentences)
+        2. Key performance insights
+        3. Recommendations for next session
+        4. Recovery suggestions
+        
+        Format as JSON with keys: summary, insights, recommendations, recovery
+        """
+        
+        completion = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": summary_prompt}],
+            temperature=0.7,
+            max_tokens=300
+        )
+        
+        summary_text = completion.choices[0].message.content or ""
+        
+        return jsonify({
+            "success": True,
+            "summary": summary_text,
+            "session_data": {
+                "id": session["id"],
+                "description": session["description"],
+                "duration": session["total_duration_minutes"],
+                "performance_rating": session["performance_rating"]
+            }
+        })
+        
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
 
 if __name__ == "__main__":
     init_db()
