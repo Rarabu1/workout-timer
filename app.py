@@ -1791,6 +1791,33 @@ def get_whoop_recovery():
         if not recovery_data:
             return jsonify(success=False, error="Failed to get recovery data"), 400
         
+        # Try to get additional data from other endpoints
+        try:
+            # Get sleep data
+            sleep_response = requests.get(
+                f"{WHOOP_API_BASE_V1}/sleep",
+                headers={'Authorization': f'Bearer {access_token}'}
+            )
+            if sleep_response.status_code == 200:
+                sleep_data = sleep_response.json()
+                if sleep_data.get('records'):
+                    recovery_data['sleep_data'] = sleep_data['records'][0]
+        except:
+            pass
+        
+        try:
+            # Get strain data from cycle endpoint
+            cycle_response = requests.get(
+                f"{WHOOP_API_BASE_V1}/cycle",
+                headers={'Authorization': f'Bearer {access_token}'}
+            )
+            if cycle_response.status_code == 200:
+                cycle_data = cycle_response.json()
+                if cycle_data.get('records'):
+                    recovery_data['strain_data'] = cycle_data['records'][0]
+        except:
+            pass
+        
         # Analyze the data
         analysis = analyze_whoop_performance(recovery_data)
         

@@ -3155,9 +3155,21 @@
         recoveryScore = recoveryScore.recovery_score || recoveryScore.score || JSON.stringify(recoveryScore);
       }
       
-      const sleepScore = recoveryData?.sleep?.score?.sleep_performance || recoveryData?.sleep_score || '--';
-      const strainScore = recoveryData?.strain?.score?.strain || recoveryData?.strain_score || '--';
-      const hrvValue = recoveryData?.metrics?.hrv_rmssd || recoveryData?.hrv || '--';
+      // Try different possible data structures for sleep, strain, and HRV
+      let sleepScore = recoveryData?.sleep_data?.score?.sleep_performance || recoveryData?.sleep?.score?.sleep_performance || recoveryData?.sleep_score || '--';
+      if (typeof sleepScore === 'object' && sleepScore !== null) {
+        sleepScore = sleepScore.sleep_performance || sleepScore.score || JSON.stringify(sleepScore);
+      }
+      
+      let strainScore = recoveryData?.strain_data?.score?.strain || recoveryData?.strain?.score?.strain || recoveryData?.strain_score || '--';
+      if (typeof strainScore === 'object' && strainScore !== null) {
+        strainScore = strainScore.strain || strainScore.score || JSON.stringify(strainScore);
+      }
+      
+      let hrvValue = recoveryData?.metrics?.hrv_rmssd || recoveryData?.hrv || '--';
+      if (typeof hrvValue === 'object' && hrvValue !== null) {
+        hrvValue = hrvValue.hrv_rmssd || hrvValue.value || JSON.stringify(hrvValue);
+      }
       
       document.getElementById('recovery-score').textContent = recoveryScore;
       document.getElementById('sleep-score').textContent = sleepScore;
