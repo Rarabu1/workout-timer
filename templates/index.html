@@ -806,6 +806,7 @@
       padding: 16px; 
       width: 100%;
       max-width: none;
+      display: block !important;
     }
     
     body.landscape-compact .countdown-wrap { 
@@ -842,6 +843,7 @@
     }
     body.landscape-compact .landscape-metrics { 
       display: block !important; 
+      margin-top: 16px;
     }
 
     /* Improved compact controls */
@@ -877,6 +879,7 @@
       justify-content: center; 
       flex-wrap: wrap; 
       padding: 0 20px;
+      margin-top: 20px;
     }
 
     /* Landscape-specific summary bar */
@@ -3443,10 +3446,9 @@
     function applyLandscapeCompact(){
       const mq = window.matchMedia('(orientation: landscape)');
       const isLandscape = mq.matches;
-      const isSmallScreen = window.innerWidth < 768;
       
-      // Only apply compact mode on small screens in landscape
-      const shouldCompact = isLandscape && isSmallScreen;
+      // Apply compact mode on all screens in landscape when timer is active
+      const shouldCompact = isLandscape && intervals && intervals.length > 0;
       document.body.classList.toggle('landscape-compact', shouldCompact);
       
       // Ensure vertical mode has proper overflow
