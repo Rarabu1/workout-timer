@@ -218,26 +218,32 @@ def generate_workout():
         if not user_request:
             return jsonify(success=False, error="Please describe the workout"), 400
 
-        # Call OpenAI
-        client = OpenAI(api_key=api_key)
-        completion = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a running coach. Generate a treadmill workout as plain text, one interval per line. "
-                        "Use the exact format: `<minutes> min @ <speed> mph (<short label>)`. "
-                        "Optionally include 'incline X' like `, incline 2`. Keep total duration ≤ 60 minutes."
-                    ),
-                },
-                {"role": "user", "content": user_request},
-            ],
-            temperature=0.7,
-            max_tokens=600,
-        )
-
-        workout_text = (completion.choices[0].message.content or "").strip()
+        # Call OpenAI with proper error handling
+        try:
+            client = OpenAI(api_key=api_key)
+            completion = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a running coach. Generate a treadmill workout as plain text, one interval per line. "
+                            "Use the exact format: `<minutes> min @ <speed> mph (<short label>)`. "
+                            "Optionally include 'incline X' like `, incline 2`. Keep total duration ≤ 60 minutes."
+                        ),
+                    },
+                    {"role": "user", "content": user_request},
+                ],
+                temperature=0.7,
+                max_tokens=600,
+            )
+            workout_text = (completion.choices[0].message.content or "").strip()
+        except Exception as openai_error:
+            print(f"OpenAI error: {openai_error}")
+            # Fallback workout if OpenAI fails
+            workout_text = """5 min @ 4.0 mph (warm up)
+20 min @ 5.5 mph (steady pace)
+5 min @ 4.0 mph (cool down)"""
 
         # Parse the generated workout using our parser wrapper
         intervals = []
@@ -603,6 +609,18 @@ def analyze_performance_patterns(user_id=None, days=30):
     try:
         db = get_db()
         cursor = db.cursor()
+        
+        # Check if workout_sessions table exists
+        cursor.execute("""
+            SELECT name FROM sqlite_master 
+            WHERE type='table' AND name='workout_sessions'
+        """)
+        
+        if not cursor.fetchone():
+            return {
+                "success": False,
+                "message": "No workout sessions data available yet. Complete a few workouts to see insights."
+            }
         
         # Get recent sessions with performance data
         cursor.execute("""
@@ -1183,3 +1201,7 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", "5000"))
     debug = os.environ.get("FLASK_DEBUG", "1") == "1"
     app.run(host="0.0.0.0", port=port, debug=debug)
+
+# Ensure database is initialized when app starts
+with app.app_context():
+    init_db()
