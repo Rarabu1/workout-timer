@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" width="300" height="80">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
   <!-- Dark blue background -->
-  <rect x="0" y="0" width="300" height="80" fill="#1e3a8a"/>
+  <rect x="0" y="0" width="200" height="200" fill="#1e3a8a"/>
   
   <!-- Running figure on treadmill -->
-  <g transform="translate(20, 20)">
+  <g transform="translate(30, 50)">
     <!-- Treadmill base (running belt) -->
     <rect x="0" y="35" width="40" height="4" fill="white"/>
     <!-- Treadmill console/handle -->
@@ -26,8 +26,8 @@
   </g>
   
   <!-- App name -->
-  <text x="80" y="25" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="white">The</text>
-  <text x="80" y="40" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="white">Treadmill</text>
-  <text x="80" y="55" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="white">Run</text>
-  <text x="80" y="70" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="white">Coach</text>
+  <text x="90" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="white">The</text>
+  <text x="90" y="95" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="white">Treadmill</text>
+  <text x="90" y="110" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="white">Run</text>
+  <text x="90" y="125" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="white">Coach</text>
 </svg>
