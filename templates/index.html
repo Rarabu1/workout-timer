@@ -1853,6 +1853,218 @@
       letter-spacing: 0.1em;
       font-weight: 600;
     }
+
+    /* WHOOP Workout Generation Cards */
+    .workout-request {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--whoop-radius-lg);
+      padding: var(--whoop-spacing-xl);
+      margin-bottom: var(--whoop-spacing-lg);
+      backdrop-filter: blur(10px);
+    }
+
+    .workout-request h3 {
+      color: var(--whoop-white);
+      margin-bottom: var(--whoop-spacing-md);
+    }
+
+    .workout-request p {
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: var(--whoop-spacing-lg);
+    }
+
+    .workout-request textarea {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: var(--whoop-radius-md);
+      padding: var(--whoop-spacing-md);
+      color: var(--whoop-white);
+      font-family: var(--whoop-font-primary);
+      font-size: 0.875rem;
+      width: 100%;
+      min-height: 80px;
+      resize: vertical;
+      backdrop-filter: blur(10px);
+    }
+
+    .workout-request textarea:focus {
+      outline: none;
+      border-color: var(--whoop-teal);
+      box-shadow: 0 0 0 3px rgba(0, 240, 159, 0.1);
+    }
+
+    /* WHOOP Section Headers */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--whoop-spacing-lg);
+      padding-bottom: var(--whoop-spacing-md);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: var(--whoop-spacing-sm);
+      color: var(--whoop-white);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .section-subtitle {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.875rem;
+      font-weight: 400;
+    }
+
+    /* WHOOP Timer Display */
+    .timer-display {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--whoop-radius-lg);
+      padding: var(--whoop-spacing-xl);
+      text-align: center;
+      backdrop-filter: blur(10px);
+      margin-bottom: var(--whoop-spacing-lg);
+    }
+
+    .countdown-pill {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: var(--whoop-radius-xl);
+      padding: var(--whoop-spacing-xl);
+      margin: var(--whoop-spacing-lg) 0;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+
+    #timer {
+      font-family: var(--whoop-font-numbers);
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--whoop-white);
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    /* WHOOP Interval Information */
+    .current-interval {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--whoop-radius-md);
+      padding: var(--whoop-spacing-lg);
+      margin-bottom: var(--whoop-spacing-lg);
+      backdrop-filter: blur(10px);
+    }
+
+    .current-interval h3 {
+      color: var(--whoop-white);
+      margin-bottom: var(--whoop-spacing-sm);
+    }
+
+    .current-interval p {
+      color: rgba(255, 255, 255, 0.8);
+      font-family: var(--whoop-font-numbers);
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    /* WHOOP Metrics Display */
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: var(--whoop-spacing-md);
+      margin-bottom: var(--whoop-spacing-lg);
+    }
+
+    .metric {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--whoop-radius-md);
+      padding: var(--whoop-spacing-lg);
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .metric .metric-label {
+      font-family: var(--whoop-font-primary);
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.7);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 600;
+      margin-bottom: var(--whoop-spacing-sm);
+    }
+
+    .metric .metric-value {
+      font-family: var(--whoop-font-numbers);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--whoop-white);
+    }
+
+    /* WHOOP Workout Items */
+    .workout-item {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--whoop-radius-md);
+      padding: var(--whoop-spacing-lg);
+      margin-bottom: var(--whoop-spacing-md);
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+
+    .workout-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .workout-item h4 {
+      color: var(--whoop-white);
+      margin-bottom: var(--whoop-spacing-sm);
+    }
+
+    .workout-item p {
+      color: rgba(255, 255, 255, 0.7);
+      margin: var(--whoop-spacing-xs) 0;
+    }
+
+    /* WHOOP Paste Area */
+    .paste-area {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--whoop-radius-lg);
+      padding: var(--whoop-spacing-xl);
+      margin-bottom: var(--whoop-spacing-lg);
+      backdrop-filter: blur(10px);
+    }
+
+    .paste-area h3 {
+      color: var(--whoop-white);
+      margin-bottom: var(--whoop-spacing-md);
+    }
+
+    .paste-area textarea {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: var(--whoop-radius-md);
+      padding: var(--whoop-spacing-md);
+      color: var(--whoop-white);
+      font-family: var(--whoop-font-primary);
+      font-size: 0.875rem;
+      width: 100%;
+      min-height: 120px;
+      resize: vertical;
+      backdrop-filter: blur(10px);
+    }
+
+    .paste-area textarea:focus {
+      outline: none;
+      border-color: var(--whoop-teal);
+      box-shadow: 0 0 0 3px rgba(0, 240, 159, 0.1);
+    }
   </style>
 </head>
 <body>
