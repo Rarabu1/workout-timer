@@ -1404,29 +1404,53 @@
       letter-spacing: 0.5px;
     }
     
+    /* WHOOP Official Brand Colors & Design System */
+    :root {
+      /* WHOOP Recovery Colors (from official guidelines) */
+      --whoop-recovery-high: #16EC06;    /* 100-67% */
+      --whoop-recovery-medium: #FFDE00;  /* 66-34% */
+      --whoop-recovery-low: #FF0026;     /* 33-0% */
+      --whoop-recovery-blue: #67AEE6;    /* Recovery data without valuation */
+      
+      /* WHOOP Sleep Color */
+      --whoop-sleep: #7BA1BB;
+      
+      /* WHOOP Strain Color */
+      --whoop-strain: #0093E7;
+      
+      /* WHOOP Brand Colors */
+      --whoop-teal: #00F19F;             /* Call to actions, highlights, positive evaluations */
+      --whoop-black: #000000;
+      --whoop-white: #FFFFFF;
+      --whoop-background-gradient: linear-gradient(90deg, #283339 0%, #101518 100%);
+    }
+    
     /* WHOOP Integration Styles */
     .whoop-auth {
-      background: #fff;
-      border: 1px solid var(--ios-border);
+      background: var(--whoop-white);
+      border: 1px solid #E9ECEF;
       border-radius: 16px;
       padding: 20px;
       margin-bottom: 20px;
       text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     
     .whoop-status {
       margin-top: 12px;
       padding: 12px;
       border-radius: 8px;
-      background: var(--ios-light-gray);
+      background: var(--whoop-white);
+      border: 1px solid #E9ECEF;
     }
     
     .whoop-recovery {
-      background: #fff;
-      border: 1px solid var(--ios-border);
+      background: var(--whoop-white);
+      border: 1px solid #E9ECEF;
       border-radius: 16px;
       padding: 20px;
       margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     
     .recovery-metrics {
@@ -1436,147 +1460,398 @@
       margin-bottom: 16px;
     }
     
-    .whoop-recommendations {
-      background: #fff;
-      border: 1px solid var(--ios-border);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 20px;
-    }
+    /* WHOOP Dynamic Color Classes for Metrics */
+    .metric-card.recovery-high .metric-value { color: var(--whoop-recovery-high); }
+    .metric-card.recovery-medium .metric-value { color: var(--whoop-recovery-medium); }
+    .metric-card.recovery-low .metric-value { color: var(--whoop-recovery-low); }
     
-    .recommendation-card {
-      background: var(--ios-light-gray);
-      border: 1px solid var(--ios-border);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
-    }
+    .metric-card.sleep .metric-value { color: var(--whoop-sleep); }
     
-    .recommendation-details {
-      margin-bottom: 16px;
-    }
+    .metric-card.strain .metric-value { color: var(--whoop-strain); }
     
-    .recommendation-details p {
-      margin: 8px 0;
-      font-size: 14px;
-    }
-    
-    .recommendation-reasons {
-      margin-bottom: 16px;
-    }
-    
-    .recommendation-reasons h5 {
-      margin-bottom: 8px;
-      color: var(--ios-blue);
-    }
-    
-    .recommendation-reasons ul {
+    .metric-card.hrv-high .metric-value { color: var(--whoop-recovery-high); }
+    .metric-card.hrv-medium .metric-value { color: var(--whoop-recovery-medium); }
+    .metric-card.hrv-low .metric-value { color: var(--whoop-recovery-low); }
+
+    /* Landscape Compact Mode with WHOOP Colors */
+    body.landscape-compact {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 9999;
+      background: var(--whoop-background-gradient);
+      overflow: hidden;
       margin: 0;
-      padding-left: 20px;
-    }
-    
-    .recommendation-reasons li {
-      margin-bottom: 4px;
-      font-size: 14px;
-    }
-    
-    .whoop-workouts {
-      background: #fff;
-      border: 1px solid var(--ios-border);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-    
-    .workout-header {
+      padding: 0;
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
       align-items: center;
-      margin-bottom: 8px;
-    }
-    
-    .workout-header h4 {
-      margin: 0;
-      color: var(--ios-blue);
-    }
-    
-    .workout-date {
-      font-size: 12px;
-      color: var(--ios-gray);
-    }
-    
-    .workout-details {
-      display: flex;
-      gap: 16px;
-      font-size: 14px;
-      color: var(--ios-gray);
-    }
-    
-    .btn-refresh {
-      background: var(--ios-blue);
-      color: #fff;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 12px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-      transition: all 0.2s ease;
-    }
-    
-    .btn-refresh:active {
-      background: #0056CC;
-      transform: scale(0.98);
+      justify-content: center;
     }
 
-    /* Dark mode support */
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --ios-light-gray: #1C1C1E;
-        --ios-border: #38383A;
-      }
+    /* WHOOP Intensity Colors for Intervals */
+    body.landscape-compact.phase-high {
+      background: linear-gradient(135deg, #FF0026 0%, #FF4444 100%);
+    }
+
+    body.landscape-compact.phase-medium {
+      background: linear-gradient(135deg, #FFDE00 0%, #FFD700 100%);
+    }
+
+    body.landscape-compact.phase-low {
+      background: linear-gradient(135deg, #16EC06 0%, #00C851 100%);
+    }
+
+    body.landscape-compact.phase-recovery {
+      background: linear-gradient(135deg, #67AEE6 0%, #7BA1BB 100%);
+    }
+
+    body.landscape-compact .app-header {
+      display: none !important;
+    }
+
+    body.landscape-compact .countdown-pill {
+      background: rgba(255, 255, 255, 0.95) !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+      min-width: 85vw;
+      height: 200px;
+      padding: 40px;
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    body.landscape-compact #timer {
+      font-size: 96px;
+      font-weight: 700;
+      color: var(--whoop-black);
+      letter-spacing: 2px;
+      text-shadow: none;
+    }
+
+    .landscape-metrics {
+      display: flex;
+      gap: 40px;
+      margin-top: 24px;
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--whoop-white);
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .compact-controls {
+      display: flex;
+      gap: 20px;
+      margin-top: 24px;
+    }
+
+    .compact-controls button {
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      color: var(--whoop-white);
+      font-weight: 700;
+      padding: 16px 20px;
+      border-radius: 16px;
+      min-height: 60px;
+      font-size: 18px;
+      min-width: 100px;
+      max-width: 140px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+
+    .compact-controls button:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+    }
+
+    /* WHOOP Design System - Based on Official Guidelines */
+    :root {
+      /* WHOOP Typography */
+      --whoop-font-primary: 'Proxima Nova', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --whoop-font-numbers: 'DINPro', 'DIN Alternate', 'Arial Black', sans-serif;
       
-      body {
-        background: #000;
-        color: #fff;
-      }
+      /* WHOOP Color Palette */
+      --whoop-black: #000000;
+      --whoop-white: #FFFFFF;
+      --whoop-teal: #00F19F;
+      --whoop-strain: #0093E7;
+      --whoop-recovery-high: #16EC06;
+      --whoop-recovery-medium: #FFDE00;
+      --whoop-recovery-low: #FF0026;
+      --whoop-recovery-blue: #67AEE6;
+      --whoop-sleep: #7BA1BB;
+      --whoop-background-gradient: linear-gradient(90deg, #283339 0%, #101518 100%);
       
-      .tab-content,
-      .workout-request,
-      .paste-area,
-      .workout-item,
-      .timer-display,
-      .current-interval,
-      .next-up,
-      .intervals-list,
-      .metric,
-      .session-tracking,
-      .whoop-upload,
-      .progress-report,
-      .ai-summary,
-      .ml-analysis,
-      .personalized-workout,
-      .performance-insights,
-      .recovery-optimization {
-        background: #1C1C1E;
-        border-color: #38383A;
-        color: #fff;
-      }
+      /* WHOOP Spacing */
+      --whoop-spacing-xs: 4px;
+      --whoop-spacing-sm: 8px;
+      --whoop-spacing-md: 16px;
+      --whoop-spacing-lg: 24px;
+      --whoop-spacing-xl: 32px;
       
-      .countdown-pill,
-      .session-item,
-      .summary-content,
-      .analysis-content,
-      .workout-content,
-      .insights-content,
-      .recovery-content,
-      .preferences-section,
-      .metric-card,
-      .insight-card {
-        background: #1C1C1E;
-        border-color: #38383A;
-        color: #fff;
-      }
+      /* WHOOP Border Radius */
+      --whoop-radius-sm: 8px;
+      --whoop-radius-md: 12px;
+      --whoop-radius-lg: 16px;
+      --whoop-radius-xl: 24px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--whoop-font-primary);
+      margin: 0;
+      padding: 0;
+      background: var(--whoop-background-gradient);
+      color: var(--whoop-white);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* WHOOP Typography System */
+    h1, h2, h3, h4, h5, h6 {
+      font-family: var(--whoop-font-primary);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin: 0 0 var(--whoop-spacing-md) 0;
+    }
+
+    h1 { font-size: 2rem; }
+    h2 { font-size: 1.5rem; }
+    h3 { font-size: 1.25rem; }
+
+    /* WHOOP Numbers */
+    .whoop-number {
+      font-family: var(--whoop-font-numbers);
+      font-weight: 700;
+    }
+
+    /* WHOOP App Header */
+    .app-header {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: var(--whoop-spacing-lg);
+      display: flex;
+      align-items: center;
+      gap: var(--whoop-spacing-md);
+      margin-bottom: var(--whoop-spacing-lg);
+    }
+
+    .app-logo {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--whoop-radius-md);
+    }
+
+    .app-title h1 {
+      font-size: 1.5rem;
+      margin: 0;
+      color: var(--whoop-white);
+    }
+
+    .app-subtitle {
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.7);
+      margin: var(--whoop-spacing-xs) 0 0 0;
+    }
+
+    /* WHOOP Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 var(--whoop-spacing-lg);
+    }
+
+    /* WHOOP Tabs */
+    .tab-buttons {
+      display: flex;
+      gap: var(--whoop-spacing-sm);
+      margin-bottom: var(--whoop-spacing-lg);
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: var(--whoop-radius-lg);
+      padding: var(--whoop-spacing-sm);
+      backdrop-filter: blur(10px);
+    }
+
+    .tab-button {
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.7);
+      padding: var(--whoop-spacing-md) var(--whoop-spacing-lg);
+      border-radius: var(--whoop-radius-md);
+      font-family: var(--whoop-font-primary);
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      flex: 1;
+    }
+
+    .tab-button.active {
+      background: var(--whoop-teal);
+      color: var(--whoop-black);
+    }
+
+    .tab-button:hover:not(.active) {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--whoop-white);
+    }
+
+    /* WHOOP Cards */
+    .tab-content {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: var(--whoop-radius-lg);
+      padding: var(--whoop-spacing-xl);
+      margin-bottom: var(--whoop-spacing-lg);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+    }
+
+    /* WHOOP Buttons */
+    .btn-primary {
+      background: var(--whoop-teal);
+      color: var(--whoop-black);
+      border: none;
+      padding: var(--whoop-spacing-md) var(--whoop-spacing-xl);
+      border-radius: var(--whoop-radius-md);
+      font-family: var(--whoop-font-primary);
+      font-weight: 700;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0, 240, 159, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 240, 159, 0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--whoop-white);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: var(--whoop-spacing-md) var(--whoop-spacing-xl);
+      border-radius: var(--whoop-radius-md);
+      font-family: var(--whoop-font-primary);
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    /* WHOOP Form Elements */
+    input, textarea, select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: var(--whoop-radius-md);
+      padding: var(--whoop-spacing-md);
+      color: var(--whoop-white);
+      font-family: var(--whoop-font-primary);
+      font-size: 0.875rem;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--whoop-teal);
+      box-shadow: 0 0 0 3px rgba(0, 240, 159, 0.1);
+    }
+
+    input::placeholder, textarea::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* WHOOP Chips */
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--whoop-spacing-sm);
+      margin-bottom: var(--whoop-spacing-lg);
+    }
+
+    .chip {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: var(--whoop-radius-md);
+      padding: var(--whoop-spacing-sm) var(--whoop-spacing-md);
+      color: var(--whoop-white);
+      font-family: var(--whoop-font-primary);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .chip.active {
+      background: var(--whoop-teal);
+      color: var(--whoop-black);
+      border-color: var(--whoop-teal);
+    }
+
+    .chip:hover:not(.active) {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    /* WHOOP Metrics */
+    .metric-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--whoop-radius-md);
+      padding: var(--whoop-spacing-lg);
+      text-align: center;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+
+    .metric-card:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .metric-card .metric-value {
+      font-family: var(--whoop-font-numbers);
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: var(--whoop-spacing-sm);
+    }
+
+    .metric-card .metric-label {
+      font-family: var(--whoop-font-primary);
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.7);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 600;
     }
   </style>
 </head>
