@@ -8,6 +8,7 @@ from flask import Flask, render_template, request, jsonify, g, redirect, url_for
 from dotenv import load_dotenv
 from openai import OpenAI
 import math
+import random
 
 # Optional WHOOP integration
 try:
@@ -212,7 +213,7 @@ class DynamicZoneWorkout:
         self.adaptation_history = []
         
     def generate_base_workout(self) -> List[Dict]:
-        """Generate initial workout plan targeting the zone"""
+        """Generate initial workout plan targeting the zone with slight variety each time."""
         intervals = []
         
         # Validate inputs
@@ -221,67 +222,121 @@ class DynamicZoneWorkout:
         if not 0 <= self.zone_time_percentage <= 100:
             raise ValueError("Zone time percentage must be between 0 and 100")
         
-        # Warm-up: 10% of time in Z1-Z2
+        # Warm-up: ~10% of time in Z1-Z2, with slight variation
         warmup_time = max(5, int(self.total_duration * 0.1))
+        warmup_speed = round(4.4 + random.uniform(-0.3, 0.3), 1)
+        warmup_incline = random.choice([0, 0.5, 1])
         intervals.append({
             'duration_min': warmup_time,
             'target_zone': 'Z2',
-            'speed_mph': 4.5,
-            'incline': 0,
+            'speed_mph': warmup_speed,
+            'incline': warmup_incline,
             'description': 'Warm-up',
             'adaptive': False
         })
         
-        # Main set: Target zone work
-        main_time = int(self.total_duration * (self.zone_time_percentage / 100))
-        remaining = self.total_duration - warmup_time - 5  # Save 5 min for cooldown
+        # Plan remaining time after reserving cooldown
+        cooldown_time = 5
+        remaining = self.total_duration - warmup_time - cooldown_time
+        if remaining <= 0:
+            # Edge case: if duration is very small
+            intervals.append({
+                'duration_min': max(1, self.total_duration - warmup_time),
+                'target_zone': 'Z1',
+                'speed_mph': round(4.0 + random.uniform(-0.2, 0.2), 1),
+                'incline': 0,
+                'description': 'Cool-down',
+                'adaptive': False
+            })
+            self.intervals = intervals
+            return intervals
         
-        # Create intervals for main work
+        # Desired total minutes in the target zone across the whole workout
+        desired_work_total = int(round(self.total_duration * (self.zone_time_percentage / 100.0)))
+        work_done = 0
+        
         if self.target_zone in ['Z3', 'Z4']:
-            # Interval training for higher zones
-            work_duration = 4 if self.target_zone == 'Z4' else 6
-            rest_duration = 2 if self.target_zone == 'Z4' else 3
+            # Interval-based structure for Z3/Z4 with varied patterns
+            work_options = [3, 4, 5] if self.target_zone == 'Z4' else [5, 6, 7]
+            rest_options = [2, 3]
+            base_speed = 7.5 if self.target_zone == 'Z4' else 6.5
+            base_incline_choices = [0, 1, 2] if self.target_zone == 'Z4' else [0, 1]
             
+            # Alternate work and recovery until time is filled
+            next_is_work = True
             while remaining > 0:
-                if remaining >= work_duration:
+                if next_is_work and work_done < desired_work_total:
+                    max_work_this = min(remaining, max(1, desired_work_total - work_done))
+                    possible = [d for d in work_options if d <= max_work_this]
+                    work_dur = min(random.choice(possible) if possible else max_work_this, max_work_this)
+                    speed = round(base_speed + random.uniform(-0.2, 0.2), 1)
+                    incline = random.choice(base_incline_choices)
                     intervals.append({
-                        'duration_min': work_duration,
+                        'duration_min': work_dur,
                         'target_zone': self.target_zone,
-                        'speed_mph': 6.5 if self.target_zone == 'Z3' else 7.5,
-                        'incline': 1,
+                        'speed_mph': max(3.0, min(9.0, speed)),
+                        'incline': incline,
                         'description': f'{self.target_zone} interval',
                         'adaptive': True
                     })
-                    remaining -= work_duration
-                    
-                if remaining >= rest_duration:
+                    remaining -= work_dur
+                    work_done += work_dur
+                    next_is_work = False
+                else:
+                    # Recovery/filler in Z2
+                    if remaining <= 0:
+                        break
+                    rest_dur = min(random.choice(rest_options), remaining)
+                    rec_speed = round(5.0 + random.uniform(-0.2, 0.2), 1)
                     intervals.append({
-                        'duration_min': rest_duration,
+                        'duration_min': rest_dur,
                         'target_zone': 'Z2',
-                        'speed_mph': 5.0,
+                        'speed_mph': max(3.0, min(9.0, rec_speed)),
                         'incline': 0,
                         'description': 'Recovery',
                         'adaptive': True
                     })
-                    remaining -= rest_duration
-                else:
-                    break
+                    remaining -= rest_dur
+                    next_is_work = True if work_done < desired_work_total else False
+            
+            # If time remains (e.g., desired work reached early), fill with easy Z2
+            if remaining > 0:
+                intervals.append({
+                    'duration_min': remaining,
+                    'target_zone': 'Z2',
+                    'speed_mph': round(5.0 + random.uniform(-0.2, 0.2), 1),
+                    'incline': 0,
+                    'description': 'Steady filler',
+                    'adaptive': True
+                })
+                remaining = 0
         else:
-            # Steady state for Z2 or Z3
-            intervals.append({
-                'duration_min': remaining,
-                'target_zone': self.target_zone,
-                'speed_mph': 5.5 if self.target_zone == 'Z2' else 6.0,
-                'incline': 0.5,
-                'description': f'{self.target_zone} steady state',
-                'adaptive': True
-            })
+            # Z1 or Z2 target: steady state broken into varied segments
+            segments_count = 2 if remaining < 20 else random.choice([2, 3])
+            base_speed = 5.5 if self.target_zone == 'Z2' else 5.0
+            base_incline = 0.5 if self.target_zone == 'Z2' else 0
+            chunk = remaining // segments_count
+            leftover = remaining - (chunk * segments_count)
+            for i in range(segments_count):
+                dur = chunk + (1 if i < leftover else 0)
+                speed = round(base_speed + random.uniform(-0.2, 0.2), 1)
+                incline = max(0, round(base_incline + random.choice([0, 0.5]), 1))
+                intervals.append({
+                    'duration_min': dur,
+                    'target_zone': self.target_zone,
+                    'speed_mph': max(3.0, min(9.0, speed)),
+                    'incline': incline,
+                    'description': f'{self.target_zone} steady state',
+                    'adaptive': True
+                })
+            remaining = 0
         
-        # Cool-down
+        # Cool-down with slight variety
+        cooldown_speed = round(4.0 + random.uniform(-0.2, 0.2), 1)
         intervals.append({
-            'duration_min': 5,
+            'duration_min': cooldown_time,
             'target_zone': 'Z1',
-            'speed_mph': 4.0,
+            'speed_mph': cooldown_speed,
             'incline': 0,
             'description': 'Cool-down',
             'adaptive': False
@@ -309,29 +364,23 @@ class DynamicZoneWorkout:
         # Calculate adjustment needed
         adjustment_needed = 0
         if current_hr < target_min:
-            # Need to increase intensity
-            adjustment_needed = min(0.5, (target_min - current_hr) / 20)  # Max 0.5 mph increase
+            adjustment_needed = min(0.5, (target_min - current_hr) / 20)
         elif current_hr > target_max:
-            # Need to decrease intensity
-            adjustment_needed = max(-0.5, (target_max - current_hr) / 20)  # Max 0.5 mph decrease
+            adjustment_needed = max(-0.5, (target_max - current_hr) / 20)
         
-        # Apply adjustment
         adapted = current_interval.copy()
         current_speed = adapted['speed_mph']
         
         if adjustment_needed != 0:
-            # Adjust speed first
             new_speed = round(current_speed + adjustment_needed, 1)
-            new_speed = max(3.0, min(9.0, new_speed))  # Keep within safe bounds
+            new_speed = max(3.0, min(9.0, new_speed))
             adapted['speed_mph'] = new_speed
             
-            # If still need adjustment, modify incline
             if abs(adjustment_needed) > 0.3:
                 incline_adjust = 0.5 if adjustment_needed > 0 else -0.5
                 new_incline = max(0, min(5, adapted['incline'] + incline_adjust))
                 adapted['incline'] = new_incline
             
-            # Log adaptation
             self.adaptation_history.append({
                 'timestamp': datetime.now().isoformat(),
                 'current_hr': current_hr,
@@ -339,8 +388,6 @@ class DynamicZoneWorkout:
                 'speed_change': new_speed - current_speed,
                 'reason': f'HR {current_hr} vs target {target_min}-{target_max}'
             })
-            
-            adapted['description'] = f"{adapted['description']} (adapted)"
         
         return adapted
 
