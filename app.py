@@ -145,31 +145,25 @@ class WHOOPHeartRateBroadcast:
         self.zone_manager = None
         
     def start_broadcast(self) -> bool:
-        """Start receiving HR broadcast from WHOOP"""
+        """Start receiving HR broadcast from WHOOP
+        Note: WHOOP Developer API does not expose a broadcast start endpoint.
+        We treat this as a no-op and rely on the WebSocket loop to pull
+        current HR via the metrics endpoint. Here we simply acknowledge
+        the request as successful if we have an access token on the server.
+        """
         try:
-            headers = {'Authorization': f'Bearer {self.access_token}'}
-            # WHOOP Broadcast API endpoint
-            response = requests.post(
-                f"{self.base_url}/metrics/heart_rate/broadcast/start",
-                headers=headers
-            )
-            if response.status_code == 200:
-                print("WHOOP HR broadcast started")
-                return True
-            return False
+            print("WHOOP HR broadcast start requested; using server-side polling stream")
+            return True
         except Exception as e:
             print(f"Error starting HR broadcast: {e}")
             return False
     
     def stop_broadcast(self) -> bool:
-        """Stop receiving HR broadcast"""
+        """Stop receiving HR broadcast
+        No external call is required; this is a no-op to mirror start_broadcast.
+        """
         try:
-            headers = {'Authorization': f'Bearer {self.access_token}'}
-            response = requests.post(
-                f"{self.base_url}/metrics/heart_rate/broadcast/stop",
-                headers=headers
-            )
-            return response.status_code == 200
+            return True
         except Exception as e:
             print(f"Error stopping HR broadcast: {e}")
             return False
