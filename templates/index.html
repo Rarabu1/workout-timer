@@ -863,8 +863,14 @@
     const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
     function formatTime(seconds){
+      // Validate input
+      if (typeof seconds !== 'number' || isNaN(seconds)) {
+        seconds = 0;
+      }
+      // Ensure non-negative
+      seconds = Math.max(0, Math.floor(seconds));
       const mins = Math.floor(seconds / 60);
-      const secs = Math.max(0, seconds % 60);
+      const secs = seconds % 60;
       return `${mins}:${secs.toString().padStart(2,'0')}`;
     }
 
@@ -892,16 +898,24 @@
     }
 
     function updateProgressUI(){
-      const total = intervals.reduce((s,i)=> s + (i.duration_min||0), 0) * 60; // in seconds
-      const elapsedInCompleted = intervals.slice(0, currentIntervalIndex).reduce((s,i)=> s + (i.duration_min||0)*60, 0);
-      const currentElapsed = Math.max(0, (intervals[currentIntervalIndex]?.duration_min||0)*60 - timeRemaining);
-      const pct = total ? Math.min(100, Math.round(((elapsedInCompleted + currentElapsed) / total) * 100)) : 0;
-      $('#progress-bar').style.width = pct + '%';
-      // list classes
-      $$('#intervals-list .interval-item').forEach((el,i)=>{
-        el.classList.toggle('current', i === currentIntervalIndex);
-        el.classList.toggle('completed', i < currentIntervalIndex);
-      });
+      try {
+        const total = intervals.reduce((s,i)=> s + (i.duration_min||0), 0) * 60; // in seconds
+        const elapsedInCompleted = intervals.slice(0, currentIntervalIndex).reduce((s,i)=> s + (i.duration_min||0)*60, 0);
+        const currentElapsed = Math.max(0, (intervals[currentIntervalIndex]?.duration_min||0)*60 - timeRemaining);
+        const pct = total ? Math.min(100, Math.round(((elapsedInCompleted + currentElapsed) / total) * 100)) : 0;
+        $('#progress-bar').style.width = pct + '%';
+        // list classes
+        $$('#intervals-list .interval-item').forEach((el,i)=>{
+          el.classList.toggle('current', i === currentIntervalIndex);
+          el.classList.toggle('completed', i < currentIntervalIndex);
+        });
+      } catch (error) {
+        console.error('Error updating progress UI:', error);
+        // Use mobile error display if available
+        if (window.showError) {
+          window.showError('Progress update error: ' + error.message);
+        }
+      }
     }
 
     function updateNextPreview(){
@@ -911,19 +925,35 @@
 
     // ---------- Interval Rendering ----------
     function displayIntervals(){
-      const list = $('#intervals-list');
-      list.innerHTML = '';
-      intervals.forEach((iv, i)=>{
-        const div = document.createElement('div');
-        div.className = 'interval-item';
-        div.id = `interval-${i}`;
-        div.innerHTML = `<strong>${i+1}.</strong> ${iv.duration_min} min @ ${iv.speed_mph||'-'} mph ${iv.incline? '(incl ' + iv.incline + '%)' : ''} ${iv.description? '- ' + iv.description : ''}`;
-        list.appendChild(div);
-      });
-      updateSummary();
-      updateCurrentIntervalUI();
-      updateProgressUI();
-      try{ saveLastSession(); }catch{}
+      try {
+        const list = $('#intervals-list');
+        if (!list) return;
+        
+        list.innerHTML = '';
+        intervals.forEach((iv, i)=>{
+          const div = document.createElement('div');
+          div.className = 'interval-item';
+          div.id = `interval-${i}`;
+          // Sanitize content to prevent XSS
+          const duration = iv.duration_min || 0;
+          const speed = iv.speed_mph || '-';
+          const incline = iv.incline || 0;
+          const description = iv.description || '';
+          
+          div.innerHTML = `<strong>${i+1}.</strong> ${duration} min @ ${speed} mph ${incline? '(incl ' + incline + '%)' : ''} ${description? '- ' + description : ''}`;
+          list.appendChild(div);
+        });
+        updateSummary();
+        updateCurrentIntervalUI();
+        updateProgressUI();
+        try{ saveLastSession(); }catch{}
+      } catch (error) {
+        console.error('Error displaying intervals:', error);
+        // Use mobile error display if available
+        if (window.showError) {
+          window.showError('Display error: ' + error.message);
+        }
+      }
     }
 
     function updateCurrentIntervalUI(){
@@ -957,23 +987,32 @@
       isPaused = false;
       clearInterval(timerInterval);
       timerInterval = setInterval(()=>{
-        timeRemaining--;
-        // periodic autosave while running
-        if ((timeRemaining % 5) === 0){ try{ saveLastSession(); }catch{} }
-        $('#timer').textContent = formatTime(timeRemaining);
-        $('#time-remaining').textContent = formatTime(timeRemaining);
-        updateProgressUI();
-        if (timeRemaining <= 0){
-          // next interval
-          currentIntervalIndex++;
-          if (currentIntervalIndex < intervals.length){
-            ding();
-            timeRemaining = Math.round((intervals[currentIntervalIndex].duration_min||0) * 60);
-            updateCurrentIntervalUI();
-          } else {
-            stopTimer();
-            alert('Workout Complete! 🎉');
+        try {
+          timeRemaining--;
+          // periodic autosave while running
+          if ((timeRemaining % 5) === 0){ try{ saveLastSession(); }catch{} }
+          $('#timer').textContent = formatTime(timeRemaining);
+          $('#time-remaining').textContent = formatTime(timeRemaining);
+          updateProgressUI();
+          if (timeRemaining <= 0){
+            // next interval
+            currentIntervalIndex++;
+            if (currentIntervalIndex < intervals.length){
+              ding();
+              timeRemaining = Math.round((intervals[currentIntervalIndex].duration_min||0) * 60);
+              updateCurrentIntervalUI();
+            } else {
+              stopTimer();
+              alert('Workout Complete! 🎉');
+            }
           }
+        } catch (error) {
+          console.error('Timer error:', error);
+          // Use mobile error display if available
+          if (window.showError) {
+            window.showError('Timer error: ' + error.message);
+          }
+          stopTimer(); // Stop timer on error
         }
       }, 1000);
     }

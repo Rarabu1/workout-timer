@@ -69,6 +69,17 @@ def add_security_headers(response):
     
     return response
 
+# Helper function for input validation
+def validate_days_parameter(days_str, default=30):
+    """Validate and sanitize days parameter from request args"""
+    try:
+        days = int(days_str)
+        if days <= 0 or days > 365:
+            return default
+        return days
+    except (ValueError, TypeError):
+        return default
+
 # WHOOP API Configuration
 WHOOP_CLIENT_ID = os.getenv('WHOOP_CLIENT_ID')
 WHOOP_CLIENT_SECRET = os.getenv('WHOOP_CLIENT_SECRET', '43d8c7a606083d063e422454bd593104fd66e1716b3900ff86d8752e87769db0')
@@ -1307,7 +1318,7 @@ def upload_whoop_screenshot():
 def get_progress_report():
     """Generate progress report for WHOOP integration"""
     try:
-        days = int(request.args.get("days", 30))
+        days = validate_days_parameter(request.args.get("days", "30"))
         
         db = get_db()
         cursor = db.cursor()
@@ -1502,6 +1513,11 @@ def analyze_performance_patterns(user_id=None, days=30):
         
         # Calculate performance metrics
         total_sessions = len(sessions)
+        if total_sessions == 0:
+            return {
+                "success": False,
+                "message": "No sessions found for analysis"
+            }
         avg_performance = sum(s['performance_rating'] for s in sessions) / total_sessions
         completion_rate = sum(1 for s in sessions if s['completed_intervals'] > 0) / total_sessions
         
@@ -1517,7 +1533,10 @@ def analyze_performance_patterns(user_id=None, days=30):
         # Calculate average ratings per workout type
         for wtype in workout_types:
             ratings = workout_types[wtype]['ratings']
-            workout_types[wtype]['avg_rating'] = sum(ratings) / len(ratings)
+            if ratings:  # Check if ratings list is not empty
+                workout_types[wtype]['avg_rating'] = sum(ratings) / len(ratings)
+            else:
+                workout_types[wtype]['avg_rating'] = 0
         
         # Analyze difficulty progression
         difficulty_trend = []
@@ -1686,7 +1705,7 @@ def generate_personalized_workout(analysis_data, user_preferences=None):
 def get_ml_analysis():
     """Get ML analysis of user performance patterns"""
     try:
-        days = int(request.args.get("days", 30))
+        days = validate_days_parameter(request.args.get("days", "30"))
         analysis = analyze_performance_patterns(days=days)
         
         if analysis["success"]:
@@ -1728,7 +1747,7 @@ def get_personalized_workout():
 def get_performance_insights():
     """Get detailed performance insights and recommendations"""
     try:
-        days = int(request.args.get("days", 30))
+        days = validate_days_parameter(request.args.get("days", "30"))
         analysis = analyze_performance_patterns(days=days)
         
         if not analysis["success"]:
@@ -2312,6 +2331,8 @@ def generate_zone_workout():
         intervals = workout.generate_base_workout()
         
         # Calculate estimated calories and distance
+        if duration <= 0:
+            return jsonify(success=False, error="Invalid duration"), 400
         avg_speed = sum(i['speed_mph'] * i['duration_min'] for i in intervals) / duration
         estimated_distance = avg_speed * (duration / 60)
         estimated_calories = duration * 10  # Rough estimate
