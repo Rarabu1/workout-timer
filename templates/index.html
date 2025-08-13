@@ -1205,10 +1205,34 @@
 
     function connectWHOOP(){
       const btn = $('#whoop-connect-btn'); const status = $('#whoop-status');
-      btn.textContent='🔄 Connecting...'; btn.disabled = true; status.textContent='Redirecting to WHOOP for authorization...';
-      setTimeout(()=>{ btn.textContent='✅ Connected to WHOOP'; status.innerHTML='<p style="color: var(--whoop-recovery-high);">✅ Successfully connected!</p>'; displayWHOOPData({ recovery_score:85, sleep_score:78, strain_score:12, hrv_value:45 }); }, 1500);
+      try {
+        btn.textContent='🔄 Connecting...'; btn.disabled = true; status.textContent='Redirecting to WHOOP for authorization...';
+        // Redirect to server OAuth start
+        window.location.href = '/whoop/auth';
+      } catch (e) {
+        console.error('WHOOP connect failed', e);
+        btn.textContent='🔗 Connect WHOOP Account'; btn.disabled = false; status.textContent='';
+        alert('Failed to start WHOOP connect flow');
+      }
     }
-    function refreshWHOOPData(){ displayWHOOPData({ recovery_score: Math.floor(Math.random()*40)+60, sleep_score: Math.floor(Math.random()*30)+70, strain_score: Math.floor(Math.random()*15)+5, hrv_value: Math.floor(Math.random()*30)+30 }); }
+    async function refreshWHOOPData(){
+      try {
+        const res = await fetch('/whoop/recovery');
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed to load WHOOP data');
+        const rec = data.analysis || {};
+        displayWHOOPData({
+          recovery_score: rec.recovery_score || 0,
+          sleep_score: rec.sleep_score || 0,
+          strain_score: rec.strain_score || 0,
+          hrv_value: rec.hrv || 0
+        });
+      } catch (e) {
+        console.error('WHOOP refresh failed', e);
+        alert('Failed to refresh WHOOP data. Are you connected?');
+      }
+    }
 
     // ==================== WHOOP HR Integration JavaScript ====================
 
@@ -1338,6 +1362,9 @@
             hrDisplayState.hrHistory.shift();
           }
           
+          // Mark last websocket update time
+          hrDisplayState._lastWsUpdate = Date.now();
+          
           updateHRDisplay();
           updateHRChart();
         }
@@ -1345,6 +1372,32 @@
         console.error('Error processing HR update:', error);
       }
     });
+
+    // Polling fallback if no websocket updates come through
+    let hrPollTimer = null;
+    function ensureHRPolling(){
+      if (hrPollTimer) return;
+      hrPollTimer = setInterval(async ()=>{
+        if (!hrDisplayState.streaming) return;
+        // If we haven't received a WS update in > 3 seconds, poll the REST endpoint
+        const last = hrDisplayState._lastWsUpdate || 0;
+        if (Date.now() - last < 3000) return;
+        try{
+          const res = await fetch('/whoop/current_hr');
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data && data.success && typeof data.heart_rate === 'number' && data.heart_rate > 0){
+            hrDisplayState.currentHR = data.heart_rate;
+            hrDisplayState.currentZone = data.zone || 'Z1';
+            hrDisplayState.zonePercentage = data.zone_percentage || 0;
+            hrDisplayState.hrHistory.push({ heart_rate: data.heart_rate, timestamp: data.timestamp });
+            if (hrDisplayState.hrHistory.length > 60) hrDisplayState.hrHistory.shift();
+            updateHRDisplay();
+            updateHRChart();
+          }
+        }catch(e){ /* ignore transient errors */ }
+      }, 1000);
+    }
 
     // Start HR streaming
     function startHRStream() {
@@ -1370,6 +1423,7 @@
                 statusElement.textContent = 'Streaming';
                 statusElement.style.color = '#16EC06';
               }
+              ensureHRPolling();
             } else {
               alert('Failed to start HR broadcast: ' + (data.error || 'Unknown error'));
             }
@@ -1388,6 +1442,7 @@
     function stopHRStream() {
       socket.emit('stop_hr_stream');
       hrDisplayState.streaming = false;
+      if (hrPollTimer){ clearInterval(hrPollTimer); hrPollTimer = null; }
       document.getElementById('hr-status').textContent = 'Stopped';
       document.getElementById('hr-status').style.color = '#FF0026';
     }
