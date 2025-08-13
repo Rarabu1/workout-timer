@@ -1290,8 +1290,8 @@
       }
     })();
 
-    // Initialize Socket.IO connection
-    const socket = io();
+    // Initialize Socket.IO connection (safe if client lib blocked by CSP or offline)
+    const socket = (typeof io !== 'undefined') ? io() : { on: () => {}, emit: () => {} };
 
     // HR Display State
     let hrDisplayState = {
