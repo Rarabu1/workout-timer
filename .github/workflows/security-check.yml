@@ -1,0 +1,75 @@
+name: Security Check
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run security checks daily at 6 AM UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  security-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        
+    - name: Run Security Monitor
+      id: security-monitor
+      run: |
+        python security_monitor.py
+        
+    - name: Upload Security Report
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-report-${{ github.run_number }}
+        path: security_report_*.json
+        
+    - name: Comment on PR
+      if: github.event_name == 'pull_request' && failure()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '🚨 **Security Check Failed**\n\nSecurity tests have failed. Please review the security report and fix any issues before merging.\n\nCheck the workflow logs for detailed information.'
+          })
+          
+    - name: Create Security Issue
+      if: github.event_name == 'push' && failure()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: '🚨 Security Check Failed - ' + new Date().toISOString().split('T')[0],
+            body: '## Security Check Failed\n\nSecurity tests have failed on the main branch. This requires immediate attention.\n\n### What to do:\n1. Review the security report in the workflow artifacts\n2. Fix the identified security issues\n3. Re-run the security checks\n4. Update this issue with the resolution\n\n### Workflow Details:\n- Run ID: ${{ github.run_id }}\n- Commit: ${{ github.sha }}\n- Triggered by: ${{ github.event_name }}',
+            labels: ['security', 'bug', 'high-priority']
+          })
