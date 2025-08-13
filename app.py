@@ -177,22 +177,50 @@ class WHOOPHeartRateBroadcast:
     def get_current_hr(self) -> Dict:
         """Get current heart rate from WHOOP"""
         try:
-            headers = {'Authorization': f'Bearer {self.access_token}'}
+            headers = {
+                'Authorization': f'Bearer {self.access_token}',
+                'Accept': 'application/json'
+            }
             response = requests.get(
                 f"{self.base_url}/metrics/heart_rate/current",
-                headers=headers
+                headers=headers,
+                timeout=10
             )
             if response.status_code == 200:
-                data = response.json()
-                self.current_hr = data.get('heart_rate', 0)
+                data = response.json() or {}
+                # Normalize various possible shapes into a single number
+                hr_value = 0
+                try:
+                    if isinstance(data, dict):
+                        if 'heart_rate' in data and isinstance(data.get('heart_rate'), (int, float)):
+                            hr_value = int(data.get('heart_rate') or 0)
+                        elif 'value' in data and isinstance(data.get('value'), (int, float)):
+                            hr_value = int(data.get('value') or 0)
+                        elif 'records' in data and isinstance(data.get('records'), list) and data['records']:
+                            last = data['records'][-1]
+                            if isinstance(last, dict):
+                                if 'heart_rate' in last and isinstance(last.get('heart_rate'), (int, float)):
+                                    hr_value = int(last.get('heart_rate') or 0)
+                                elif 'value' in last and isinstance(last.get('value'), (int, float)):
+                                    hr_value = int(last.get('value') or 0)
+                    # Fallback if still zero and raw is a number
+                    if not hr_value and isinstance(data, (int, float)):
+                        hr_value = int(data)
+                except Exception as parse_err:
+                    print(f"WHOOP HR parse error: {parse_err}. Raw: {data}")
+                    hr_value = 0
+                
+                self.current_hr = hr_value
                 self.hr_history.append({
                     'hr': self.current_hr,
                     'timestamp': datetime.now().isoformat()
                 })
                 # Keep only last 60 entries
                 self.hr_history = self.hr_history[-60:]
-                return data
-            return {'heart_rate': 0}
+                return { 'heart_rate': self.current_hr }
+            else:
+                print(f"WHOOP current HR HTTP {response.status_code}: {response.text[:200]}")
+                return {'heart_rate': 0}
         except Exception as e:
             print(f"Error getting current HR: {e}")
             return {'heart_rate': 0}
@@ -1818,7 +1846,7 @@ def get_whoop_auth_url():
         'client_id': WHOOP_CLIENT_ID,
         'redirect_uri': WHOOP_REDIRECT_URI,
         'response_type': 'code',
-        'scope': 'read:recovery read:workout read:profile read:cycles read:sleep',
+        'scope': 'read:recovery read:workout read:profile read:cycles read:sleep read:realtime',
         'state': state
     }
     auth_url = f"{WHOOP_API_BASE}/oauth/oauth2/auth"
