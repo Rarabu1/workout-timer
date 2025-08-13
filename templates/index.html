@@ -1205,9 +1205,29 @@
 
     function connectWHOOP(){
       const btn = $('#whoop-connect-btn'); const status = $('#whoop-status');
-      btn.textContent='🔄 Connecting...'; btn.disabled = true; status.textContent='Redirecting to WHOOP for authorization...';
-      setTimeout(()=>{ btn.textContent='✅ Connected to WHOOP'; status.innerHTML='<p style="color: var(--whoop-recovery-high);">✅ Successfully connected!</p>'; displayWHOOPData({ recovery_score:85, sleep_score:78, strain_score:12, hrv_value:45 }); }, 1500);
+      btn.textContent='🔄 Redirecting to WHOOP...'; btn.disabled = true; status.textContent='Opening WHOOP authorization...';
+      window.location.href = '/whoop/auth';
     }
+
+    async function checkWHOOPStatus(){
+      try {
+        const res = await fetch('/whoop/recovery');
+        const data = await res.json();
+        const btn = $('#whoop-connect-btn'); const status = $('#whoop-status');
+        if (data && data.success) {
+          btn.textContent = '✅ Connected to WHOOP';
+          btn.disabled = true;
+          status.innerHTML = '<p style="color: var(--whoop-recovery-high);">✅ Successfully connected!</p>';
+        } else if (data && (data.error === 'Not authenticated with WHOOP' || res.status === 401)) {
+          btn.textContent = '🔗 Connect WHOOP Account';
+          btn.disabled = false;
+          status.textContent = 'Connect your WHOOP account to enable live HR and insights.';
+        }
+      } catch (e) {
+        console.error('Error checking WHOOP status', e);
+      }
+    }
+
     function refreshWHOOPData(){ displayWHOOPData({ recovery_score: Math.floor(Math.random()*40)+60, sleep_score: Math.floor(Math.random()*30)+70, strain_score: Math.floor(Math.random()*15)+5, hrv_value: Math.floor(Math.random()*30)+30 }); }
 
     // ==================== WHOOP HR Integration JavaScript ====================
@@ -1355,14 +1375,20 @@
         }
         
         fetch('/whoop/start_hr_broadcast', { method: 'POST' })
-          .then(res => {
+          .then(async res => {
+            const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-              throw new Error(`HTTP error! status: ${res.status}`);
+              if (res.status === 401) {
+                alert('Please connect your WHOOP account first.');
+              } else {
+                alert('Failed to start HR broadcast: ' + (data.error || `HTTP ${res.status}`));
+              }
+              return { success: false };
             }
-            return res.json();
+            return data;
           })
           .then(data => {
-            if (data.success) {
+            if (data && data.success) {
               socket.emit('start_hr_stream');
               hrDisplayState.streaming = true;
               const statusElement = document.getElementById('hr-status');
@@ -1370,8 +1396,6 @@
                 statusElement.textContent = 'Streaming';
                 statusElement.style.color = '#16EC06';
               }
-            } else {
-              alert('Failed to start HR broadcast: ' + (data.error || 'Unknown error'));
             }
           })
           .catch(error => {
@@ -1669,6 +1693,7 @@
       loadSavedWorkouts();
       $('#whoop-connect-btn').addEventListener('click', connectWHOOP);
       $('#btn-refresh-whoop').addEventListener('click', refreshWHOOPData);
+      checkWHOOPStatus();
 
       // Bottom nav -> existing tabs
       $$('.bottom-nav .nav-item').forEach(btn=>{
