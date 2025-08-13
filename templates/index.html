@@ -1148,25 +1148,60 @@
 
     // ---------- Simple sample generation / parsing ----------
     function sampleGenerate(){
-      const sample = `**Warm-Up – 5 minutes**\n* 5 min @ 4.0 mph (easy warm up)\n\n**Main Workout – ${currentMinutes - 10} minutes**\n* 10 min @ 6.0 mph (steady pace)\n* 5 min @ 7.0 mph (tempo interval)\n* 10 min @ 6.0 mph (steady pace)\n\n**Cool-Down – 5 minutes**\n* 5 min @ 4.0 mph (cool down)`;
-      $('#generatedText').value = sample;
-      $('#generated-workout').style.display = 'block';
+      const req = $('#workoutRequest').value.trim() || `${currentMinutes} minute ${currentCategory} workout`;
+      fetch('/generate_workout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request: req })
+      })
+      .then(res => {
+        const ct = (res.headers.get('content-type') || '').toLowerCase();
+        return ct.includes('application/json') ? res.json() : res.text().then(t => ({ success:false, error:t }));
+      })
+      .then(data => {
+        if (data && data.success) {
+          $('#generatedText').value = data.workout_text || (Array.isArray(data.printable) ? data.printable.join('\n') : '');
+          window.latestGeneratedIntervals = Array.isArray(data.intervals) ? data.intervals : [];
+          $('#generated-workout').style.display = 'block';
+          return;
+        }
+        // Fallback to zone-based generator if AI is unavailable
+        return fetch('/generate_zone_workout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ target_zone: 'Z3', zone_percentage: 70, duration: currentMinutes })
+        })
+        .then(r => r.json())
+        .then(z => {
+          if (z && z.success && z.workout) {
+            const ints = Array.isArray(z.workout.intervals) ? z.workout.intervals : [];
+            window.latestGeneratedIntervals = ints;
+            const text = ints.map(i => `* ${i.duration_min} min @ ${i.speed_mph} mph${i.incline? `, incline ${i.incline}%` : ''} — ${i.description||''}`).join('\n');
+            $('#generatedText').value = text;
+            $('#generated-workout').style.display = 'block';
+          } else {
+            throw new Error((data && data.error) || 'Generation failed');
+          }
+        });
+      })
+      .catch(err => {
+        console.error('Generate failed:', err);
+        alert('Failed to generate workout. Please try again.');
+      });
     }
 
     function useGenerated(){
-      intervals = [
-        { duration_min:5, speed_mph:4.0, description:'Warm up', section:'Warm-Up' },
-        { duration_min:10, speed_mph:6.0, description:'Steady pace', section:'Main Workout' },
-        { duration_min:5, speed_mph:7.0, description:'Tempo interval', section:'Main Workout' },
-        { duration_min:10, speed_mph:6.0, description:'Steady pace', section:'Main Workout' },
-        { duration_min:5, speed_mph:4.0, description:'Cool down', section:'Cool-Down' }
-      ];
+      const cached = window.latestGeneratedIntervals;
+      const text = $('#generatedText').value || '';
+      const parsed = (Array.isArray(cached) && cached.length) ? cached : parseWorkoutText(text);
+      if (!parsed || !parsed.length){ alert('No generated workout to use yet.'); return; }
+      intervals = parsed;
       $('#timer-section').classList.add('active');
       currentIntervalIndex = 0; timeRemaining = intervals[0].duration_min * 60;
       displayIntervals(); updateProgressUI(); updateCurrentIntervalUI();
       try{ saveLastSession(); }catch{}
     }
-
+    
     function parseWorkoutText(text){
       // Minimal parser: detect lines with "min @ X mph"; everything else ignored
       const lines = text.split(/\n+/);
