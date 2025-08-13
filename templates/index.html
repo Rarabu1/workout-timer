@@ -16,25 +16,6 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <script>
-    // Hard-force LIGHT mode before first paint (and print build stamp)
-    (function(){
-      try {
-        localStorage.setItem('ttc_theme','light');
-      } catch (e) {}
-      try {
-        document.documentElement.style.colorScheme = 'light';
-      } catch (e) {}
-      try {
-        document.addEventListener('readystatechange', function(){
-          if (document.readyState === 'loading') {
-            if (document.body) document.body.classList.remove('dark-theme');
-          }
-        });
-      } catch (e) {}
-      try { console.log('[TTC] Build: 2025-08-12T00:00Z hard-light'); } catch(e) {}
-    })();
-  </script>
 
   <style>
     /* Core Design System Variables */
@@ -114,10 +95,7 @@
     .theme-toggle:hover { background: var(--ios-blue); color: var(--whoop-white); transform: translateY(-1px); }
 
     /* Dark theme override (manual) */
-    body.dark-theme { --ios-light-gray:#1C1C1E; --whoop-white:#2C2C2E; --ios-border:#3A3A3C; background:#000; color:var(--whoop-white); }
-    body.dark-theme .app-header, body.dark-theme .tab-content, body.dark-theme .metric-card, body.dark-theme .suggestion-section, body.dark-theme .summary { background:#1C1C1E; color:var(--whoop-white); }
-
-    /* Auto dark preference keeps working via media query */
+    /* (Removed dark-theme manual CSS) */
 
     /* Tabs */
     .tab-navigation { position: sticky; top: var(--spacing-md); z-index: 100; margin-bottom: var(--spacing-lg); }
@@ -229,12 +207,7 @@
     /* ===== Hard Light Overrides (defensive) ===== */
     :root { color-scheme: light; }
     html, body { background: #F2F2F7 !important; color: #1D1D1F !important; }
-    @media (prefers-color-scheme: dark) {
-      :root { color-scheme: light; }
-      body, .app-header, .tab-content, .metric-card, .suggestion-section, .summary {
-        background: #FFFFFF !important; color: #1D1D1F !important; border-color: #C6C6C8 !important;
-      }
-    }
+    /* Remove forced light mode @media (prefers-color-scheme: dark) block */
   </style>
 </head>
 <body>
@@ -251,7 +224,7 @@
       <p class="app-subtitle">AI-Powered WHOOP-Integrated Training</p>
     </div>
     <button id="theme-toggle" class="theme-toggle" title="Toggle theme"><span class="icon">☀️</span></button>
-    <span id="build-stamp" style="margin-left:12px; padding:4px 8px; font-size:12px; font-weight:700; color:#1D1D1F; background:#E9EDF5; border:1px solid #C6C6C8; border-radius:8px;">LIGHT v2025-08-12</span>
+    <!-- Build badge removed for light mode troubleshooting cleanup -->
   </div>
 
   <!-- Tabs -->
@@ -492,6 +465,9 @@
   </audio>
 
   <script>
+    // Force light mode regardless of system settings
+    document.documentElement.style.colorScheme = 'light';
+    document.body.classList.remove('dark-mode');
     // ---------- App State ----------
     let intervals = [];
     let currentIntervalIndex = 0;
@@ -900,23 +876,21 @@
     function setThemeColorMeta() {
       const el = document.getElementById('meta-theme-color');
       if (!el) return;
-      const isDark = document.body.classList.contains('dark-theme');
-      el.setAttribute('content', isDark ? '#000000' : '#F2F2F7');
+      el.setAttribute('content', '#F2F2F7');
     }
 
     function applyThemeFromStorage(){
-      const pref = localStorage.getItem('ttc_theme');
       const icon = document.querySelector('#theme-toggle .icon');
-      if (pref === 'dark'){ document.body.classList.add('dark-theme'); if(icon) icon.textContent='🌙'; }
-      else { document.body.classList.remove('dark-theme'); if(icon) icon.textContent='☀️'; }
+      document.body.classList.remove('dark-theme');
+      if(icon) icon.textContent='☀️';
       setThemeColorMeta();
     }
 
     function toggleTheme(){
-      const isDark = document.body.classList.toggle('dark-theme');
-      localStorage.setItem('ttc_theme', isDark ? 'dark' : 'light');
+      document.body.classList.remove('dark-theme');
+      localStorage.setItem('ttc_theme', 'light');
       const icon = document.querySelector('#theme-toggle .icon');
-      if (icon) icon.textContent = isDark ? '🌙' : '☀️';
+      if (icon) icon.textContent = '☀️';
       setThemeColorMeta();
     }
 
@@ -996,68 +970,9 @@
         }
       } catch (e) { console.log('SW cleanup error', e); }
 
-      // ---- Keep address bar / OS chrome in sync with theme ----
-      function setThemeColorMeta() {
-        const el = document.getElementById('meta-theme-color');
-        if (!el) return;
-        const isDark = document.body.classList.contains('dark-theme');
-        el.setAttribute('content', isDark ? '#000000' : '#F2F2F7');
-      }
       // Theme
       applyThemeFromStorage();
-
-      // --- Emergency: force light theme helper & mismatch guard ---
-      function hardSetLight(){
-        try{ localStorage.setItem('ttc_theme','light'); }catch{}
-        document.body.classList.remove('dark-theme');
-        const icon = document.querySelector('#theme-toggle .icon');
-        if (icon) icon.textContent = '☀️';
-        setThemeColorMeta();
-        console.log('[theme] forced light');
-      }
-
-      // If page somehow loads dark while OS prefers light and no manual pref, fix it
-      try{
-        const mediaDark = window.matchMedia('(prefers-color-scheme: dark)');
-        const hasPref = !!localStorage.getItem('ttc_theme');
-        if (!hasPref && document.body.classList.contains('dark-theme') && !mediaDark.matches){
-          console.log('[theme] mismatch detected (OS light, class dark-theme). Correcting…');
-          document.body.classList.remove('dark-theme');
-          const icon = document.querySelector('#theme-toggle .icon');
-          if (icon) icon.textContent = '☀️';
-          setThemeColorMeta();
-        }
-      }catch(e){ console.log('theme guard error', e); }
-
-      // Default to LIGHT unless the user explicitly chooses otherwise
-      if (!localStorage.getItem('ttc_theme')) {
-        document.body.classList.remove('dark-theme');
-        try { localStorage.setItem('ttc_theme', 'light'); } catch {}
-        const iconEl = document.querySelector('#theme-toggle .icon');
-        if (iconEl) iconEl.textContent = '☀️';
-        setThemeColorMeta();
-      }
       $('#theme-toggle').addEventListener('click', toggleTheme);
-
-      // Safety guard: if something still set dark without a user preference, force light now
-      if (!localStorage.getItem('ttc_theme')) {
-        document.body.classList.remove('dark-theme');
-        const icon = document.querySelector('#theme-toggle .icon');
-        if (icon) icon.textContent = '☀️';
-        setThemeColorMeta();
-      }
-
-      // Long-press the theme toggle (800ms) to reset to system/light
-      (function(){
-        const btn = document.getElementById('theme-toggle');
-        if (!btn) return;
-        let pressTimer;
-        const start = ()=>{ pressTimer = setTimeout(()=>{ localStorage.removeItem('ttc_theme'); hardSetLight(); alert('Theme preference reset to Light.'); }, 800); };
-        const cancel = ()=>{ clearTimeout(pressTimer); };
-        btn.addEventListener('mousedown', start);
-        btn.addEventListener('touchstart', start, {passive:true});
-        ['mouseup','mouseleave','touchend','touchcancel'].forEach(evt=> btn.addEventListener(evt, cancel));
-      })();
 
       // Tabs click
       $$('#tab-generate, #tab-manual, #tab-saved, #tab-progress, #tab-whoop, #tab-insights').forEach(tab=>{
