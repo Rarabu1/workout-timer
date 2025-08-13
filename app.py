@@ -3,6 +3,7 @@ import sqlite3
 import json
 import traceback 
 from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple
 from flask import Flask, render_template, request, jsonify, g, redirect, url_for, session
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -30,6 +31,10 @@ load_dotenv()
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')
 DATABASE = 'workouts.db'
+
+# Initialize SocketIO for real-time HR updates
+from flask_socketio import SocketIO, emit
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Security headers middleware
 @app.after_request
@@ -79,6 +84,239 @@ print(f"WHOOP_REDIRECT_URI: {WHOOP_REDIRECT_URI}")
 print(f"Client Secret Length: {len(WHOOP_CLIENT_SECRET) if WHOOP_CLIENT_SECRET else 0}")
 print(f"Expected Length: 64")
 print(f"=== END WHOOP CONFIG DEBUG ===")
+
+# ==================== HEART RATE ZONES ====================
+
+class HeartRateZoneManager:
+    """Manages heart rate zones and calculations"""
+    
+    def __init__(self, max_hr: Optional[int] = None, resting_hr: Optional[int] = None):
+        self.max_hr = max_hr or 190  # Default if not provided
+        self.resting_hr = resting_hr or 60
+        self.zones = self.calculate_zones()
+        
+    def calculate_zones(self) -> Dict[str, Tuple[int, int]]:
+        """Calculate HR zones based on max HR"""
+        return {
+            'Z1': (int(self.max_hr * 0.50), int(self.max_hr * 0.60)),  # Recovery
+            'Z2': (int(self.max_hr * 0.60), int(self.max_hr * 0.70)),  # Base
+            'Z3': (int(self.max_hr * 0.70), int(self.max_hr * 0.80)),  # Threshold
+            'Z4': (int(self.max_hr * 0.80), int(self.max_hr * 0.90)),  # VO2 Max
+            'Z5': (int(self.max_hr * 0.90), self.max_hr + 20)          # Max
+        }
+    
+    def get_zone(self, hr: int) -> str:
+        """Get the zone for a given heart rate"""
+        for zone, (min_hr, max_hr) in self.zones.items():
+            if min_hr <= hr < max_hr:
+                return zone
+        return 'Z1' if hr < self.zones['Z1'][0] else 'Z5'
+    
+    def get_zone_percentage(self, hr: int, zone: str) -> float:
+        """Get how far through a zone the HR is (0-100%)"""
+        min_hr, max_hr = self.zones[zone]
+        if max_hr == min_hr:
+            return 50.0
+        return min(100, max(0, ((hr - min_hr) / (max_hr - min_hr)) * 100))
+
+# ==================== WHOOP HEART RATE BROADCAST ====================
+
+class WHOOPHeartRateBroadcast:
+    """Handles WHOOP heart rate broadcast data"""
+    
+    def __init__(self, access_token: str):
+        self.access_token = access_token
+        self.base_url = "https://api.prod.whoop.com/developer/v1"
+        self.current_hr = 0
+        self.hr_history = []  # Store last 60 seconds
+        self.zone_manager = None
+        
+    def start_broadcast(self) -> bool:
+        """Start receiving HR broadcast from WHOOP"""
+        try:
+            headers = {'Authorization': f'Bearer {self.access_token}'}
+            # WHOOP Broadcast API endpoint
+            response = requests.post(
+                f"{self.base_url}/metrics/heart_rate/broadcast/start",
+                headers=headers
+            )
+            if response.status_code == 200:
+                print("WHOOP HR broadcast started")
+                return True
+            return False
+        except Exception as e:
+            print(f"Error starting HR broadcast: {e}")
+            return False
+    
+    def stop_broadcast(self) -> bool:
+        """Stop receiving HR broadcast"""
+        try:
+            headers = {'Authorization': f'Bearer {self.access_token}'}
+            response = requests.post(
+                f"{self.base_url}/metrics/heart_rate/broadcast/stop",
+                headers=headers
+            )
+            return response.status_code == 200
+        except:
+            return False
+    
+    def get_current_hr(self) -> Dict:
+        """Get current heart rate from WHOOP"""
+        try:
+            headers = {'Authorization': f'Bearer {self.access_token}'}
+            response = requests.get(
+                f"{self.base_url}/metrics/heart_rate/current",
+                headers=headers
+            )
+            if response.status_code == 200:
+                data = response.json()
+                self.current_hr = data.get('heart_rate', 0)
+                self.hr_history.append({
+                    'hr': self.current_hr,
+                    'timestamp': datetime.now().isoformat()
+                })
+                # Keep only last 60 entries
+                self.hr_history = self.hr_history[-60:]
+                return data
+            return {'heart_rate': 0}
+        except Exception as e:
+            print(f"Error getting current HR: {e}")
+            return {'heart_rate': 0}
+
+# ==================== DYNAMIC ZONE-BASED WORKOUT ====================
+
+class DynamicZoneWorkout:
+    """Creates and manages dynamic workouts based on HR zones"""
+    
+    def __init__(self, target_zone: str, zone_time_percentage: int, total_duration: int):
+        self.target_zone = target_zone  # e.g., 'Z3'
+        self.zone_time_percentage = zone_time_percentage  # e.g., 70% of workout
+        self.total_duration = total_duration  # minutes
+        self.zone_manager = None
+        self.current_hr = 0
+        self.intervals = []
+        self.adaptation_history = []
+        
+    def generate_base_workout(self) -> List[Dict]:
+        """Generate initial workout plan targeting the zone"""
+        intervals = []
+        
+        # Warm-up: 10% of time in Z1-Z2
+        warmup_time = max(5, int(self.total_duration * 0.1))
+        intervals.append({
+            'duration_min': warmup_time,
+            'target_zone': 'Z2',
+            'speed_mph': 4.5,
+            'incline': 0,
+            'description': 'Warm-up',
+            'adaptive': False
+        })
+        
+        # Main set: Target zone work
+        main_time = int(self.total_duration * (self.zone_time_percentage / 100))
+        remaining = self.total_duration - warmup_time - 5  # Save 5 min for cooldown
+        
+        # Create intervals for main work
+        if self.target_zone in ['Z3', 'Z4']:
+            # Interval training for higher zones
+            work_duration = 4 if self.target_zone == 'Z4' else 6
+            rest_duration = 2 if self.target_zone == 'Z4' else 3
+            
+            while remaining > 0:
+                if remaining >= work_duration:
+                    intervals.append({
+                        'duration_min': work_duration,
+                        'target_zone': self.target_zone,
+                        'speed_mph': 6.5 if self.target_zone == 'Z3' else 7.5,
+                        'incline': 1,
+                        'description': f'{self.target_zone} interval',
+                        'adaptive': True
+                    })
+                    remaining -= work_duration
+                    
+                if remaining >= rest_duration:
+                    intervals.append({
+                        'duration_min': rest_duration,
+                        'target_zone': 'Z2',
+                        'speed_mph': 5.0,
+                        'incline': 0,
+                        'description': 'Recovery',
+                        'adaptive': True
+                    })
+                    remaining -= rest_duration
+                else:
+                    break
+        else:
+            # Steady state for Z2 or Z3
+            intervals.append({
+                'duration_min': remaining,
+                'target_zone': self.target_zone,
+                'speed_mph': 5.5 if self.target_zone == 'Z2' else 6.0,
+                'incline': 0.5,
+                'description': f'{self.target_zone} steady state',
+                'adaptive': True
+            })
+        
+        # Cool-down
+        intervals.append({
+            'duration_min': 5,
+            'target_zone': 'Z1',
+            'speed_mph': 4.0,
+            'incline': 0,
+            'description': 'Cool-down',
+            'adaptive': False
+        })
+        
+        self.intervals = intervals
+        return intervals
+    
+    def adapt_interval(self, current_interval: Dict, current_hr: int, 
+                       target_zone: str, zone_manager: HeartRateZoneManager) -> Dict:
+        """Dynamically adapt speed/incline based on current HR"""
+        
+        if not current_interval.get('adaptive', True):
+            return current_interval
+        
+        current_zone = zone_manager.get_zone(current_hr)
+        target_min, target_max = zone_manager.zones[target_zone]
+        
+        # Calculate adjustment needed
+        adjustment_needed = 0
+        if current_hr < target_min:
+            # Need to increase intensity
+            adjustment_needed = min(0.5, (target_min - current_hr) / 20)  # Max 0.5 mph increase
+        elif current_hr > target_max:
+            # Need to decrease intensity
+            adjustment_needed = max(-0.5, (target_max - current_hr) / 20)  # Max 0.5 mph decrease
+        
+        # Apply adjustment
+        adapted = current_interval.copy()
+        current_speed = adapted['speed_mph']
+        
+        if adjustment_needed != 0:
+            # Adjust speed first
+            new_speed = round(current_speed + adjustment_needed, 1)
+            new_speed = max(3.0, min(9.0, new_speed))  # Keep within safe bounds
+            adapted['speed_mph'] = new_speed
+            
+            # If still need adjustment, modify incline
+            if abs(adjustment_needed) > 0.3:
+                incline_adjust = 0.5 if adjustment_needed > 0 else -0.5
+                new_incline = max(0, min(5, adapted['incline'] + incline_adjust))
+                adapted['incline'] = new_incline
+            
+            # Log adaptation
+            self.adaptation_history.append({
+                'timestamp': datetime.now().isoformat(),
+                'current_hr': current_hr,
+                'target_zone': target_zone,
+                'speed_change': new_speed - current_speed,
+                'reason': f'HR {current_hr} vs target {target_min}-{target_max}'
+            })
+            
+            adapted['description'] = f"{adapted['description']} (adapted)"
+        
+        return adapted
 
 def get_db():
     db = getattr(g, '_database', None)
@@ -1978,6 +2216,146 @@ def get_whoop_recommendations():
     except Exception as e:
         return jsonify(success=False, error=str(e)), 500
 
+# ==================== WHOOP HEART RATE ENDPOINTS ====================
+
+@app.route("/whoop/start_hr_broadcast", methods=["POST"])
+def start_hr_broadcast():
+    """Start WHOOP heart rate broadcast"""
+    try:
+        access_token = session.get('whoop_access_token')
+        if not access_token:
+            return jsonify(success=False, error="Not authenticated with WHOOP"), 401
+        
+        broadcast = WHOOPHeartRateBroadcast(access_token)
+        if broadcast.start_broadcast():
+            session['hr_broadcast_active'] = True
+            return jsonify(success=True, message="HR broadcast started")
+        else:
+            return jsonify(success=False, error="Failed to start broadcast"), 400
+            
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
+
+@app.route("/whoop/current_hr", methods=["GET"])
+def get_current_hr():
+    """Get current heart rate and zone"""
+    try:
+        access_token = session.get('whoop_access_token')
+        if not access_token:
+            return jsonify(success=False, error="Not authenticated"), 401
+        
+        broadcast = WHOOPHeartRateBroadcast(access_token)
+        hr_data = broadcast.get_current_hr()
+        
+        # Get user's zones
+        zone_manager = HeartRateZoneManager()  # Would get from user profile
+        current_hr = hr_data.get('heart_rate', 0)
+        
+        if current_hr > 0:
+            zone = zone_manager.get_zone(current_hr)
+            zone_percentage = zone_manager.get_zone_percentage(current_hr, zone)
+            
+            return jsonify({
+                'success': True,
+                'heart_rate': current_hr,
+                'zone': zone,
+                'zone_percentage': zone_percentage,
+                'zones': zone_manager.zones,
+                'timestamp': datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'No HR data available'
+            })
+            
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
+
+@app.route("/generate_zone_workout", methods=["POST"])
+def generate_zone_workout():
+    """Generate a dynamic zone-based workout"""
+    try:
+        data = request.get_json() or {}
+        target_zone = data.get('target_zone', 'Z3')
+        zone_percentage = data.get('zone_percentage', 70)
+        duration = data.get('duration', 30)
+        
+        # Validate inputs
+        if target_zone not in ['Z1', 'Z2', 'Z3', 'Z4', 'Z5']:
+            return jsonify(success=False, error="Invalid target zone"), 400
+        
+        if not 20 <= zone_percentage <= 90:
+            return jsonify(success=False, error="Zone percentage must be 20-90%"), 400
+        
+        if not 15 <= duration <= 90:
+            return jsonify(success=False, error="Duration must be 15-90 minutes"), 400
+        
+        # Generate workout
+        workout = DynamicZoneWorkout(target_zone, zone_percentage, duration)
+        intervals = workout.generate_base_workout()
+        
+        # Calculate estimated calories and distance
+        avg_speed = sum(i['speed_mph'] * i['duration_min'] for i in intervals) / duration
+        estimated_distance = avg_speed * (duration / 60)
+        estimated_calories = duration * 10  # Rough estimate
+        
+        return jsonify({
+            'success': True,
+            'workout': {
+                'name': f'Zone {target_zone} Focus - {zone_percentage}% Target',
+                'description': f'Dynamic workout targeting {zone_percentage}% of time in {target_zone}',
+                'total_duration': duration,
+                'intervals': intervals,
+                'target_zone': target_zone,
+                'zone_percentage': zone_percentage,
+                'estimated_distance': round(estimated_distance, 2),
+                'estimated_calories': estimated_calories,
+                'adaptive': True
+            }
+        })
+        
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
+
+@app.route("/adapt_current_interval", methods=["POST"])
+def adapt_current_interval():
+    """Adapt current interval based on heart rate"""
+    try:
+        data = request.get_json() or {}
+        current_interval = data.get('current_interval')
+        current_hr = data.get('current_hr')
+        
+        if not current_interval or not current_hr:
+            return jsonify(success=False, error="Missing required data"), 400
+        
+        # Get zone manager (would be from user profile)
+        zone_manager = HeartRateZoneManager()
+        
+        # Create workout adapter
+        workout = DynamicZoneWorkout(
+            current_interval.get('target_zone', 'Z3'),
+            70,  # Default percentage
+            30   # Default duration
+        )
+        
+        # Adapt the interval
+        adapted = workout.adapt_interval(
+            current_interval,
+            current_hr,
+            current_interval.get('target_zone', 'Z3'),
+            zone_manager
+        )
+        
+        return jsonify({
+            'success': True,
+            'adapted_interval': adapted,
+            'adaptation_history': workout.adaptation_history[-5:]  # Last 5 adaptations
+        })
+        
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
+
 # Add new calibration functions after the existing functions
 def calculate_fitness_profile(assessment_data):
     """Calculate personalized fitness profile from assessment data."""
@@ -2635,11 +3013,57 @@ def create_user_profile():
         }
     }
 
+# ==================== WebSocket Events for Real-Time HR ====================
+
+@socketio.on('connect')
+def handle_connect():
+    """Handle client connection"""
+    print(f"Client connected: {request.sid}")
+    emit('connected', {'message': 'Connected to HR broadcast'})
+
+@socketio.on('start_hr_stream')
+def handle_start_hr_stream():
+    """Start streaming HR data to client"""
+    access_token = session.get('whoop_access_token')
+    if not access_token:
+        emit('error', {'message': 'Not authenticated with WHOOP'})
+        return
+    
+    # Start periodic HR updates
+    def send_hr_updates():
+        broadcast = WHOOPHeartRateBroadcast(access_token)
+        zone_manager = HeartRateZoneManager()
+        
+        while True:
+            hr_data = broadcast.get_current_hr()
+            current_hr = hr_data.get('heart_rate', 0)
+            
+            if current_hr > 0:
+                zone = zone_manager.get_zone(current_hr)
+                zone_percentage = zone_manager.get_zone_percentage(current_hr, zone)
+                
+                socketio.emit('hr_update', {
+                    'heart_rate': current_hr,
+                    'zone': zone,
+                    'zone_percentage': zone_percentage,
+                    'timestamp': datetime.now().isoformat()
+                })
+            
+            socketio.sleep(1)  # Update every second
+    
+    # Start background task
+    socketio.start_background_task(send_hr_updates)
+
+@socketio.on('stop_hr_stream')
+def handle_stop_hr_stream():
+    """Stop streaming HR data"""
+    emit('hr_stream_stopped', {'message': 'HR stream stopped'})
+
 if __name__ == "__main__":
     init_db()
     port = int(os.environ.get("PORT", "5000"))
     debug = os.environ.get("FLASK_DEBUG", "1") == "1"
-    app.run(host="0.0.0.0", port=port, debug=debug)
+    socketio.run(app, host="0.0.0.0", port=port, debug=debug)
 
 # Ensure database is initialized when app starts
 with app.app_context():

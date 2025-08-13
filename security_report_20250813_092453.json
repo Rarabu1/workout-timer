@@ -1,0 +1,55 @@
+{
+  "timestamp": "2025-08-13T09:24:31.277721",
+  "overall_status": "PASS",
+  "checks": {
+    "dependency_audit": {
+      "status": "PASS",
+      "command": "python -m pip_audit --requirement requirements.txt --format json",
+      "output": "{\"dependencies\": [{\"name\": \"flask\", \"version\": \"3.1.1\", \"vulns\": []}, {\"name\": \"gunicorn\", \"version\": \"23.0.0\", \"vulns\": []}, {\"name\": \"python-dotenv\", \"version\": \"1.0.0\", \"vulns\": []}, {\"name\": \"requests\", \"version\": \"2.32.4\", \"vulns\": []}, {\"name\": \"charset-normalizer\", \"version\": \"3.4.3\", \"vulns\": []}, {\"name\": \"idna\", \"version\": \"3.10\", \"vulns\": []}, {\"name\": \"urllib3\", \"version\": \"2.5.0\", \"vulns\": []}, {\"name\": \"openai\", \"version\": \"1.99.9\", \"vulns\": []}, {\"name\": \"anyio\", \"version\": \"4.10.0\", \"vulns\": []}, {\"name\": \"distro\", \"version\": \"1.9.0\", \"vulns\": []}, {\"name\": \"httpx\", \"version\": \"0.28.1\", \"vulns\": []}, {\"name\": \"httpcore\", \"version\": \"1.0.9\", \"vulns\": []}, {\"name\": \"jiter\", \"version\": \"0.10.0\", \"vulns\": []}, {\"name\": \"pydantic\", \"version\": \"2.11.7\", \"vulns\": []}, {\"name\": \"pydantic-core\", \"version\": \"2.33.2\", \"vulns\": []}, {\"name\": \"typing-extensions\", \"version\": \"4.14.1\", \"vulns\": []}, {\"name\": \"annotated-types\", \"version\": \"0.7.0\", \"vulns\": []}, {\"name\": \"blinker\", \"version\": \"1.9.0\", \"vulns\": []}, {\"name\": \"certifi\", \"version\": \"2025.8.3\", \"vulns\": []}, {\"name\": \"click\", \"version\": \"8.1.8\", \"vulns\": []}, {\"name\": \"exceptiongroup\", \"version\": \"1.3.0\", \"vulns\": []}, {\"name\": \"h11\", \"version\": \"0.16.0\", \"vulns\": []}, {\"name\": \"importlib-metadata\", \"version\": \"8.7.0\", \"vulns\": []}, {\"name\": \"itsdangerous\", \"version\": \"2.2.0\", \"vulns\": []}, {\"name\": \"jinja2\", \"version\": \"3.1.6\", \"vulns\": []}, {\"name\": \"markupsafe\", \"version\": \"3.0.2\", \"vulns\": []}, {\"name\": \"sniffio\", \"version\": \"1.3.1\", \"vulns\": []}, {\"name\": \"tqdm\", \"version\": \"4.67.1\", \"vulns\": []}, {\"name\": \"typing-inspection\", \"version\": \"0.4.1\", \"vulns\": []}, {\"name\": \"werkzeug\", \"version\": \"3.1.3\", \"vulns\": []}, {\"name\": \"zipp\", \"version\": \"3.23.0\", \"vulns\": []}, {\"name\": \"packaging\", \"version\": \"25.0\", \"vulns\": []}], \"fixes\": []}\n",
+      "errors": "/Users/raul/Desktop/workout_timer/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020\n  warnings.warn(\nNo known vulnerabilities found\n",
+      "return_code": 0
+    },
+    "dev_dependency_audit": {
+      "status": "PASS",
+      "command": "python -m pip_audit --requirement requirements-dev.txt --format json",
+      "output": "{\"dependencies\": [{\"name\": \"pytest\", \"version\": \"8.2.2\", \"vulns\": []}, {\"name\": \"pip-audit\", \"version\": \"2.7.3\", \"vulns\": []}, {\"name\": \"cyclonedx-python-lib\", \"version\": \"7.6.2\", \"vulns\": []}, {\"name\": \"license-expression\", \"version\": \"30.4.4\", \"vulns\": []}, {\"name\": \"packageurl-python\", \"version\": \"0.17.5\", \"vulns\": []}, {\"name\": \"pluggy\", \"version\": \"1.6.0\", \"vulns\": []}, {\"name\": \"py-serializable\", \"version\": \"1.1.2\", \"vulns\": []}, {\"name\": \"defusedxml\", \"version\": \"0.7.1\", \"vulns\": []}, {\"name\": \"sortedcontainers\", \"version\": \"2.4.0\", \"vulns\": []}, {\"name\": \"boolean-py\", \"version\": \"5.0\", \"vulns\": []}, {\"name\": \"cachecontrol\", \"version\": \"0.14.3\", \"vulns\": []}, {\"name\": \"msgpack\", \"version\": \"1.1.1\", \"vulns\": []}, {\"name\": \"exceptiongroup\", \"version\": \"1.3.0\", \"vulns\": []}, {\"name\": \"filelock\", \"version\": \"3.18.0\", \"vulns\": []}, {\"name\": \"html5lib\", \"version\": \"1.1\", \"vulns\": []}, {\"name\": \"packaging\", \"version\": \"25.0\", \"vulns\": []}, {\"name\": \"pip-api\", \"version\": \"0.0.34\", \"vulns\": []}, {\"name\": \"pip-requirements-parser\", \"version\": \"32.0.1\", \"vulns\": []}, {\"name\": \"requests\", \"version\": \"2.32.4\", \"vulns\": []}, {\"name\": \"charset-normalizer\", \"version\": \"3.4.3\", \"vulns\": []}, {\"name\": \"idna\", \"version\": \"3.10\", \"vulns\": []}, {\"name\": \"urllib3\", \"version\": \"2.5.0\", \"vulns\": []}, {\"name\": \"certifi\", \"version\": \"2025.8.3\", \"vulns\": []}, {\"name\": \"rich\", \"version\": \"14.1.0\", \"vulns\": []}, {\"name\": \"pygments\", \"version\": \"2.19.2\", \"vulns\": []}, {\"name\": \"markdown-it-py\", \"version\": \"3.0.0\", \"vulns\": []}, {\"name\": \"mdurl\", \"version\": \"0.1.2\", \"vulns\": []}, {\"name\": \"six\", \"version\": \"1.17.0\", \"vulns\": []}, {\"name\": \"toml\", \"version\": \"0.10.2\", \"vulns\": []}, {\"name\": \"tomli\", \"version\": \"2.2.1\", \"vulns\": []}, {\"name\": \"typing-extensions\", \"version\": \"4.14.1\", \"vulns\": []}, {\"name\": \"iniconfig\", \"version\": \"2.1.0\", \"vulns\": []}, {\"name\": \"pyparsing\", \"version\": \"3.2.3\", \"vulns\": []}, {\"name\": \"webencodings\", \"version\": \"0.5.1\", \"vulns\": []}], \"fixes\": []}\n",
+      "errors": "/Users/raul/Desktop/workout_timer/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020\n  warnings.warn(\nNo known vulnerabilities found\n",
+      "return_code": 0
+    },
+    "basic_security_tests": {
+      "status": "PASS",
+      "command": "python -m pytest tests/test_security.py -v --tb=short",
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.2.2, pluggy-1.6.0\nrootdir: /Users/raul/Desktop/workout_timer\nconfigfile: pytest.ini\nplugins: anyio-4.10.0\ncollected 11 items\n\ntests/test_security.py ...........                                       [100%]\n\n=============================== warnings summary ===============================\ntests/test_security.py::test_basic_security_headers\n  /Users/raul/Desktop/workout_timer/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n======================== 11 passed, 1 warning in 0.29s =========================\n",
+      "errors": "",
+      "return_code": 0
+    },
+    "advanced_security_tests": {
+      "status": "PASS",
+      "command": "python -m pytest tests/test_advanced_security.py -v --tb=short",
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.2.2, pluggy-1.6.0\nrootdir: /Users/raul/Desktop/workout_timer\nconfigfile: pytest.ini\nplugins: anyio-4.10.0\ncollected 13 items\n\ntests/test_advanced_security.py .............                            [100%]\n\n=============================== warnings summary ===============================\ntests/test_advanced_security.py::test_advanced_security_headers_present\n  /Users/raul/Desktop/workout_timer/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n======================== 13 passed, 1 warning in 8.33s =========================\n",
+      "errors": "",
+      "return_code": 0
+    },
+    "app_tests": {
+      "status": "PASS",
+      "command": "python -m pytest tests/test_app.py -v --tb=short",
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.2.2, pluggy-1.6.0\nrootdir: /Users/raul/Desktop/workout_timer\nconfigfile: pytest.ini\nplugins: anyio-4.10.0\ncollected 11 items\n\ntests/test_app.py ...........                                            [100%]\n\n=============================== warnings summary ===============================\ntests/test_app.py::test_home_page\n  /Users/raul/Desktop/workout_timer/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n======================== 11 passed, 1 warning in 0.22s =========================\n",
+      "errors": "",
+      "return_code": 0
+    },
+    "security_headers_check": {
+      "status": "PASS",
+      "command": "python -c \"import app; print('Security headers middleware:', hasattr(app, 'add_security_headers'))\"",
+      "output": "=== WHOOP CONFIG DEBUG ===\nWHOOP_CLIENT_ID: None\nWHOOP_CLIENT_SECRET: 43d8c7a606083d063e422454bd593104fd66e1716b3900ff86d8752e87769db0\nWHOOP_REDIRECT_URI: https://workout-timer-dskb.onrender.com/whoop/callback\nClient Secret Length: 64\nExpected Length: 64\n=== END WHOOP CONFIG DEBUG ===\nSecurity headers middleware: True\n",
+      "errors": "/Users/raul/Desktop/workout_timer/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020\n  warnings.warn(\n",
+      "return_code": 0
+    }
+  },
+  "warnings": [
+    "dependency_audit: /Users/raul/Desktop/workout_timer/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020\n  warnings.warn(\nNo known vulnerabilities found\n",
+    "dev_dependency_audit: /Users/raul/Desktop/workout_timer/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020\n  warnings.warn(\nNo known vulnerabilities found\n",
+    "security_headers_check: /Users/raul/Desktop/workout_timer/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020\n  warnings.warn(\n"
+  ],
+  "errors": [],
+  "recommendations": []
+}
