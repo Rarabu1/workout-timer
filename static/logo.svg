@@ -1,33 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
-  <!-- Dark blue background -->
-  <rect x="0" y="0" width="200" height="200" fill="#1e3a8a"/>
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="120" height="120" fill="#007AFF"/>
   
-  <!-- Running figure on treadmill -->
-  <g transform="translate(30, 50)">
-    <!-- Treadmill base (running belt) -->
-    <rect x="0" y="35" width="40" height="4" fill="white"/>
-    <!-- Treadmill console/handle -->
-    <rect x="35" y="25" width="3" height="20" fill="white"/>
-    <rect x="35" y="25" width="8" height="3" fill="white"/>
-    
-    <!-- Running figure -->
-    <g fill="white" stroke="white" stroke-width="2">
-      <!-- Head -->
-      <circle cx="15" cy="15" r="3"/>
-      <!-- Body -->
-      <line x1="15" y1="18" x2="15" y2="28"/>
-      <!-- Arms -->
-      <line x1="15" y1="20" x2="8" y2="18"/>
-      <line x1="15" y1="20" x2="22" y2="22"/>
-      <!-- Legs -->
-      <line x1="15" y1="28" x2="10" y2="35"/>
-      <line x1="15" y1="28" x2="20" y2="32"/>
-    </g>
-  </g>
+  <!-- Treadmill Base -->
+  <rect x="15" y="85" width="90" height="8" fill="white" opacity="0.9"/>
   
-  <!-- App name -->
-  <text x="90" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="white">The</text>
-  <text x="90" y="95" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="white">Treadmill</text>
-  <text x="90" y="110" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="white">Run</text>
-  <text x="90" y="125" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="white">Coach</text>
+  <!-- Treadmill Belt -->
+  <rect x="15" y="75" width="90" height="10" fill="white" opacity="0.7"/>
+  
+  <!-- Treadmill Console/Handlebar -->
+  <rect x="95" y="45" width="4" height="30" fill="white" opacity="0.9"/>
+  <rect x="93" y="45" width="8" height="4" fill="white" opacity="0.9"/>
+  
+  <!-- Runner Silhouette -->
+  <!-- Head -->
+  <circle cx="35" cy="35" r="6" fill="white"/>
+  
+  <!-- Body -->
+  <path d="M 35 41 L 35 65" stroke="white" stroke-width="4" stroke-linecap="round"/>
+  
+  <!-- Arms -->
+  <path d="M 35 45 L 25 55" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 35 45 L 45 50" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Legs -->
+  <path d="M 35 65 L 30 80" stroke="white" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 35 65 L 40 78" stroke="white" stroke-width="4" stroke-linecap="round"/>
+  
+  <!-- Text: The Treadmill Run Coach -->
+  <text x="60" y="25" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="white" text-anchor="middle">The</text>
+  <text x="60" y="35" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">Treadmill</text>
+  <text x="60" y="45" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="white" text-anchor="middle">Run</text>
+  <text x="60" y="55" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">Coach</text>
 </svg>

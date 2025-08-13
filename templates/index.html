@@ -8,8 +8,20 @@
   <!-- PWA Meta Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Treadmill Coach">
+  <meta name="apple-mobile-web-app-title" content="The Treadmill Run Coach">
   <meta name="mobile-web-app-capable" content="yes">
+  
+  <!-- iOS App Icons -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/app-icon.svg">
+  <link rel="apple-touch-icon" sizes="152x152" href="/static/app-icon.svg">
+  <link rel="apple-touch-icon" sizes="144x144" href="/static/app-icon.svg">
+  <link rel="apple-touch-icon" sizes="120x120" href="/static/app-icon.svg">
+  <link rel="apple-touch-icon" sizes="114x114" href="/static/app-icon.svg">
+  <link rel="apple-touch-icon" sizes="76x76" href="/static/app-icon.svg">
+  <link rel="apple-touch-icon" sizes="72x72" href="/static/app-icon.svg">
+  <link rel="apple-touch-icon" sizes="60x60" href="/static/app-icon.svg">
+  <link rel="apple-touch-icon" sizes="57x57" href="/static/app-icon.svg">
+  <link rel="apple-touch-icon" href="/static/app-icon.svg">
   
   <meta name="color-scheme" content="light">
   <meta id="meta-theme-color" name="theme-color" content="#F2F2F7">
@@ -19,6 +31,9 @@
 
   <!-- Socket.IO for real-time HR updates -->
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  
+  <!-- Web App Manifest -->
+  <link rel="manifest" href="/static/manifest.json">
 
   <style>
     /* Core Design System Variables */
@@ -88,8 +103,8 @@
 
     /* Header */
     .app-header { display:flex; align-items:center; gap:var(--spacing-md); margin-bottom:var(--spacing-lg); padding:var(--spacing-md); background:var(--whoop-white); border-radius:var(--radius-lg); border:1px solid var(--ios-border); box-shadow:0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06); }
-    .app-logo { width:120px; height:120px; flex-shrink:0; border-radius:var(--radius-lg); background:#1e3a8a; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 20px rgba(30,58,138,0.4); overflow:hidden; position:relative; }
-    .app-logo svg { width:100%; height:100%; }
+    .app-logo { width:120px; height:120px; flex-shrink:0; border-radius:var(--radius-lg); background:#007AFF; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 20px rgba(0,122,255,0.4); overflow:hidden; position:relative; }
+    .app-logo img { width:100%; height:100%; border-radius:var(--radius-lg); }
     .app-title h1 { margin:0; font-size:24px; font-weight:700; color:#1D1D1F; line-height:1.2; }
     .app-subtitle { margin:4px 0 0 0; font-size:14px; color:var(--ios-gray); font-weight:500; }
 
@@ -273,11 +288,7 @@
 <body>
   <div class="app-header">
     <div class="app-logo">
-      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="60" cy="60" r="60" fill="#1e3a8a" />
-        <path d="M60 40 L60 80" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" />
-        <path d="M40 60 L80 60" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" />
-      </svg>
+      <img src="/static/logo.svg" alt="The Treadmill Run Coach Logo" width="120" height="120">
     </div>
     <div class="app-title">
       <h1>The Treadmill Run Coach</h1>

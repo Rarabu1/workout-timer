@@ -1,0 +1,35 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#007AFF"/>
+  
+  <!-- Treadmill Base -->
+  <rect x="64" y="362" width="384" height="34" fill="white" opacity="0.9"/>
+  
+  <!-- Treadmill Belt -->
+  <rect x="64" y="320" width="384" height="42" fill="white" opacity="0.7"/>
+  
+  <!-- Treadmill Console/Handlebar -->
+  <rect x="405" y="192" width="17" height="128" fill="white" opacity="0.9"/>
+  <rect x="397" y="192" width="34" height="17" fill="white" opacity="0.9"/>
+  
+  <!-- Runner Silhouette -->
+  <!-- Head -->
+  <circle cx="149" cy="149" r="26" fill="white"/>
+  
+  <!-- Body -->
+  <path d="M 149 175 L 149 277" stroke="white" stroke-width="17" stroke-linecap="round"/>
+  
+  <!-- Arms -->
+  <path d="M 149 192 L 107 235" stroke="white" stroke-width="13" stroke-linecap="round"/>
+  <path d="M 149 192 L 192 213" stroke="white" stroke-width="13" stroke-linecap="round"/>
+  
+  <!-- Legs -->
+  <path d="M 149 277 L 128 341" stroke="white" stroke-width="17" stroke-linecap="round"/>
+  <path d="M 149 277 L 171 333" stroke="white" stroke-width="17" stroke-linecap="round"/>
+  
+  <!-- Text: The Treadmill Run Coach -->
+  <text x="256" y="107" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="white" text-anchor="middle">The</text>
+  <text x="256" y="149" font-family="Arial, sans-serif" font-size="43" font-weight="bold" fill="white" text-anchor="middle">Treadmill</text>
+  <text x="256" y="192" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="white" text-anchor="middle">Run</text>
+  <text x="256" y="235" font-family="Arial, sans-serif" font-size="43" font-weight="bold" fill="white" text-anchor="middle">Coach</text>
+</svg>
