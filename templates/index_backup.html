@@ -1,0 +1,2702 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>The Treadmill Run Coach</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  
+  <!-- Enhanced PWA Meta Tags for iPhone -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Workout Timer">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#4CAF50">
+  <meta name="apple-touch-fullscreen" content="yes">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="/static/manifest.json">
+
+  <!-- Enhanced iPhone Icons -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
+  <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
+  <link rel="apple-touch-icon" sizes="152x152" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
+  <link rel="apple-touch-icon" sizes="120x120" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
+
+  <!-- Prevent zooming on input focus -->
+  <style> input, textarea, select { font-size: 16px !important; } </style>
+
+  <style>
+    /* iOS-style variables */
+    :root {
+      --ios-blue: #007AFF;
+      --ios-green: #34C759;
+      --ios-red: #FF3B30;
+      --ios-orange: #FF9500;
+      --ios-purple: #AF52DE;
+      --ios-gray: #8E8E93;
+      --ios-light-gray: #F2F2F7;
+      --ios-border: #C6C6C8;
+      --safe-area-inset-top: env(safe-area-inset-top);
+      --safe-area-inset-bottom: env(safe-area-inset-bottom);
+      --safe-area-inset-left: env(safe-area-inset-left);
+      --safe-area-inset-right: env(safe-area-inset-right);
+    }
+
+    * {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    input, textarea {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+      padding-top: calc(20px + var(--safe-area-inset-top));
+      padding-bottom: calc(20px + var(--safe-area-inset-bottom));
+      padding-left: calc(20px + var(--safe-area-inset-left));
+      padding-right: calc(20px + var(--safe-area-inset-right));
+      background: var(--ios-light-gray);
+      color: #1D1D1F;
+      line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* App Header with Logo */
+    .app-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid var(--ios-border);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .app-logo {
+      width: 80px;
+      height: 80px;
+      flex-shrink: 0;
+      border-radius: 8px;
+    }
+    
+    .app-title h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+      color: #1D1D1F;
+      line-height: 1.2;
+    }
+    
+    .app-subtitle {
+      margin: 4px 0 0 0;
+      font-size: 14px;
+      color: var(--ios-gray);
+      font-weight: 500;
+    }
+
+    /* Enhanced iOS-style tabs */
+    .tabs { 
+      display: flex; 
+      background: #fff; 
+      border-radius: 12px; 
+      border: 1px solid var(--ios-border); 
+      margin-bottom: 20px; 
+      overflow-x: auto;
+      overflow-y: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE and Edge */
+    }
+    
+    .tabs::-webkit-scrollbar {
+      display: none; /* Chrome, Safari, Opera */
+    }
+    
+    .tab { 
+      padding: 16px 20px; 
+      cursor: pointer; 
+      background: #fff; 
+      border: none; 
+      color: var(--ios-gray); 
+      flex-shrink: 0;
+      min-width: 140px;
+      text-align: center; 
+      transition: all 0.2s ease;
+      font-weight: 500;
+      font-size: 15px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+    }
+    .tab.active { 
+      background: var(--ios-blue); 
+      color: #fff; 
+      font-weight: 600;
+    }
+    .tab:active:not(.active) { 
+      background: var(--ios-light-gray); 
+    }
+
+    /* Content Cards */
+    .app-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 30px;
+      margin-bottom: 20px;
+    }
+
+    .app-card h2 {
+      font-size: 14px;
+      margin-bottom: 20px;
+      color: var(--app-white);
+    }
+
+    /* Buttons */
+    .app-btn {
+      background: var(--app-teal);
+      color: var(--app-black);
+      border: none;
+      padding: 15px 30px;
+      font-family: var(--font-primary);
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .app-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 241, 159, 0.3);
+    }
+
+    .app-btn:active {
+      transform: translateY(0);
+    }
+
+    .app-btn:disabled {
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.3);
+      cursor: not-allowed;
+    }
+
+    .app-btn-secondary {
+      background: transparent;
+      color: var(--app-white);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .app-btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--app-white);
+    }
+
+    /* Input Fields */
+    .app-input, .app-textarea {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--app-white);
+      padding: 15px;
+      font-family: var(--font-primary);
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    .app-input:focus, .app-textarea:focus {
+      outline: none;
+      border-color: var(--app-teal);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .app-textarea {
+      min-height: 120px;
+      resize: vertical;
+      font-family: var(--font-mono);
+    }
+
+    /* Metrics Display */
+    .app-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+
+    .app-metric {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      text-align: center;
+    }
+
+    .app-metric-value {
+      font-family: var(--font-mono);
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .app-metric-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    /* Recovery Score Colors */
+    .recovery-high { color: var(--recovery-high); }
+    .recovery-medium { color: var(--recovery-medium); }
+    .recovery-low { color: var(--recovery-low); }
+
+    /* Timer Display */
+    .app-timer {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 40px;
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .app-timer-display {
+      font-family: var(--font-mono);
+      font-size: 72px;
+      font-weight: 700;
+      color: var(--app-white);
+      margin: 20px 0;
+    }
+
+    /* Progress Bar */
+    .app-progress {
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      margin: 20px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .app-progress-bar {
+      height: 100%;
+      background: var(--app-teal);
+      transition: width 0.3s ease;
+    }
+
+    /* Interval List */
+    .app-intervals {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .app-interval-item {
+      padding: 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.3s ease;
+    }
+
+    .app-interval-item:last-child {
+      border-bottom: none;
+    }
+
+    .app-interval-item.current {
+      background: rgba(0, 241, 159, 0.1);
+      border-left: 3px solid var(--app-teal);
+    }
+
+    .app-interval-item.completed {
+      opacity: 0.5;
+    }
+
+    /* Controls */
+    .app-controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin: 20px 0;
+    }
+
+    .app-control-btn {
+      padding: 12px 24px;
+      min-width: 100px;
+    }
+
+    /* Tab Content */
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Chips */
+    .app-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    .app-chip {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: rgba(255, 255, 255, 0.8);
+      padding: 8px 16px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .app-chip.active {
+      background: var(--app-teal);
+      color: var(--app-black);
+      border-color: var(--app-teal);
+    }
+
+    .app-chip:hover:not(.active) {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--app-white);
+    }
+
+    /* Suggestions */
+    .app-suggestions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+    }
+
+    .app-suggestion {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 13px;
+    }
+
+    .app-suggestion:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--app-teal);
+    }
+
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Loading Spinner */
+    .app-loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-top-color: var(--app-teal);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .app-container {
+        padding: 10px;
+      }
+
+      .app-tabs {
+        overflow-x: auto;
+      }
+
+      .app-tab {
+        padding: 12px 15px;
+        font-size: 11px;
+      }
+
+      .app-card {
+        padding: 20px;
+      }
+
+      .app-timer-display {
+        font-size: 48px;
+      }
+
+      .app-metrics {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .app-controls {
+        flex-direction: column;
+      }
+
+      .app-control-btn {
+        width: 100%;
+      }
+    }
+
+    /* Landscape Mode */
+    @media (orientation: landscape) and (max-height: 600px) {
+      .app-header {
+        padding: 10px 0;
+        margin-bottom: 10px;
+      }
+
+      .app-tabs {
+        margin-bottom: 10px;
+      }
+
+      .app-timer-display {
+        font-size: 48px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-header">
+    <img src="/static/logo.svg" alt="Workout Timer" class="app-logo">
+    <div class="app-title">
+      <h1>The Treadmill Run Coach</h1>
+      <p class="app-subtitle">AI-Powered Treadmill Workouts</p>
+    </div>
+  </div>
+
+  <!-- Landscape Summary Bar -->
+  <div class="landscape-summary">
+    <div class="summary-info">
+      <span id="landscape-summary-pill">—</span>
+      <span id="landscape-eta">—</span>
+    </div>
+    <div class="summary-controls">
+      <label class="toggle" title="Mute interval beeps">
+        <input type="checkbox" id="landscape-mute-toggle" onchange="setMuted(this.checked)"> Mute
+      </label>
+      <label class="toggle" title="Play bell sound at interval start">
+        <input type="checkbox" id="landscape-bell-toggle" onchange="setBellEnabled(this.checked)"> Bell
+      </label>
+      <label class="toggle" title="Prevent screen from sleeping">
+        <input type="checkbox" id="landscape-wakelock-toggle" onchange="setWakeLockEnabled(this.checked)"> Wake
+      </label>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('generate', this)">🤖 Generate AI Workout</button>
+    <button class="tab" onclick="switchTab('manual', this)">📝 Paste Workout</button>
+    <button class="tab" onclick="switchTab('saved', this)">💾 Saved Workouts</button>
+    <button class="tab" onclick="switchTab('progress', this)">📊 Progress & WHOOP</button>
+    <button class="tab" onclick="switchTab('whoop', this)">💪 WHOOP Integration</button>
+    <button class="tab" onclick="switchTab('ml', this)">🧠 ML Insights</button>
+  </div>
+
+  <!-- AI Generation Tab -->
+  <div id="generate-tab" class="tab-content active">
+    <h2>Generate Workout with AI</h2>
+    <div class="generate-section">
+      <label for="workoutRequest" style="display:block; margin-bottom:6px; color:#666; font-size:14px;">Describe your workout</label>
+      <input type="text" id="workoutRequest" class="workout-request" placeholder="Describe your workout (e.g., '30 minute interval run for beginners')" />
+
+      <div class="suggestions">
+        <!-- Workout Type Section -->
+        <div class="suggestion-section">
+          <div class="section-header">
+            <span class="section-icon">🎯</span>
+            <span class="section-title">Workout Type</span>
+            <span class="section-subtitle">How do you want to train <strong>today</strong>?</span>
+          </div>
+          <div class="chip-row" id="category-chips">
+            <button type="button" class="chip active" data-cat="endurance" onclick="selectCategory(this)">Endurance</button>
+            <button type="button" class="chip" data-cat="speed" onclick="selectCategory(this)">Speed</button>
+            <button type="button" class="chip" data-cat="hills" onclick="selectCategory(this)">Hills</button>
+            <button type="button" class="chip" data-cat="recovery" onclick="selectCategory(this)">Recovery</button>
+            <button type="button" class="chip" data-cat="race" onclick="selectCategory(this)">Race prep</button>
+            <button type="button" class="chip" data-cat="fartlek" onclick="selectCategory(this)">Fartlek</button>
+          </div>
+        </div>
+
+        <!-- Duration Section -->
+        <div class="suggestion-section">
+          <div class="section-header">
+            <span class="section-icon">⏱️</span>
+            <span class="section-title">Duration</span>
+            <span class="section-subtitle">How long do you want to train?</span>
+          </div>
+          <div class="chip-row" id="duration-chips">
+            <button type="button" class="chip secondary active" data-min="20" onclick="selectDuration(this)">20 min</button>
+            <button type="button" class="chip secondary" data-min="30" onclick="selectDuration(this)">30 min</button>
+            <button type="button" class="chip secondary" data-min="40" onclick="selectDuration(this)">40 min</button>
+            <button type="button" class="chip secondary" data-min="45" onclick="selectDuration(this)">45 min</button>
+            <button type="button" class="chip secondary" data-min="60" onclick="selectDuration(this)">60 min</button>
+          </div>
+        </div>
+
+        <!-- Workout Ideas Section -->
+        <div class="suggestion-section">
+          <div class="section-header">
+            <span class="section-icon">💡</span>
+            <span class="section-title">Workout Ideas</span>
+            <span class="section-subtitle">AI-generated suggestions based on your preferences</span>
+          </div>
+          <div class="shuffle-row">
+            <button type="button" class="shuffle-primary" onclick="shuffleSuggestions()">↻ Shuffle ideas</button>
+          </div>
+          <div id="suggestion-buttons" class="chip-row"></div>
+        </div>
+      </div>
+
+      <button class="btn-generate" onclick="generateWorkout()">
+        <span id="generate-btn-text">🚀 Generate Workout</span>
+        <span id="generate-loading" class="loading" style="display:none;"></span>
+      </button>
+    </div>
+
+    <div id="generated-workout" style="display:none;">
+      <h3>Generated Workout:</h3>
+      <textarea id="generatedText" class="paste-area" readonly></textarea>
+      <button onclick="useGeneratedWorkout()">Use This Workout</button>
+    </div>
+  </div>
+
+  <!-- Manual Paste Tab -->
+  <div id="manual-tab" class="tab-content">
+    <h2>Paste Your Workout</h2>
+    <textarea id="workoutText" class="paste-area" placeholder="Paste your ChatGPT workout here..."></textarea><br>
+    <button onclick="parseWorkout()">Parse Workout</button>
+  </div>
+
+  <!-- Saved Workouts Tab -->
+  <div id="saved-tab" class="tab-content">
+    <h2>Your Saved Workouts</h2>
+    <div id="saved-workouts-list" class="saved-workouts"></div>
+    <button onclick="loadSavedWorkouts()">Refresh List</button>
+  </div>
+
+  <!-- Progress & WHOOP Tab -->
+  <div id="progress-tab" class="tab-content">
+    <h2>📊 Progress Tracking & WHOOP Integration</h2>
+    
+    <!-- Session Tracking -->
+    <div class="session-tracking">
+      <h3>Current Session</h3>
+      <div id="current-session-info" style="display:none;">
+        <div class="metric">
+          <div class="metric-label">Session ID</div>
+          <div class="metric-value" id="session-id">-</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Started</div>
+          <div class="metric-value" id="session-start">-</div>
+        </div>
+        <button onclick="completeCurrentSession()" class="btn-complete">Complete Session</button>
+      </div>
+      <div id="no-session-info">
+        <p>No active session. Start a workout to begin tracking.</p>
+      </div>
+    </div>
+
+    <!-- WHOOP Screenshot Upload -->
+    <div class="whoop-upload">
+      <h3>📱 WHOOP Screenshot</h3>
+      <p>Upload a screenshot of your WHOOP workout summary to track progress</p>
+      <input type="file" id="whoop-screenshot" accept="image/*" capture="environment" style="display:none;">
+      <button onclick="document.getElementById('whoop-screenshot').click()" class="btn-upload">
+        📸 Upload WHOOP Screenshot
+      </button>
+      <div id="upload-preview"></div>
+    </div>
+
+    <!-- Progress Report -->
+    <div class="progress-report">
+      <h3>📈 Progress Report</h3>
+      <div class="period-selector">
+        <button class="chip secondary" data-days="7" onclick="loadProgressReport(7)">7 days</button>
+        <button class="chip secondary active" data-days="30" onclick="loadProgressReport(30)">30 days</button>
+        <button class="chip secondary" data-days="90" onclick="loadProgressReport(90)">90 days</button>
+      </div>
+      <div id="progress-stats" class="progress-stats"></div>
+      <div id="recent-sessions-list" class="recent-sessions"></div>
+    </div>
+
+    <!-- AI Summary -->
+    <div class="ai-summary">
+      <h3>🤖 AI Workout Summary</h3>
+      <button onclick="generateAISummary()" class="btn-generate">Generate Summary</button>
+      <div id="ai-summary-content" class="summary-content"></div>
+    </div>
+  </div>
+
+  <!-- WHOOP Integration Tab -->
+  <div id="whoop-tab" class="tab-content">
+    <h2>💪 WHOOP Performance Integration</h2>
+    
+    <!-- WHOOP Authentication -->
+    <div class="whoop-auth">
+      <h3>🔐 Connect Your WHOOP Account</h3>
+      <p>Connect your WHOOP account to get personalized workout recommendations based on your recovery, sleep, and strain data.</p>
+      <button onclick="connectWHOOP()" class="btn-generate" id="whoop-connect-btn">
+        🔗 Connect WHOOP Account
+      </button>
+      <div id="whoop-status" class="whoop-status"></div>
+    </div>
+
+    <!-- WHOOP Recovery Data -->
+    <div class="whoop-recovery" id="whoop-recovery-section" style="display:none;">
+      <h3>📈 Today's Recovery</h3>
+      <div class="recovery-metrics">
+        <div class="metric-card">
+          <div class="metric-label">Recovery Score</div>
+          <div class="metric-value" id="recovery-score">--</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Sleep Score</div>
+          <div class="metric-value" id="sleep-score">--</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Strain Score</div>
+          <div class="metric-value" id="strain-score">--</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">HRV</div>
+          <div class="metric-value" id="hrv-value">--</div>
+        </div>
+      </div>
+      <button onclick="refreshWHOOPData()" class="btn-refresh">🔄 Refresh Data</button>
+    </div>
+
+    <!-- WHOOP Recommendations -->
+    <div class="whoop-recommendations" id="whoop-recommendations-section" style="display:none;">
+      <h3>🎯 Personalized Recommendations</h3>
+      <div id="whoop-recommendation-content" class="recommendation-content">
+        <p>Loading recommendations based on your WHOOP data...</p>
+      </div>
+      <button onclick="getWHOOPRecommendations()" class="btn-generate">🎯 Get Recommendations</button>
+    </div>
+
+    <!-- WHOOP Workout History -->
+    <div class="whoop-workouts" id="whoop-workouts-section" style="display:none;">
+      <h3>📊 Recent WHOOP Workouts</h3>
+      <div class="period-selector">
+        <button class="chip secondary" data-days="7" onclick="loadWHOOPWorkouts(7)">7 days</button>
+        <button class="chip secondary active" data-days="30" onclick="loadWHOOPWorkouts(30)">30 days</button>
+        <button class="chip secondary" data-days="90" onclick="loadWHOOPWorkouts(90)">90 days</button>
+      </div>
+      <div id="whoop-workouts-list" class="workouts-list"></div>
+    </div>
+  </div>
+
+  <!-- ML Insights Tab -->
+  <div id="ml-tab" class="tab-content">
+    <h2>🧠 Machine Learning Insights</h2>
+    
+    <!-- Performance Analysis -->
+    <div class="ml-analysis">
+      <h3>📈 Performance Analysis</h3>
+      <div class="period-selector">
+        <button class="chip secondary" data-days="7" onclick="loadMLAnalysis(7)">7 days</button>
+        <button class="chip secondary active" data-days="30" onclick="loadMLAnalysis(30)">30 days</button>
+        <button class="chip secondary" data-days="90" onclick="loadMLAnalysis(90)">90 days</button>
+      </div>
+      <div id="ml-analysis-content" class="analysis-content"></div>
+    </div>
+
+    <!-- Personalized Workout Generation -->
+    <div class="personalized-workout">
+      <h3>🎯 Personalized Workout</h3>
+      <div class="preferences-section">
+        <h4>Your Preferences</h4>
+        <div class="preference-inputs">
+          <label class="toggle">
+            <input type="checkbox" id="pref-endurance" checked> Endurance focus
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="pref-speed"> Speed work
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="pref-hills"> Hill training
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="pref-recovery"> Recovery runs
+          </label>
+        </div>
+        <div class="duration-preference">
+          <label>Preferred duration: <span id="duration-value">30</span> minutes</label>
+          <input type="range" id="duration-slider" min="15" max="60" value="30" step="5">
+        </div>
+      </div>
+      <button onclick="generatePersonalizedWorkout()" class="btn-generate">🎯 Generate Personalized Workout</button>
+      <div id="personalized-workout-content" class="workout-content"></div>
+    </div>
+
+    <!-- Performance Insights -->
+    <div class="performance-insights">
+      <h3>💡 Performance Insights</h3>
+      <button onclick="loadPerformanceInsights()" class="btn-insights">Get Insights</button>
+      <div id="insights-content" class="insights-content"></div>
+    </div>
+
+    <!-- Recovery Optimization -->
+    <div class="recovery-optimization">
+      <h3>🔄 Recovery Optimization</h3>
+      <div id="recovery-content" class="recovery-content">
+        <p>Complete a few workouts to get personalized recovery recommendations.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary + progress -->
+  <div id="workout-summary" class="summary">
+    <div>
+      <span id="summary-pill">—</span>
+      <div id="stats-line" class="stats-line" aria-live="polite"></div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <label class="toggle" title="Mute interval beeps"><input type="checkbox" id="mute-toggle" onchange="setMuted(this.checked)"> Mute beeps</label>
+      <label class="toggle" title="Play bell sound at interval start">
+        <input type="checkbox" id="bell-toggle" onchange="setBellEnabled(this.checked)"> Interval bell
+        <button onclick="testBell()" style="background: none; border: none; color: var(--ios-blue); font-size: 12px; margin-left: 8px; padding: 2px 6px;">🔔 Test</button>
+      </label>
+      <label class="toggle" title="Prevent screen from sleeping">
+        <input type="checkbox" id="wakelock-toggle" onchange="setWakeLockEnabled(this.checked)">
+        Keep screen awake
+      </label>
+      <button id="focus-toggle" class="btn btn-outline-secondary btn-sm" onclick="toggleFocus()">Focus mode</button>
+    </div>
+  </div>
+
+  <div class="progress" aria-label="Workout progress">
+    <div id="progress-bar" class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width:0%"></div>
+  </div>
+  <div class="reset-row">
+    <span class="spacer"></span>
+    <button class="reset-link" onclick="resetTimerOnly()">Reset timer</button>
+    <span aria-hidden="true" style="color:#bbb;">•</span>
+    <button class="reset-link" onclick="resetAll()">Clear workout</button>
+  </div>
+
+  <!-- Timer Section -->
+  <div id="timer-section" class="timer-display">
+    <div class="countdown-wrap">
+      <div class="countdown-pill" aria-live="polite"><span id="timer">0:00</span></div>
+    </div>
+
+    <!-- Landscape-only metrics + compact controls -->
+    <div id="landscape-metrics" class="landscape-metrics" aria-live="polite" style="display:none;">—</div>
+    <div id="compact-controls" class="compact-controls" style="display:none;">
+      <button type="button" onclick="startTimer()">Start</button>
+      <button type="button" onclick="pauseTimer()">Pause</button>
+      <button type="button" onclick="prevInterval()">Back</button>
+      <button type="button" onclick="skipInterval()">Skip</button>
+      <button type="button" onclick="stopTimer()">Stop</button>
+    </div>
+
+    <div class="current-interval">
+      <h3>Current Interval: <span id="current-section">-</span></h3>
+      <div class="interval-info">
+        <div class="metric">
+          <div class="metric-label">Speed</div>
+          <div class="metric-value"><span id="current-speed">-</span><span class="metric-unit"> mph</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Incline</div>
+          <div class="metric-value"><span id="current-incline">0</span><span class="metric-unit"> %</span></div>
+        </div>
+      </div>
+      <div id="current-description">-</div>
+    </div>
+
+    <div id="eta-line" class="eta-line" aria-live="polite"></div>
+
+    <div class="controls">
+      <button id="btn-start" onclick="startTimer()">▶️ Start</button>
+      <button id="btn-pause" onclick="pauseTimer()" class="btn-pause" style="display:none;">⏸ Pause</button>
+      <button onclick="prevInterval()" class="btn-back">⏮ Back</button>
+      <button onclick="skipInterval()" class="btn-skip">⏭ Skip</button>
+      <button onclick="stopTimer()" class="btn-stop">⏹ Stop</button>
+    </div>
+
+    <div class="next-up" aria-live="polite"><strong>Next Up:</strong> <span id="next-interval">-</span></div>
+    <div class="intervals-list" id="intervals-list"></div>
+  </div>
+
+  <script>
+    let intervals = [];
+    let currentIntervalIndex = 0;
+    let timeRemaining = 0;
+    let timerInterval = null;
+    let isPaused = false;
+    let deadlineTs = null;
+    let muteBeeps = false;
+    let bellEnabled = false;
+
+    // --- Wake Lock API ---
+    let wakeLock = null;
+    let wakeLockPref = false;
+
+    async function requestWakeLock(){
+      if (!('wakeLock' in navigator)) return;
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener?.('release', () => { wakeLock = null; });
+        document.addEventListener('visibilitychange', onVisibility, { once: true });
+      } catch (e) {
+        console.log('WakeLock error:', e?.message || e);
+      }
+    }
+    function onVisibility(){
+      if (document.visibilityState === 'visible' && wakeLockPref && (timerInterval || isPaused)) {
+        requestWakeLock();
+      }
+    }
+    function releaseWakeLock(){
+      try { document.removeEventListener('visibilitychange', onVisibility); } catch {}
+      try { wakeLock?.release(); } catch {}
+      wakeLock = null;
+    }
+    function setWakeLockEnabled(on){
+      wakeLockPref = !!on;
+      try { localStorage.setItem('wt.wakelock', wakeLockPref ? '1' : '0'); } catch {}
+      if (wakeLockPref && (timerInterval || isPaused)) requestWakeLock();
+      else if (!wakeLockPref) releaseWakeLock();
+      
+      // Sync landscape controls
+      const landscapeToggle = document.getElementById('landscape-wakelock-toggle');
+      if (landscapeToggle) landscapeToggle.checked = wakeLockPref;
+    }
+    
+    function loadWakeLockPref(){
+      const supported = 'wakeLock' in navigator;
+      const box = document.getElementById('wakelock-toggle');
+      const landscapeBox = document.getElementById('landscape-wakelock-toggle');
+      
+      if (!supported) {
+        if (box) { box.disabled = true; box.title = 'Not supported on this browser'; }
+        if (landscapeBox) { landscapeBox.disabled = true; landscapeBox.title = 'Not supported on this browser'; }
+      }
+      
+      try { wakeLockPref = localStorage.getItem('wt.wakelock') === '1'; } catch {}
+      if (box) box.checked = !!wakeLockPref;
+      if (landscapeBox) landscapeBox.checked = !!wakeLockPref;
+    }
+
+    function safeMinutes(it) {
+      const v = Number(it && (it.duration_min ?? it.minutes ?? it.duration));
+      return (isFinite(v) && v > 0) ? v : 1; // default to 1 minute
+    }
+
+    /* ---------- UX helpers ---------- */
+    function esc(s){ return (s || '').replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m])); }
+    function toggleFocus(){ document.body.classList.toggle('focus-mode'); }
+    function totalMinutes(){ return (intervals || []).reduce((a,b)=> a + (parseInt(b.duration_min||0,10) || 0), 0); }
+
+    /* ---------- Summary & progress ---------- */
+    function updateProgress(){
+      const done = (intervals || []).slice(0, currentIntervalIndex)
+        .reduce((a,b)=> a + (parseInt(b.duration_min||0,10) || 0), 0);
+      const curMin = (intervals[currentIntervalIndex]?.duration_min) || 0;
+      const total = totalMinutes() || 1;
+      const elapsed = done + Math.max(0, (curMin*60 - timeRemaining)/60);
+      const pct = Math.min(100, Math.max(0, (elapsed/total)*100));
+      const bar = document.getElementById('progress-bar');
+      if (bar) { bar.style.width = pct + '%'; bar.setAttribute('aria-valuenow', Math.round(pct)); }
+      const pill = document.getElementById('summary-pill');
+      if (pill) pill.textContent = `${total} min · ${(intervals||[]).length} intervals`;
+      
+      // Update landscape summary
+      const landscapePill = document.getElementById('landscape-summary-pill');
+      if (landscapePill) landscapePill.textContent = `${total} min · ${(intervals||[]).length} intervals`;
+    }
+
+    function remainingSecondsTotal(){
+      if (!intervals || !intervals.length) return 0;
+      let rem = 0;
+      if (currentIntervalIndex < intervals.length){
+        const curRem = Math.max(0, Number(timeRemaining)||0);
+        rem += curRem;
+        for (let i=currentIntervalIndex+1; i<intervals.length; i++){
+          rem += (Number(intervals[i].duration_min)||0) * 60;
+        }
+      }
+      return rem;
+    }
+
+    function updateETA(){
+      const etaNode = document.getElementById('eta-line');
+      if (!etaNode) return;
+      if (!intervals || !intervals.length){ etaNode.textContent=''; return; }
+      const running = !!timerInterval || isPaused;
+      const baseSec = running ? remainingSecondsTotal() : (totalMinutes()*60);
+      if (!baseSec){ etaNode.textContent=''; return; }
+      const end = new Date(Date.now() + baseSec*1000);
+      const opts = { hour: 'numeric', minute: '2-digit' };
+      etaNode.textContent = running ? `ETA: ${end.toLocaleTimeString([], opts)}` : `If you start now, finish by ${end.toLocaleTimeString([], opts)}`;
+      
+      // Update landscape ETA
+      const landscapeEta = document.getElementById('landscape-eta');
+      if (landscapeEta) {
+        if (!intervals || !intervals.length) {
+          landscapeEta.textContent = '';
+        } else {
+          landscapeEta.textContent = running ? `ETA: ${end.toLocaleTimeString([], opts)}` : `Finish by ${end.toLocaleTimeString([], opts)}`;
+        }
+      }
+    }
+
+    function updateStats(){
+      if (!intervals || !intervals.length) {
+        const node = document.getElementById('stats-line');
+        if (node) node.textContent = '';
+        return;
+      }
+      let totalMin = 0, weightedSpeed = 0, totalAscentFt = 0;
+      for (const it of intervals){
+        const min = parseFloat(it.duration_min || 0) || 0;
+        const mph = parseFloat(it.speed_mph || 0) || 0;
+        const inc = parseFloat(it.incline || 0) || 0; // percent
+        totalMin += min;
+        weightedSpeed += mph * min;
+        const miles = mph * (min/60);
+        totalAscentFt += miles * 5280 * (inc/100);
+      }
+      const avg = totalMin ? (weightedSpeed / totalMin) : 0;
+      const node = document.getElementById('stats-line');
+      if (node) node.innerHTML = `Avg speed: <strong>${avg.toFixed(1)}</strong> mph · Total climb: <strong>${Math.round(totalAscentFt)}</strong> ft`;
+    }
+
+    /* ---------- Tabs ---------- */
+    function switchTab(tabName, el) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      document.getElementById(tabName + '-tab').classList.add('active');
+      if (el) el.classList.add('active');
+      if (tabName === 'saved') loadSavedWorkouts();
+      else if (tabName === 'generate') loadSuggestions();
+    }
+
+    /* ---------- Suggestion pools & shuffle ---------- */
+    const SUGGESTION_POOLS = {
+      endurance: [
+        (m)=>`${m} minute endurance run with steady pacing`,
+        (m)=>`${m} minute aerobic base run (easy)`,
+        (m)=>`${m} minute progression run, finish strong`,
+        (m)=>`${m} minute long run with short surges`,
+      ],
+      speed: [
+        (m)=>`${m} minute VO2 max intervals (mph only)`,
+        (m)=>`${m} minute tempo + 400m-style sprints`,
+        (m)=>`${m} minute ladder: 1-2-3-2-1 hard`,
+        (m)=>`${m} minute 1 on / 1 off speed session`,
+      ],
+      hills: [
+        (m)=>`${m} minute hill repeats (incline work)`,
+        (m)=>`${m} minute rolling hills endurance`,
+        (m)=>`${m} minute hill sprints + recovery jogs`,
+      ],
+      recovery: [
+        (m)=>`${m} minute recovery run, low impact`,
+        (m)=>`${m} minute easy jog with strides`,
+        (m)=>`${m} minute walk-jog mix for recovery`,
+      ],
+      race: [
+        (m)=>`${m} minute 5K race-pace prep`,
+        (m)=>`${m} minute 10K tempo with intervals`,
+        (m)=>`${m} minute half-marathon pace work`,
+      ],
+      fartlek: [
+        (m)=>`${m} minute fartlek: varied speeds`,
+        (m)=>`${m} minute fartlek with random surges`,
+        (m)=>`${m} minute fartlek pyramids`,
+      ]
+    };
+
+    let currentCategory = 'endurance';
+    let currentMinutes = 20;
+
+    function savePrefs(){ try { localStorage.setItem('wt.prefs', JSON.stringify({ category: currentCategory, minutes: currentMinutes })); } catch {} }
+    function loadPrefs(){
+      try {
+        const p = JSON.parse(localStorage.getItem('wt.prefs') || 'null');
+        if (p && p.category) currentCategory = p.category;
+        if (p && p.minutes) currentMinutes = p.minutes;
+        
+        // Update prompt after loading preferences
+        setTimeout(() => {
+          updatePromptFromSelections();
+          updateActiveChips();
+        }, 100);
+      } catch {}
+    }
+
+    async function renderSuggestions(){
+      const container = document.getElementById('suggestion-buttons');
+      container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--ios-gray);">Loading suggestions...</div>';
+      
+      try {
+        // First, generate suggestions based on current category and duration
+        const baseSuggestions = generateBaseSuggestions();
+        
+        // Then fetch additional dynamic suggestions from backend
+        const response = await fetch(`/workout_suggestions?category=${currentCategory}&duration=${currentMinutes}`);
+        const dynamicSuggestions = await response.json();
+        
+        // Filter dynamic suggestions based on current category
+        let filteredDynamicSuggestions = dynamicSuggestions.filter(suggestion => {
+          const lowerSuggestion = suggestion.toLowerCase();
+          const category = currentCategory.toLowerCase();
+          
+          // Category-based filtering
+          if (category === 'endurance' && (lowerSuggestion.includes('endurance') || lowerSuggestion.includes('steady') || lowerSuggestion.includes('aerobic'))) {
+            return true;
+          } else if (category === 'speed' && (lowerSuggestion.includes('speed') || lowerSuggestion.includes('interval') || lowerSuggestion.includes('tempo') || lowerSuggestion.includes('sprint'))) {
+            return true;
+          } else if (category === 'hills' && (lowerSuggestion.includes('hill') || lowerSuggestion.includes('incline'))) {
+            return true;
+          } else if (category === 'recovery' && (lowerSuggestion.includes('recovery') || lowerSuggestion.includes('easy') || lowerSuggestion.includes('low'))) {
+            return true;
+          } else if (category === 'race' && (lowerSuggestion.includes('race') || lowerSuggestion.includes('pace') || lowerSuggestion.includes('marathon'))) {
+            return true;
+          } else if (category === 'fartlek' && lowerSuggestion.includes('fartlek')) {
+            return true;
+          }
+          
+          // If no category match, include it anyway for variety
+          return true;
+        });
+        
+        // Combine base suggestions (duration-based) with dynamic suggestions
+        const allSuggestions = [...baseSuggestions, ...filteredDynamicSuggestions];
+        
+        // Shuffle and take 6 suggestions, prioritizing base suggestions
+        const shuffledSuggestions = allSuggestions.sort(() => Math.random() - 0.5);
+        const finalSuggestions = shuffledSuggestions.slice(0, 6);
+        
+        container.innerHTML = '';
+        finalSuggestions.forEach(suggestion => {
+          const btn = document.createElement('button');
+          btn.className = 'suggestion-btn';
+          btn.textContent = suggestion;
+          btn.onclick = () => { 
+            const inp = document.getElementById('workoutRequest'); 
+            if (inp) inp.value = suggestion; 
+          };
+          container.appendChild(btn);
+        });
+      } catch (error) {
+        console.error('Error loading suggestions:', error);
+        // Fallback to static suggestions if backend fails
+        const baseSuggestions = generateBaseSuggestions();
+        container.innerHTML = '';
+        baseSuggestions.forEach(suggestion => {
+          const btn = document.createElement('button');
+          btn.className = 'suggestion-btn';
+          btn.textContent = suggestion;
+          btn.onclick = () => { 
+            const inp = document.getElementById('workoutRequest'); 
+            if (inp) inp.value = suggestion; 
+          };
+          container.appendChild(btn);
+        });
+      }
+    }
+    
+    function generateBaseSuggestions() {
+      // Generate suggestions based on current category and duration
+      const pool = SUGGESTION_POOLS[currentCategory] || [];
+      const make = (...arr)=>arr[Math.floor(Math.random()*arr.length)];
+      const picks = new Set();
+      while (picks.size < Math.min(4, pool.length)) { 
+        picks.add(make(...pool)); 
+      }
+      return Array.from(picks).map(fn => fn(currentMinutes));
+    }
+
+    function loadSuggestions(){ renderSuggestions(); }
+    async function shuffleSuggestions(){ await renderSuggestions(); }
+
+    function updatePromptFromSelections() {
+      const workoutRequest = document.getElementById('workoutRequest');
+      if (!workoutRequest) return;
+      
+      // Create a prompt based on current selections
+      const categoryNames = {
+        'endurance': 'endurance',
+        'speed': 'speed training',
+        'hills': 'hill training',
+        'recovery': 'recovery',
+        'race': 'race preparation',
+        'fartlek': 'fartlek'
+      };
+      
+      const categoryName = categoryNames[currentCategory] || 'workout';
+      const prompt = `${currentMinutes} minute ${categoryName} workout`;
+      
+      // Only update if the field is empty or contains a generic placeholder
+      const currentValue = workoutRequest.value.trim();
+      if (!currentValue || currentValue === 'Describe your workout...' || currentValue.length < 10) {
+        workoutRequest.value = prompt;
+      }
+    }
+    
+    function updateActiveChips() {
+      // Update category chips
+      document.querySelectorAll('#category-chips .chip').forEach(chip => {
+        chip.classList.remove('active');
+        if (chip.getAttribute('data-cat') === currentCategory) {
+          chip.classList.add('active');
+        }
+      });
+      
+      // Update duration chips
+      document.querySelectorAll('#duration-chips .chip').forEach(chip => {
+        chip.classList.remove('active');
+        if (parseInt(chip.getAttribute('data-min')) === currentMinutes) {
+          chip.classList.add('active');
+        }
+      });
+    }
+
+    function selectCategory(el){
+      document.querySelectorAll('#category-chips .chip').forEach(c=>c.classList.remove('active'));
+      el.classList.add('active'); 
+      currentCategory = el.getAttribute('data-cat'); 
+      renderSuggestions(); 
+      updatePromptFromSelections();
+      savePrefs();
+    }
+
+    function selectDuration(el){
+      document.querySelectorAll('#duration-chips .chip').forEach(c=>c.classList.remove('active'));
+      el.classList.add('active'); 
+      currentMinutes = parseInt(el.getAttribute('data-min'),10) || 20; 
+      renderSuggestions(); 
+      updatePromptFromSelections();
+      savePrefs();
+    }
+
+    /* ---------- Session tracking variables ---------- */
+    let currentSessionId = null;
+    let sessionStartTime = null;
+    let performanceData = {
+        interval_metrics: [],
+        completed_intervals: 0,
+        skipped_intervals: 0,
+        notes: "",
+        performance_rating: 0
+    };
+
+    /* ---------- Generate / parse / saved ---------- */
+    async function generateWorkout() {
+      const request = document.getElementById('workoutRequest').value;
+      if (!request.trim()) { alert('Please describe the workout you want'); return; }
+
+      const genTextEl = document.getElementById('generate-btn-text');
+      const genLoadEl = document.getElementById('generate-loading');
+      const btn = document.querySelector('.btn-generate');
+      if (genTextEl) genTextEl.style.display = 'none';
+      if (genLoadEl) genLoadEl.style.display = 'inline-block';
+      if (btn) btn.disabled = true;
+
+      try {
+        const resp = await fetch('/generate_workout', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ request }) });
+        const ct = (resp.headers.get('content-type') || '').toLowerCase();
+        let data = null;
+        if (ct.includes('application/json')) { data = await resp.json(); }
+        else { const text = await resp.text(); try { data = JSON.parse(text); } catch (e) { throw new Error(`Server did not return JSON. Status ${resp.status}. Body: ${text ? text.slice(0,140) : '(empty)'}`); } }
+        if (!resp.ok) { const msg = (data && (data.error || data.message)) || `Request failed with status ${resp.status}`; throw new Error(msg); }
+
+        if (data.success) {
+          const genText = document.getElementById('generatedText'); if (genText) genText.value = data.workout_text || '';
+          const genBox = document.getElementById('generated-workout'); if (genBox) genBox.style.display='block';
+          intervals = Array.isArray(data.intervals) ? data.intervals : [];
+        } else { const msg = data && (data.error || data.message) ? (data.error || data.message) : 'Unknown error'; alert('Error: ' + msg); }
+      } catch (err) {
+        console.error('generate_workout failed:', err); alert('Error: ' + (err?.message || String(err)));
+      } finally {
+        if (btn) btn.disabled = false; if (genTextEl) genTextEl.style.display='inline-block'; if (genLoadEl) genLoadEl.style.display='none';
+      }
+    }
+
+    function useGeneratedWorkout() {
+      if (!intervals.length) return;
+      displayIntervals();
+      document.getElementById('timer-section').classList.add('active');
+      resetTimer(); updateProgress(); saveState(); updateStats(); updateETA();
+      
+      // Start session tracking
+      startSessionTracking();
+    }
+
+    async function loadSavedWorkouts() {
+      try {
+        const response = await fetch('/saved_workouts');
+        const workouts = await response.json();
+        const container = document.getElementById('saved-workouts-list');
+        if (workouts.length === 0) { container.innerHTML = '<p>No saved workouts yet. Generate or paste some workouts first!</p>'; return; }
+        container.innerHTML = '';
+        workouts.forEach(workout => {
+          const div = document.createElement('div');
+          div.className = 'workout-item';
+          div.onclick = () => loadWorkout(workout.id);
+          const method = workout.method === 'api_generated' ? '🤖 AI Generated' : '📝 Manual';
+          div.innerHTML = `<div><strong>${workout.name}</strong></div>
+          <div class="workout-meta">${method} • ${workout.interval_count} intervals • ${workout.total_minutes} minutes<br>Created: ${new Date(workout.created).toLocaleDateString()}</div>`;
+          container.appendChild(div);
+        });
+      } catch (e) { console.error('Error loading saved workouts:', e); }
+    }
+
+    async function loadWorkout(workoutId) {
+      try {
+        const response = await fetch(`/load_workout/${workoutId}`);
+        const data = await response.json();
+        if (data.success) {
+          intervals = data.intervals;
+          displayIntervals();
+          document.getElementById('timer-section').classList.add('active');
+          resetTimer(); updateProgress(); saveState(); updateStats(); updateETA();
+          alert(`Loaded: ${data.name}`);
+        }
+      } catch (e) { alert('Error loading workout: ' + e.message); }
+    }
+
+    async function parseWorkout() {
+      const text = document.getElementById('workoutText').value;
+      if (!text.trim()) { alert('Please paste a workout first'); return; }
+      try {
+        const response = await fetch('/parse', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text}) });
+        const data = await response.json();
+        if (data.success) {
+          intervals = data.intervals;
+          displayIntervals();
+          document.getElementById('timer-section').classList.add('active');
+          resetTimer(); updateProgress(); saveState(); updateStats(); updateETA();
+        } else { alert('Error: ' + data.error); }
+      } catch (e) { alert('Error parsing workout: ' + e.message); }
+    }
+
+    /* ---------- Interval rendering & phases ---------- */
+    function phaseClassForInterval(interval){
+      if (!interval) return '';
+      const desc = (interval.description || '').toLowerCase();
+      const spd = Number(interval.speed_mph || 0);
+      if (desc.includes('warm') || desc.includes('cool')) return 'phase-blue';
+      if (spd >= 7.1) return 'phase-red';
+      if (spd > 6.8 && spd <= 7.1) return 'phase-orange';
+      if (spd >= 6.2 && spd <= 6.8) return 'phase-yellow';
+      if (spd >= 5.5 && spd <= 6.1) return 'phase-green';
+      if (spd > 0 && spd < 5.5) return 'phase-blue';
+      return '';
+    }
+
+    function sectionNameForInterval(interval){
+      if (!interval) return 'Interval';
+      const d = (interval.description || '').toLowerCase();
+      const spd = Number(interval.speed_mph || 0);
+      if (d.includes('warm')) return 'Warm-up';
+      if (d.includes('cool')) return 'Cool-down';
+      if (d.includes('recover')) return 'Recovery';
+      if (d.includes('tempo')) return 'Tempo';
+      if (d.includes('fartlek')) return 'Fartlek';
+      if (d.includes('hill')) return 'Hills';
+      if (d.includes('sprint') || d.includes('hard') || d.includes('vo2')) return 'Work';
+      if (spd >= 7.1) return 'Hard';
+      if (spd > 6.8 && spd <= 7.1) return 'Moderate-Hard';
+      if (spd >= 6.2 && spd <= 6.8) return 'Moderate';
+      if (spd >= 5.5 && spd <= 6.1) return 'Easy Jog';
+      if (spd > 0 && spd < 5.5) return 'Recovery';
+      return 'Interval';
+    }
+
+    function applyPhaseColor(){
+      const wrap = document.getElementById('timer-section');
+      const body = document.body;
+      const classes = ['phase-blue','phase-green','phase-yellow','phase-orange','phase-red'];
+      if (wrap) wrap.classList.remove(...classes);
+      if (body) body.classList.remove(...classes);
+      const cur = intervals[currentIntervalIndex];
+      const cls = phaseClassForInterval(cur);
+      if (cls){ wrap?.classList.add(cls); body?.classList.add(cls); }
+    }
+
+    function displayIntervals() {
+      const list = document.getElementById('intervals-list');
+      list.innerHTML = '<h4>All Intervals (' + intervals.length + '):</h4>';
+      intervals.forEach((interval, i) => {
+        const tint = (function(){
+          const ph = phaseClassForInterval(interval);
+          if (ph === 'phase-blue') return 'tint-blue';
+          if (ph === 'phase-green') return 'tint-green';
+          if (ph === 'phase-yellow') return 'tint-yellow';
+          if (ph === 'phase-orange') return 'tint-orange';
+          if (ph === 'phase-red') return 'tint-red';
+          return '';
+        })();
+        list.innerHTML += `
+          <div class="interval-item ${tint}" id="interval-${i}">
+            ${i+1}. ${interval.duration_min} min @ ${interval.speed_mph} mph 
+            ${interval.description ? '- ' + esc(interval.description) : ''}
+            ${interval.section ? '(' + interval.section + ')' : ''}
+          </div>`;
+      });
+      updateProgress(); updateStats(); updateETA();
+    }
+
+    /* ---------- Timer controls ---------- */
+    function formatTime(s) { const m = Math.floor(s/60); const sec = s%60; return `${m}:${String(sec).padStart(2,'0')}`; }
+
+    function startTimer() {
+      if (!intervals.length) return;
+      if (!isPaused) {
+        if (currentIntervalIndex >= intervals.length) resetTimer();
+        timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
+        // Play bell sound when starting first interval
+        if (currentIntervalIndex === 0) playBell();
+      }
+      isPaused = false;
+      if (wakeLockPref) requestWakeLock();
+      document.getElementById('btn-start').style.display = 'none';
+      document.getElementById('btn-pause').style.display = 'inline-block';
+
+      deadlineTs = Date.now() + timeRemaining * 1000;
+      updateDisplay(); updateProgress(); applyPhaseColor(); updateETA();
+
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        const now = Date.now();
+        timeRemaining = Math.max(0, Math.round((deadlineTs - now)/1000));
+        document.getElementById('timer').textContent = formatTime(timeRemaining);
+
+        if (timeRemaining <= 0) {
+          beep(); currentIntervalIndex++;
+          if (currentIntervalIndex < intervals.length) {
+            // Play bell sound for interval transition
+            playBell();
+            timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
+            deadlineTs = Date.now() + timeRemaining * 1000;
+            updateDisplay(); updateProgress(); updateETA(); applyPhaseColor();
+          } else {
+            updateDisplay(); updateProgress(); updateETA();
+            clearInterval(timerInterval);
+          }
+        }
+      }, 250);
+    }
+
+    function pauseTimer(){ isPaused = true; clearInterval(timerInterval); timerInterval=null; document.getElementById('btn-start').style.display='inline-block'; document.getElementById('btn-pause').style.display='none'; updateProgress(); updateETA(); }
+
+    function skipInterval(){
+      if (currentIntervalIndex < intervals.length - 1) {
+        currentIntervalIndex++;
+        // Play bell sound for manual interval skip
+        playBell();
+        timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
+        document.getElementById('timer').textContent = formatTime(timeRemaining);
+        updateDisplay(); updateProgress(); applyPhaseColor();
+        if (timerInterval) deadlineTs = Date.now() + timeRemaining * 1000;
+        updateETA();
+      }
+    }
+
+    function prevInterval(){
+      if (currentIntervalIndex > 0) {
+        currentIntervalIndex--;
+        timeRemaining = Math.round(safeMinutes(intervals[currentIntervalIndex]) * 60);
+        document.getElementById('timer').textContent = formatTime(timeRemaining);
+        updateDisplay(); updateProgress(); applyPhaseColor();
+        if (timerInterval) deadlineTs = Date.now() + timeRemaining * 1000;
+        updateETA();
+      }
+    }
+
+    function stopTimer(){
+      releaseWakeLock();
+      clearInterval(timerInterval); timerInterval=null; isPaused=false;
+      document.getElementById('btn-start').style.display='inline-block';
+      document.getElementById('btn-pause').style.display='none';
+      resetTimer(); updateProgress(); updateETA();
+    }
+
+    function resetTimer(){
+      currentIntervalIndex = 0;
+      if (intervals.length > 0) {
+        timeRemaining = Math.round(safeMinutes(intervals[0]) * 60);
+        document.getElementById('timer').textContent = formatTime(timeRemaining);
+        updateDisplay(); updateProgress(); applyPhaseColor(); updateStats(); updateETA();
+      }
+    }
+
+    function resetTimerOnly(){
+      try { clearInterval(timerInterval); } catch {}
+      timerInterval = null; isPaused=false;
+      if (!intervals || !intervals.length) {
+        timeRemaining = 0; deadlineTs = null; document.getElementById('timer').textContent = '0:00'; updateETA(); return;
+      }
+      const cur = intervals[currentIntervalIndex] || intervals[0];
+      timeRemaining = Math.round(safeMinutes(cur) * 60);
+      deadlineTs = null;
+      document.getElementById('timer').textContent = formatTime(timeRemaining);
+      updateDisplay(); updateProgress(); updateETA();
+    }
+
+    function resetAll(){
+      releaseWakeLock();
+      try { clearInterval(timerInterval); } catch {}
+      timerInterval = null; intervals = []; currentIntervalIndex = 0; timeRemaining = 0; isPaused = false; deadlineTs = null;
+      const ts = document.getElementById('timer-section'); ts?.classList.remove('active','phase-blue','phase-green','phase-yellow','phase-orange','phase-red');
+      const list = document.getElementById('intervals-list'); if (list) list.innerHTML='';
+      const next = document.getElementById('next-interval'); if (next) next.textContent='-';
+      const pill = document.getElementById('summary-pill'); if (pill) pill.textContent='—';
+      const stats = document.getElementById('stats-line'); if (stats) stats.textContent='';
+      const bar = document.getElementById('progress-bar'); if (bar) { bar.style.width='0%'; bar.setAttribute('aria-valuenow','0'); }
+      const t = document.getElementById('timer'); if (t) t.textContent='0:00';
+      const cs = document.getElementById('current-section'); if (cs) cs.textContent='-';
+      const csp = document.getElementById('current-speed'); if (csp) csp.textContent='-';
+      const ci = document.getElementById('current-incline'); if (ci) ci.textContent='0';
+      const cdesc = document.getElementById('current-description'); if (cdesc) cdesc.textContent='-';
+      updateETA(); try { localStorage.removeItem('wt.last'); } catch {}
+    }
+
+    function beep(){
+      if (muteBeeps) return;
+      try{
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const audioContext = new AudioCtx();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        oscillator.connect(gainNode); gainNode.connect(audioContext.destination);
+        oscillator.frequency.value = 800; oscillator.type='sine';
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        oscillator.start(audioContext.currentTime); oscillator.stop(audioContext.currentTime + 0.5);
+      } catch(e){ console.log('Audio not available'); }
+    }
+
+    /* ---------- Persistence ---------- */
+    function saveState(){ try { const req = document.getElementById('workoutRequest'); localStorage.setItem('wt.last', JSON.stringify({ intervals, request: (req ? req.value : '') })); } catch {} }
+    function loadState(){
+      try {
+        const s = JSON.parse(localStorage.getItem('wt.last') || 'null');
+        if (s?.intervals?.length) {
+          intervals = s.intervals; displayIntervals(); document.getElementById('timer-section').classList.add('active');
+          resetTimer(); updateProgress(); updateStats();
+        }
+        if (s?.request) { const req = document.getElementById('workoutRequest'); if (req) req.value = s.request; }
+      } catch {}
+    }
+
+    function setMuted(on){ 
+      muteBeeps = !!on; 
+      try { 
+        localStorage.setItem('wt.muted', muteBeeps ? '1' : '0'); 
+        // Sync landscape controls
+        const landscapeToggle = document.getElementById('landscape-mute-toggle');
+        if (landscapeToggle) landscapeToggle.checked = muteBeeps;
+      } catch {} 
+    }
+    
+    function loadMuted(){ 
+      try { 
+        const v = localStorage.getItem('wt.muted'); 
+        muteBeeps = v === '1'; 
+        const cb = document.getElementById('mute-toggle'); 
+        if (cb) cb.checked = muteBeeps;
+        // Sync landscape controls
+        const landscapeToggle = document.getElementById('landscape-mute-toggle');
+        if (landscapeToggle) landscapeToggle.checked = muteBeeps;
+      } catch {} 
+    }
+    
+    function setBellEnabled(on){ 
+      bellEnabled = !!on; 
+      try { 
+        localStorage.setItem('wt.bell', bellEnabled ? '1' : '0'); 
+        // Sync landscape controls
+        const landscapeToggle = document.getElementById('landscape-bell-toggle');
+        if (landscapeToggle) landscapeToggle.checked = bellEnabled;
+      } catch {} 
+    }
+    
+    function loadBell(){ 
+      try { 
+        const v = localStorage.getItem('wt.bell'); 
+        bellEnabled = v === '1'; 
+        const cb = document.getElementById('bell-toggle'); 
+        if (cb) cb.checked = bellEnabled;
+        // Sync landscape controls
+        const landscapeToggle = document.getElementById('landscape-bell-toggle');
+        if (landscapeToggle) landscapeToggle.checked = bellEnabled;
+      } catch {} 
+    }
+    
+    function testBell(){
+      // Temporarily enable bell for testing
+      const wasEnabled = bellEnabled;
+      bellEnabled = true;
+      playBell();
+      // Restore previous state after a short delay
+      setTimeout(() => { bellEnabled = wasEnabled; }, 100);
+    }
+
+    /* ---------- Enhanced iPhone interactions ---------- */
+    
+    // Haptic feedback for iPhone
+    function hapticFeedback(type = 'light') {
+      if ('vibrate' in navigator) {
+        switch(type) {
+          case 'light':
+            navigator.vibrate(10);
+            break;
+          case 'medium':
+            navigator.vibrate(50);
+            break;
+          case 'heavy':
+            navigator.vibrate(100);
+            break;
+        }
+      }
+    }
+
+    // Enhanced touch gestures for timer control
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+
+    function handleGesture() {
+      const diffX = touchStartX - touchEndX;
+      const diffY = touchStartY - touchEndY;
+      const minSwipeDistance = 50;
+
+      if (Math.abs(diffX) > Math.abs(diffY)) {
+        // Horizontal swipe
+        if (Math.abs(diffX) > minSwipeDistance) {
+          if (diffX > 0) {
+            // Swipe left - skip interval
+            skipInterval();
+            hapticFeedback('medium');
+          } else {
+            // Swipe right - previous interval
+            prevInterval();
+            hapticFeedback('medium');
+          }
+        }
+      } else {
+        // Vertical swipe
+        if (Math.abs(diffY) > minSwipeDistance) {
+          if (diffY > 0) {
+            // Swipe up - start/pause timer
+            if (isPaused) {
+              startTimer();
+            } else {
+              pauseTimer();
+            }
+            hapticFeedback('light');
+          } else {
+            // Swipe down - stop timer
+            stopTimer();
+            hapticFeedback('heavy');
+          }
+        }
+      }
+    }
+
+    // Add touch event listeners to timer display
+    function addTouchGestures() {
+      const timerDisplay = document.getElementById('timer-section');
+      if (!timerDisplay) return;
+
+      timerDisplay.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+      }, { passive: true });
+
+      timerDisplay.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleGesture();
+      }, { passive: true });
+    }
+
+    // Enhanced beep with haptic feedback
+    function beep(){
+      if (muteBeeps) return;
+      
+      // Haptic feedback
+      hapticFeedback('light');
+      
+      try{
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const audioContext = new AudioCtx();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        oscillator.connect(gainNode); 
+        gainNode.connect(audioContext.destination);
+        oscillator.frequency.value = 800; 
+        oscillator.type='sine';
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        oscillator.start(audioContext.currentTime); 
+        oscillator.stop(audioContext.currentTime + 0.5);
+      } catch(e){ 
+        console.log('Audio not available'); 
+      }
+    }
+
+    // Bell sound for interval transitions
+    function playBell(){
+      if (!bellEnabled) return;
+      
+      // Haptic feedback for bell
+      hapticFeedback('medium');
+      
+      try{
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioContext = window.audioContext;
+        
+        // Create new audio context if it doesn't exist or is suspended
+        if (!audioContext || audioContext.state === 'suspended') {
+          audioContext = new AudioCtx();
+          window.audioContext = audioContext;
+          
+          // Resume audio context if suspended (required for iOS)
+          if (audioContext.state === 'suspended') {
+            audioContext.resume();
+          }
+        }
+        
+        // Create a bell-like sound using multiple oscillators
+        const frequencies = [523.25, 659.25, 783.99]; // C5, E5, G5 chord
+        const oscillators = [];
+        const gainNodes = [];
+        
+        frequencies.forEach((freq, index) => {
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          oscillator.frequency.value = freq;
+          oscillator.type = 'sine';
+          
+          // Stagger the start times slightly for a more natural bell sound
+          const startTime = audioContext.currentTime + (index * 0.05);
+          const duration = 2.0; // Increased duration
+          
+          gainNode.gain.setValueAtTime(0, startTime);
+          gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.1); // Increased volume
+          gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+          
+          oscillator.start(startTime);
+          oscillator.stop(startTime + duration);
+          
+          oscillators.push(oscillator);
+          gainNodes.push(gainNode);
+        });
+        
+        // Clean up oscillators after they finish
+        setTimeout(() => {
+          oscillators.forEach(osc => {
+            try { osc.disconnect(); } catch(e) {}
+          });
+          gainNodes.forEach(gain => {
+            try { gain.disconnect(); } catch(e) {}
+          });
+        }, duration * 1000 + 100);
+        
+      } catch(e){ 
+        console.log('Bell audio not available:', e); 
+      }
+    }
+
+    // Enhanced button interactions with haptic feedback
+    function addHapticToButtons() {
+      const buttons = document.querySelectorAll('button');
+      buttons.forEach(button => {
+        button.addEventListener('touchstart', () => {
+          hapticFeedback('light');
+          // Initialize audio context on first user interaction (required for iOS)
+          if (!window.audioContext) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            window.audioContext = new AudioCtx();
+          }
+        }, { passive: true });
+      });
+    }
+
+    // iOS-specific optimizations
+    function optimizeForIOS() {
+      // Prevent zoom on double tap
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', (event) => {
+        const now = (new Date()).getTime();
+        if (now - lastTouchEnd <= 300) {
+          event.preventDefault();
+        }
+        lastTouchEnd = now;
+      }, false);
+
+      // Add iOS momentum scrolling to scrollable elements
+      const scrollableElements = document.querySelectorAll('.saved-workouts, .intervals-list');
+      scrollableElements.forEach(el => {
+        el.style.webkitOverflowScrolling = 'touch';
+      });
+
+      // Optimize for iPhone notch
+      if (window.innerWidth <= 414) { // iPhone width
+        document.body.style.paddingTop = 'env(safe-area-inset-top)';
+        document.body.style.paddingBottom = 'env(safe-area-inset-bottom)';
+      }
+    }
+
+    /* ---------- Keyboard shortcuts ---------- */
+    document.addEventListener('keydown', (e) => {
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.code === 'Space') { e.preventDefault(); isPaused ? startTimer() : pauseTimer(); }
+      if (e.key === 'ArrowRight') skipInterval();
+      if (e.key === 'ArrowLeft') prevInterval();
+      if (e.key.toLowerCase && e.key.toLowerCase() === 's') stopTimer();
+    });
+
+    /* ---------- Session tracking functions ---------- */
+    async function startSessionTracking() {
+      try {
+        // For now, we'll create a session without a specific workout ID
+        // In a real implementation, you'd save the workout first
+        const response = await fetch('/start_session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ workout_id: 1 }) // Placeholder
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          currentSessionId = data.session_id;
+          sessionStartTime = new Date();
+          updateSessionDisplay();
+          hapticFeedback('light');
+        }
+      } catch (e) {
+        console.error('Error starting session:', e);
+      }
+    }
+
+    async function completeCurrentSession() {
+      if (!currentSessionId) return;
+      
+      try {
+        // Calculate performance data
+        const sessionDuration = sessionStartTime ? 
+          (new Date() - sessionStartTime) / (1000 * 60) : 0;
+        
+        performanceData.total_duration_minutes = sessionDuration;
+        performanceData.completed_intervals = currentIntervalIndex;
+        performanceData.skipped_intervals = intervals.length - currentIntervalIndex;
+        
+        const response = await fetch('/complete_session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: currentSessionId,
+            performance: performanceData
+          })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          alert('Session completed! Check the Progress tab for details.');
+          currentSessionId = null;
+          sessionStartTime = null;
+          updateSessionDisplay();
+          hapticFeedback('medium');
+        }
+      } catch (e) {
+        console.error('Error completing session:', e);
+        alert('Error completing session: ' + e.message);
+      }
+    }
+
+    function updateSessionDisplay() {
+      const sessionInfo = document.getElementById('current-session-info');
+      const noSessionInfo = document.getElementById('no-session-info');
+      
+      if (currentSessionId) {
+        sessionInfo.style.display = 'block';
+        noSessionInfo.style.display = 'none';
+        document.getElementById('session-id').textContent = currentSessionId;
+        document.getElementById('session-start').textContent = 
+          sessionStartTime ? sessionStartTime.toLocaleTimeString() : '-';
+      } else {
+        sessionInfo.style.display = 'none';
+        noSessionInfo.style.display = 'block';
+      }
+    }
+
+    async function loadProgressReport(days = 30) {
+      try {
+        const response = await fetch(`/progress_report?days=${days}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          displayProgressStats(data.statistics);
+          displayRecentSessions(data.recent_sessions);
+          
+          // Update period selector
+          document.querySelectorAll('.period-selector .chip').forEach(chip => {
+            chip.classList.remove('active');
+          });
+          document.querySelector(`[data-days="${days}"]`).classList.add('active');
+        }
+      } catch (e) {
+        console.error('Error loading progress report:', e);
+      }
+    }
+
+    function displayProgressStats(stats) {
+      const container = document.getElementById('progress-stats');
+      container.innerHTML = `
+        <div class="metric">
+          <div class="metric-label">Total Workouts</div>
+          <div class="metric-value">${stats.total_workouts}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Total Duration</div>
+          <div class="metric-value">${Math.round(stats.total_duration_minutes)}<span class="metric-unit"> min</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Avg Performance</div>
+          <div class="metric-value">${stats.avg_performance_rating ? stats.avg_performance_rating.toFixed(1) : 'N/A'}<span class="metric-unit">/10</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Active Days</div>
+          <div class="metric-value">${stats.active_days}</div>
+        </div>
+      `;
+    }
+
+    function displayRecentSessions(sessions) {
+      const container = document.getElementById('recent-sessions-list');
+      if (sessions.length === 0) {
+        container.innerHTML = '<p>No recent sessions found.</p>';
+        return;
+      }
+      
+      container.innerHTML = sessions.map(session => `
+        <div class="session-item">
+          <div class="session-info">
+            <div><strong>${session.description}</strong></div>
+            <div style="font-size: 14px; color: var(--ios-gray);">
+              ${new Date(session.started_at).toLocaleDateString()} • 
+              ${session.duration_minutes ? Math.round(session.duration_minutes) + ' min' : 'N/A'} • 
+              Rating: ${session.performance_rating || 'N/A'}/10
+            </div>
+          </div>
+          <div class="session-actions">
+            ${session.whoop_screenshot ? 
+              `<button onclick="viewWhoopScreenshot('${session.whoop_screenshot}')" style="font-size: 12px; padding: 4px 8px;">📱 View</button>` : 
+              ''
+            }
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function generateAISummary() {
+      if (!currentSessionId) {
+        alert('No active session to summarize. Complete a workout first.');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/generate_whoop_summary', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: currentSessionId })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          document.getElementById('ai-summary-content').textContent = data.summary;
+        } else {
+          alert('Error generating summary: ' + data.error);
+        }
+      } catch (e) {
+        console.error('Error generating AI summary:', e);
+        alert('Error generating summary: ' + e.message);
+      }
+    }
+
+    function viewWhoopScreenshot(path) {
+      window.open(path, '_blank');
+    }
+
+    // WHOOP screenshot upload handling
+    document.getElementById('whoop-screenshot').addEventListener('change', async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      if (!currentSessionId) {
+        alert('No active session. Start a workout first.');
+        return;
+      }
+      
+      const formData = new FormData();
+      formData.append('screenshot', file);
+      formData.append('session_id', currentSessionId);
+      
+      try {
+        const response = await fetch('/upload_whoop_screenshot', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          // Show preview
+          const preview = document.getElementById('upload-preview');
+          preview.innerHTML = `
+            <img src="${data.filepath}" alt="WHOOP Screenshot">
+            <p style="margin-top: 8px; color: var(--ios-green);">✅ Screenshot uploaded successfully!</p>
+          `;
+          hapticFeedback('light');
+        } else {
+          alert('Error uploading screenshot: ' + data.error);
+        }
+      } catch (e) {
+        console.error('Error uploading screenshot:', e);
+        alert('Error uploading screenshot: ' + e.message);
+      }
+    });
+
+    /* ---------- Init ---------- */
+    window.addEventListener('beforeunload', saveState);
+    loadPrefs();
+    document.querySelectorAll('#category-chips .chip').forEach(c=>c.classList.toggle('active', c.getAttribute('data-cat') === currentCategory));
+    document.querySelectorAll('#duration-chips .chip').forEach(c=>c.classList.toggle('active', parseInt(c.getAttribute('data-min'),10) === currentMinutes));
+    loadSuggestions(); loadState(); loadMuted(); loadBell(); updateStats(); updateETA(); loadWakeLockPref();
+    
+    // Initialize iPhone-specific features
+    addTouchGestures();
+    addHapticToButtons();
+    optimizeForIOS();
+    
+    // Load initial progress report
+    if (window.location.hash === '#progress') {
+      loadProgressReport(30);
+    }
+    
+    // Check WHOOP connection status on page load
+    checkWHOOPStatus();
+
+    /* ---------- WHOOP Integration Functions ---------- */
+    function connectWHOOP() {
+      const btn = document.getElementById('whoop-connect-btn');
+      const status = document.getElementById('whoop-status');
+      
+      btn.textContent = '🔄 Connecting...';
+      btn.disabled = true;
+      status.innerHTML = '<p>Redirecting to WHOOP for authorization...</p>';
+      
+      // Redirect to WHOOP OAuth
+      window.location.href = '/whoop/auth';
+    }
+    
+    function refreshWHOOPData() {
+      fetch('/whoop/recovery')
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            displayWHOOPData(data.recovery_data, data.analysis);
+            showWHOOPSections();
+          } else {
+            console.error('Failed to get WHOOP data:', data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching WHOOP data:', error);
+        });
+    }
+    
+    function displayWHOOPData(recoveryData, analysis) {
+      console.log('WHOOP Recovery Data:', recoveryData);
+      
+      // Display recovery metrics based on actual WHOOP API structure
+      let recoveryScore = recoveryData?.score || recoveryData?.recovery?.score?.recovery_score || '--';
+      if (typeof recoveryScore === 'object' && recoveryScore !== null) {
+        console.log('Recovery score is an object:', recoveryScore);
+        recoveryScore = recoveryScore.recovery_score || recoveryScore.score || JSON.stringify(recoveryScore);
+      }
+      
+      // Extract data according to WHOOP API structure
+      // Sleep: sleep_data.score.sleep_performance_percentage
+      let sleepScore = recoveryData?.sleep_data?.score?.sleep_performance_percentage || recoveryData?.sleep?.score?.sleep_performance_percentage || '--';
+      if (typeof sleepScore === 'object' && sleepScore !== null) {
+        sleepScore = sleepScore.sleep_performance_percentage || sleepScore.score || JSON.stringify(sleepScore);
+      }
+      
+      // Strain: strain_data.score.strain (from cycle endpoint)
+      let strainScore = recoveryData?.strain_data?.score?.strain || recoveryData?.strain?.score?.strain || '--';
+      if (typeof strainScore === 'object' && strainScore !== null) {
+        strainScore = strainScore.strain || strainScore.score || JSON.stringify(strainScore);
+      }
+      
+      // HRV: score.hrv_rmssd_milli (from recovery endpoint)
+      let hrvValue = recoveryData?.score?.hrv_rmssd_milli || recoveryData?.hrv || '--';
+      if (typeof hrvValue === 'object' && hrvValue !== null) {
+        hrvValue = hrvValue.hrv_rmssd_milli || hrvValue.value || JSON.stringify(hrvValue);
+      }
+      
+      document.getElementById('recovery-score').textContent = recoveryScore;
+      document.getElementById('sleep-score').textContent = sleepScore;
+      document.getElementById('strain-score').textContent = strainScore;
+      document.getElementById('hrv-value').textContent = hrvValue;
+      
+      // Show sections
+      showWHOOPSections();
+    }
+    
+    function showWHOOPSections() {
+      document.getElementById('whoop-recovery-section').style.display = 'block';
+      document.getElementById('whoop-recommendations-section').style.display = 'block';
+      document.getElementById('whoop-workouts-section').style.display = 'block';
+    }
+    
+    function getWHOOPRecommendations() {
+      fetch('/whoop/recommendations')
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            displayWHOOPRecommendations(data.recommendation, data.analysis);
+          } else {
+            console.error('Failed to get recommendations:', data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching recommendations:', error);
+        });
+    }
+    
+    function displayWHOOPRecommendations(recommendation, analysis) {
+      const content = document.getElementById('whoop-recommendation-content');
+      
+      let html = `
+        <div class="recommendation-card">
+          <h4>🎯 Today's Workout Recommendation</h4>
+          <div class="recommendation-details">
+            <p><strong>Type:</strong> ${recommendation.workout_type}</p>
+            <p><strong>Intensity:</strong> ${recommendation.intensity}</p>
+            <p><strong>Duration:</strong> ${recommendation.duration}</p>
+            <p><strong>Description:</strong> ${recommendation.description}</p>
+            <p><strong>Recovery Score:</strong> ${recommendation.recovery_score}%</p>
+          </div>
+          <div class="recommendation-reasons">
+            <h5>Why this recommendation?</h5>
+            <ul>
+      `;
+      
+      if (analysis.recommendations) {
+        analysis.recommendations.forEach(rec => {
+          html += `<li>${rec}</li>`;
+        });
+      }
+      
+      html += `
+            </ul>
+          </div>
+          <button onclick="useWHOOPRecommendation('${recommendation.workout_type}', '${recommendation.intensity}', '${recommendation.duration}')" class="btn-generate">
+            🚀 Use This Recommendation
+          </button>
+        </div>
+      `;
+      
+      content.innerHTML = html;
+    }
+    
+    function useWHOOPRecommendation(workoutType, intensity, duration) {
+      // Switch to generate tab and pre-fill with WHOOP recommendation
+      switchTab('generate', document.querySelector('.tab[onclick*="generate"]'));
+      
+      // Pre-fill workout request
+      const workoutRequest = document.getElementById('workoutRequest');
+      workoutRequest.value = `${duration} ${intensity} intensity ${workoutType} workout based on WHOOP recovery data`;
+      
+      // Select appropriate category
+      const categoryMap = {
+        'recovery': 'recovery',
+        'moderate': 'endurance',
+        'intense': 'speed'
+      };
+      
+      const category = categoryMap[workoutType] || 'endurance';
+      const categoryBtn = document.querySelector(`[data-cat="${category}"]`);
+      if (categoryBtn) {
+        selectCategory(categoryBtn);
+      }
+      
+      // Select duration
+      const durationMatch = duration.match(/(\d+)/);
+      if (durationMatch) {
+        const durationValue = parseInt(durationMatch[1]);
+        const durationBtn = document.querySelector(`[data-min="${durationValue}"]`);
+        if (durationBtn) {
+          selectDuration(durationBtn);
+        }
+      }
+    }
+    
+    function loadWHOOPWorkouts(days) {
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      const endDate = new Date();
+      
+      const params = new URLSearchParams({
+        start_date: startDate.toISOString().split('T')[0],
+        end_date: endDate.toISOString().split('T')[0]
+      });
+      
+      fetch(`/whoop/workouts?${params}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            displayWHOOPWorkouts(data.workouts);
+          } else {
+            console.error('Failed to get WHOOP workouts:', data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching WHOOP workouts:', error);
+        });
+    }
+    
+    function displayWHOOPWorkouts(workouts) {
+      const container = document.getElementById('whoop-workouts-list');
+      
+      if (!workouts || workouts.length === 0) {
+        container.innerHTML = '<p>No workouts found for this period.</p>';
+        return;
+      }
+      
+      let html = '';
+      workouts.forEach(workout => {
+        const date = new Date(workout.start).toLocaleDateString();
+        const duration = Math.round(workout.duration / 60); // Convert to minutes
+        const strain = workout.strain || 'N/A';
+        
+        html += `
+          <div class="workout-item">
+            <div class="workout-header">
+              <h4>${workout.sport?.name || 'Workout'}</h4>
+              <span class="workout-date">${date}</span>
+            </div>
+            <div class="workout-details">
+              <span>Duration: ${duration} min</span>
+              <span>Strain: ${strain}</span>
+            </div>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+    }
+    
+    function checkWHOOPStatus() {
+      fetch('/whoop/recovery')
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // User is connected
+            document.getElementById('whoop-connect-btn').textContent = '✅ Connected to WHOOP';
+            document.getElementById('whoop-connect-btn').disabled = true;
+            document.getElementById('whoop-status').innerHTML = '<p>✅ Successfully connected to WHOOP!</p>';
+            displayWHOOPData(data.recovery_data, data.analysis);
+          } else if (data.error === 'Not authenticated with WHOOP') {
+            // User needs to connect
+            document.getElementById('whoop-connect-btn').textContent = '🔗 Connect WHOOP Account';
+            document.getElementById('whoop-connect-btn').disabled = false;
+            document.getElementById('whoop-status').innerHTML = '<p>Connect your WHOOP account to get personalized recommendations.</p>';
+          }
+        })
+        .catch(error => {
+          console.error('Error checking WHOOP status:', error);
+        });
+    }
+
+    /* ---------- ML Insights Functions ---------- */
+    async function loadMLAnalysis(days = 30) {
+      try {
+        const response = await fetch(`/ml_analysis?days=${days}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          displayMLAnalysis(data.analysis);
+          
+          // Update period selector
+          document.querySelectorAll('#ml-tab .period-selector .chip').forEach(chip => {
+            chip.classList.remove('active');
+          });
+          document.querySelector(`#ml-tab [data-days="${days}"]`).classList.add('active');
+        } else {
+          document.getElementById('ml-analysis-content').innerHTML = 
+            `<p style="color: var(--ios-gray);">${data.message || 'No data available for analysis'}</p>`;
+        }
+      } catch (e) {
+        console.error('Error loading ML analysis:', e);
+        document.getElementById('ml-analysis-content').innerHTML = 
+          '<p style="color: var(--ios-red);">Error loading analysis</p>';
+      }
+    }
+
+    function displayMLAnalysis(analysis) {
+      const container = document.getElementById('ml-analysis-content');
+      
+      container.innerHTML = `
+        <div class="performance-metrics">
+          <div class="metric-card">
+            <div class="metric-value">${analysis.total_sessions}</div>
+            <div class="metric-label">Sessions</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">${analysis.avg_performance}</div>
+            <div class="metric-label">Avg Rating</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">${analysis.completion_rate}%</div>
+            <div class="metric-label">Completion</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">${analysis.recovery_patterns.optimal_rest_days}</div>
+            <div class="metric-label">Rest Days</div>
+          </div>
+        </div>
+        
+        <h4>Performance Distribution</h4>
+        <div style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>Excellent (8-10): ${analysis.performance_distribution.excellent}</span>
+            <span style="color: var(--ios-green);">${Math.round(analysis.performance_distribution.excellent / analysis.total_sessions * 100)}%</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>Good (6-7): ${analysis.performance_distribution.good}</span>
+            <span style="color: var(--ios-blue);">${Math.round(analysis.performance_distribution.good / analysis.total_sessions * 100)}%</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>Fair (4-5): ${analysis.performance_distribution.fair}</span>
+            <span style="color: var(--ios-orange);">${Math.round(analysis.performance_distribution.fair / analysis.total_sessions * 100)}%</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>Poor (1-3): ${analysis.performance_distribution.poor}</span>
+            <span style="color: var(--ios-red);">${Math.round(analysis.performance_distribution.poor / analysis.total_sessions * 100)}%</span>
+          </div>
+        </div>
+        
+        <h4>Recovery Insights</h4>
+        <div class="insight-card info">
+          <strong>Optimal Rest Days:</strong> ${analysis.recovery_patterns.optimal_rest_days} days<br>
+          <strong>Performance After Rest:</strong> ${analysis.recovery_patterns.performance_after_rest}<br>
+          <strong>Overtraining Risk:</strong> ${analysis.recovery_patterns.overtraining_risk}
+        </div>
+      `;
+    }
+
+    async function generatePersonalizedWorkout() {
+      try {
+        // Get user preferences
+        const preferences = {
+          endurance: document.getElementById('pref-endurance').checked,
+          speed: document.getElementById('pref-speed').checked,
+          hills: document.getElementById('pref-hills').checked,
+          recovery: document.getElementById('pref-recovery').checked,
+          duration: parseInt(document.getElementById('duration-slider').value)
+        };
+        
+        const response = await fetch('/personalized_workout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ preferences })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          displayPersonalizedWorkout(data);
+          hapticFeedback('medium');
+        } else {
+          alert('Error generating personalized workout: ' + data.error);
+        }
+      } catch (e) {
+        console.error('Error generating personalized workout:', e);
+        alert('Error generating workout: ' + e.message);
+      }
+    }
+
+    function displayPersonalizedWorkout(data) {
+      const container = document.getElementById('personalized-workout-content');
+      
+      container.innerHTML = `
+        <h4>🎯 Your Personalized Workout</h4>
+        <div style="background: #fff; border: 1px solid var(--ios-border); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+          <pre style="white-space: pre-wrap; font-family: inherit; margin: 0;">${data.workout_text}</pre>
+        </div>
+        
+        <h4>📊 Recommendations</h4>
+        <div class="insight-card info">
+          <strong>Difficulty Rating:</strong> ${data.recommendations.difficulty_rating}/10<br>
+          <strong>Expected Performance:</strong> ${data.recommendations.expected_performance}/10<br>
+          <strong>Recovery Notes:</strong> ${data.recommendations.recovery_notes}<br>
+          <strong>Next Workout:</strong> ${data.recommendations.next_workout_suggestion}
+        </div>
+        
+        <button onclick="usePersonalizedWorkout()" class="btn-generate" style="margin-top: 16px;">
+          🏃‍♂️ Use This Workout
+        </button>
+      `;
+    }
+
+    function usePersonalizedWorkout() {
+      // This would integrate with the existing workout system
+      alert('Personalized workout loaded! Switch to the Generate tab to see it.');
+    }
+
+    async function loadPerformanceInsights() {
+      try {
+        const response = await fetch('/performance_insights?days=30');
+        const data = await response.json();
+        
+        if (data.success) {
+          displayPerformanceInsights(data.insights);
+          hapticFeedback('light');
+        } else {
+          alert('Error loading insights: ' + data.error);
+        }
+      } catch (e) {
+        console.error('Error loading performance insights:', e);
+        alert('Error loading insights: ' + e.message);
+      }
+    }
+
+    function displayPerformanceInsights(insights) {
+      const container = document.getElementById('insights-content');
+      
+      let html = '<h4>💡 Your Performance Insights</h4>';
+      
+      if (insights.strengths.length > 0) {
+        html += '<h5>✅ Strengths</h5>';
+        insights.strengths.forEach(strength => {
+          html += `<div class="insight-card positive">${strength}</div>`;
+        });
+      }
+      
+      if (insights.areas_for_improvement.length > 0) {
+        html += '<h5>⚠️ Areas for Improvement</h5>';
+        insights.areas_for_improvement.forEach(area => {
+          html += `<div class="insight-card warning">${area}</div>`;
+        });
+      }
+      
+      if (insights.recommendations.length > 0) {
+        html += '<h5>🎯 Recommendations</h5>';
+        insights.recommendations.forEach(rec => {
+          html += `<div class="insight-card info">${rec}</div>`;
+        });
+      }
+      
+      if (insights.trends.length > 0) {
+        html += '<h5>📈 Trends</h5>';
+        insights.trends.forEach(trend => {
+          html += `<div class="insight-card info">${trend}</div>`;
+        });
+      }
+      
+      container.innerHTML = html;
+    }
+
+    // Duration slider handler
+    document.getElementById('duration-slider').addEventListener('input', function(e) {
+      document.getElementById('duration-value').textContent = e.target.value;
+    });
+
+    /* ---------- Enhanced landscape mode detection ---------- */
+    function applyLandscapeCompact(){
+      const mq = window.matchMedia('(orientation: landscape)');
+      const isLandscape = mq.matches;
+      
+      // Apply compact mode on all screens in landscape when timer is active
+      const shouldCompact = isLandscape && intervals && intervals.length > 0;
+      document.body.classList.toggle('landscape-compact', shouldCompact);
+      
+      // Ensure vertical mode has proper overflow
+      if (!shouldCompact) {
+        document.body.style.overflow = 'auto';
+        document.body.style.height = 'auto';
+      }
+      
+      // Update landscape metrics display
+      const landscapeMetrics = document.getElementById('landscape-metrics');
+      if (landscapeMetrics) {
+        if (shouldCompact && intervals && intervals.length > 0 && currentIntervalIndex < intervals.length) {
+          const current = intervals[currentIntervalIndex];
+          const spd = (current && (current.speed_mph ?? current.speed)) || '-';
+          const inc = (current && (current.incline ?? 0)) || 0;
+          landscapeMetrics.textContent = `${spd} mph · ${inc}%`;
+        } else {
+          landscapeMetrics.textContent = '—';
+        }
+      }
+    }
+    
+    applyLandscapeCompact();
+    window.addEventListener('resize', applyLandscapeCompact);
+    window.addEventListener('orientationchange', applyLandscapeCompact);
+
+    /* ---------- Display refresh ---------- */
+    function updateDisplay() {
+      if (currentIntervalIndex >= intervals.length) { alert('Workout Complete! Great job! 💪'); stopTimer(); return; }
+
+      const current = intervals[currentIntervalIndex];
+      const next = intervals[currentIntervalIndex + 1];
+
+      document.getElementById('current-section').textContent = current.section || sectionNameForInterval(current);
+      document.getElementById('current-speed').textContent = current.speed_mph;
+      document.getElementById('current-incline').textContent = current.incline || 0;
+      document.getElementById('current-description').textContent = current.description || '';
+
+      // Update simplified landscape metrics
+      (function(){
+        const m = document.getElementById('landscape-metrics');
+        if (!m) return;
+        const spd = (current && (current.speed_mph ?? current.speed)) || '-';
+        const inc = (current && (current.incline ?? 0)) || 0;
+        m.textContent = `${spd} mph · ${inc}%`;
+      })();
+
+      applyPhaseColor();
+
+      if (next) {
+        document.getElementById('next-interval').textContent =
+          `${next.duration_min} min @ ${next.speed_mph} mph · ${sectionNameForInterval(next)}${next.description ? ' – ' + next.description : ''}`;
+      } else {
+        document.getElementById('next-interval').textContent = 'Final interval!';
+      }
+
+      document.querySelectorAll('.interval-item').forEach((item, i) => {
+        item.classList.remove('current', 'completed');
+        if (i < currentIntervalIndex) item.classList.add('completed');
+        if (i === currentIntervalIndex) item.classList.add('current');
+      });
+
+      const curEl = document.getElementById(`interval-${currentIntervalIndex}`);
+      if (curEl) curEl.scrollIntoView({ behavior:'smooth', block:'nearest' });
+
+      updateProgress();
+    }
+
+    // WHOOP Haptic Feedback System
+    let hapticEnabled = true;
+    let hapticIntensity = 'medium';
+
+    // Initialize haptic feedback
+    function initHaptics() {
+      if ('vibrate' in navigator) {
+        hapticEnabled = true;
+        console.log('Haptic feedback enabled');
+      } else {
+        hapticEnabled = false;
+        console.log('Haptic feedback not supported');
+      }
+    }
+
+    // Haptic feedback functions
+    function hapticLight() {
+      if (hapticEnabled && 'vibrate' in navigator) {
+        navigator.vibrate(10);
+      }
+    }
+
+    function hapticMedium() {
+      if (hapticEnabled && 'vibrate' in navigator) {
+        navigator.vibrate(20);
+      }
+    }
+
+    function hapticHeavy() {
+      if (hapticEnabled && 'vibrate' in navigator) {
+        navigator.vibrate(50);
+      }
+    }
+
+    function hapticInterval() {
+      if (hapticEnabled && 'vibrate' in navigator) {
+        navigator.vibrate([0, 30, 50, 30]);
+      }
+    }
+
+    function hapticWorkoutComplete() {
+      if (hapticEnabled && 'vibrate' in navigator) {
+        navigator.vibrate([0, 100, 50, 100, 50, 100]);
+      }
+    }
+
+    // Add haptic feedback to all buttons
+    function addHapticToButtons() {
+      const buttons = document.querySelectorAll('button, .chip, .toggle input[type="checkbox"]');
+      buttons.forEach(button => {
+        button.addEventListener('click', hapticLight);
+        button.addEventListener('touchstart', hapticLight);
+      });
+    }
+
+    // Enhanced button interactions with haptics
+    function addEnhancedHaptics() {
+      // Timer controls
+      const timerButtons = document.querySelectorAll('.timer-controls button, .compact-controls button');
+      timerButtons.forEach(button => {
+        button.addEventListener('click', hapticMedium);
+      });
+
+      // Workout generation
+      const generateButtons = document.querySelectorAll('.btn-generate, .btn-primary');
+      generateButtons.forEach(button => {
+        button.addEventListener('click', hapticMedium);
+      });
+
+      // Interval changes
+      const intervalButtons = document.querySelectorAll('.interval-controls button');
+      intervalButtons.forEach(button => {
+        button.addEventListener('click', hapticInterval);
+      });
+
+      // Workout completion
+      const completeButtons = document.querySelectorAll('.btn-complete, .btn-finish');
+      completeButtons.forEach(button => {
+        button.addEventListener('click', hapticWorkoutComplete);
+      });
+    }
+
+    // Initialize haptics on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      initHaptics();
+      addHapticToButtons();
+      addEnhancedHaptics();
+    });
+
+    // Haptic feedback for interval changes
+    function updateTimer() {
+      if (isRunning && intervals && currentIntervalIndex < intervals.length) {
+        const interval = intervals[currentIntervalIndex];
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const remaining = interval.duration - elapsed;
+        
+        if (remaining <= 0) {
+          // Interval complete - haptic feedback
+          hapticInterval();
+          
+          if (currentIntervalIndex < intervals.length - 1) {
+            currentIntervalIndex++;
+            startTime = Date.now();
+            updateIntervalDisplay();
+            applyLandscapeCompact();
+          } else {
+            // Workout complete - heavy haptic feedback
+            hapticWorkoutComplete();
+            stopTimer();
+            showWorkoutComplete();
+          }
+        } else {
+          document.getElementById('timer').textContent = formatTime(remaining);
+        }
+      }
+    }
+
+    // Enhanced landscape mode with haptics
+    function applyLandscapeCompact() {
+      const isLandscape = window.innerWidth > window.innerHeight;
+      const intervals = getIntervals();
+      
+      if (isLandscape && intervals && intervals.length > 0) {
+        document.body.classList.add('landscape-compact');
+        
+        // Apply intensity-based phase
+        if (currentIntervalIndex < intervals.length) {
+          const interval = intervals[currentIntervalIndex];
+          const speed = parseFloat(interval.speed);
+          
+          // Remove all phase classes
+          document.body.classList.remove('phase-high', 'phase-medium', 'phase-low', 'phase-recovery');
+          
+          // Add appropriate phase class based on speed
+          if (speed >= 7.0) {
+            document.body.classList.add('phase-high');
+          } else if (speed >= 6.0) {
+            document.body.classList.add('phase-medium');
+          } else if (speed >= 4.5) {
+            document.body.classList.add('phase-low');
+          } else {
+            document.body.classList.add('phase-recovery');
+          }
+        }
+        
+        // Prevent scrolling
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+        
+        // Haptic feedback for phase change
+        hapticLight();
+      } else {
+        document.body.classList.remove('landscape-compact', 'phase-high', 'phase-medium', 'phase-low', 'phase-recovery');
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+      }
+    }
+
+    // Enhanced orientation change handling
+    window.addEventListener('orientationchange', function() {
+      setTimeout(() => {
+        applyLandscapeCompact();
+        hapticLight();
+      }, 100);
+    });
+
+    // Enhanced resize handling
+    window.addEventListener('resize', function() {
+      applyLandscapeCompact();
+    });
+  </script>
+</body>
+</html>

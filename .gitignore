@@ -12,3 +12,10 @@ venv/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.cache
