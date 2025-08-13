@@ -35,6 +35,9 @@
   <!-- Web App Manifest -->
   <link rel="manifest" href="/static/manifest.json">
 
+  <!-- Mobile error overlay -->
+  <div id="err" style="position:fixed;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);color:#fff;padding:.75rem;font:14px/1.4 system-ui;z-index:99999;display:none"></div>
+
   <style>
     /* Core Design System Variables */
     :root {
@@ -82,6 +85,29 @@
     }
 
     html { color-scheme: light; }
+
+    /* Mobile activation styles */
+    html:not(.user-activated) .requires-user-activation {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    /* Error overlay styling */
+    #err {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,.85);
+      color: #fff;
+      padding: .75rem;
+      font: 14px/1.4 system-ui;
+      z-index: 99999;
+      display: none;
+      border-top: 1px solid rgba(255,255,255,0.2);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
 
@@ -557,8 +583,8 @@
       <div id="stats-line" style="margin-top: var(--spacing-xs); font-size: 14px; color: var(--ios-gray);"></div>
     </div>
     <div style="display:flex; align-items:center; gap:var(--spacing-md); flex-wrap:wrap;">
-      <label class="toggle" title="Mute interval beeps"><input type="checkbox" id="mute-toggle"> <span style="font-size:14px;">Mute</span></label>
-      <label class="toggle" title="Bell sound for intervals"><input type="checkbox" id="bell-toggle"> <span style="font-size:14px;">Bell</span></label>
+              <label class="toggle requires-user-activation" title="Mute interval beeps"><input type="checkbox" id="mute-toggle"> <span style="font-size:14px;">Mute</span></label>
+        <label class="toggle requires-user-activation" title="Bell sound for intervals"><input type="checkbox" id="bell-toggle"> <span style="font-size:14px;">Bell</span></label>
       <label class="toggle" title="Keep screen awake"><input type="checkbox" id="wakelock-toggle"> <span style="font-size:14px;">Wake Lock</span></label>
       <label class="toggle" title="Voice guidance"><input type="checkbox" id="voice-toggle"> <span style="font-size:14px;">Voice</span></label>
       <label class="toggle" title="High contrast visuals"><input type="checkbox" id="contrast-toggle"> <span style="font-size:14px;">Contrast</span></label>
@@ -995,15 +1021,48 @@
     }
 
     // ---------- Sound / Wake Lock ----------
-    function ding(){ if (bellEnabled && !muted) { bellAudio.currentTime = 0; bellAudio.play().catch(()=>{}); } }
+    function ding(){ 
+      if (bellEnabled && !muted) { 
+        // Try the new mobile-friendly beep first, fall back to bell audio
+        if (window.__beep__) {
+          try {
+            window.__beep__();
+          } catch (e) {
+            // Fall back to bell audio
+            bellAudio.currentTime = 0; 
+            bellAudio.play().catch(()=>{});
+          }
+        } else {
+          // Fall back to bell audio
+          bellAudio.currentTime = 0; 
+          bellAudio.play().catch(()=>{});
+        }
+      } 
+    }
 
     async function setWakeLockEnabled(on){
       try{
         if (on && 'wakeLock' in navigator){
           wakeLock = await navigator.wakeLock.request('screen');
           wakeLock.addEventListener('release', ()=> console.log('Wake Lock released'));
-        } else if (wakeLock){ await wakeLock.release(); wakeLock = null; }
-      }catch(e){ console.log('Wake Lock error', e); }
+          
+          // Also handle visibility changes to re-acquire wake lock
+          document.addEventListener('visibilitychange', () => {
+            if (wakeLock && document.visibilityState === 'visible'){
+              navigator.wakeLock.request('screen').then(l => { wakeLock = l; }).catch(() => {});
+            }
+          });
+        } else if (wakeLock){ 
+          await wakeLock.release(); 
+          wakeLock = null; 
+        }
+      }catch(e){ 
+        console.log('Wake Lock error', e); 
+        // Use the mobile error display if available
+        if (window.showError) {
+          window.showError('Wake Lock not available: ' + e.message);
+        }
+      }
     }
 
     // ---------- Tabs & Focus Mode ----------
@@ -1114,6 +1173,84 @@
 
     // ==================== WHOOP HR Integration JavaScript ====================
 
+    // Mobile first-tap activation + error capture
+    (function(){
+      let userActivated = false;
+      let audioCtx = null;
+      let wakeLock = null;
+
+      function initOnFirstTap(){
+        if (userActivated) return;
+        userActivated = true;
+        document.documentElement.classList.add('user-activated');
+
+        // Safe AudioContext init (iOS requires a user gesture)
+        try {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) {
+            audioCtx = new AC();
+            // Lightweight beep helper available globally
+            window.__beep__ = function(){
+              try {
+                const o = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                o.connect(g); g.connect(audioCtx.destination);
+                o.type = 'sine'; o.frequency.value = 880; g.gain.value = 0.0001;
+                o.start();
+                g.gain.exponentialRampToValueAtTime(0.2,  audioCtx.currentTime + 0.01);
+                g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime + 0.12);
+                o.stop(audioCtx.currentTime + 0.13);
+              } catch (e) { console.warn('beep failed', e); }
+            }
+          }
+        } catch(e){ console.warn('Audio init failed', e); showError(e); }
+
+        // Screen Wake Lock (guarded and resumable)
+        if ('wakeLock' in navigator && document.visibilityState === 'visible'){
+          navigator.wakeLock.request('screen').then(lock => {
+            wakeLock = lock;
+            lock.addEventListener('release', () => console.log('WakeLock released'));
+          }).catch(e => console.warn('WakeLock not available:', e));
+
+          document.addEventListener('visibilitychange', () => {
+            if (wakeLock && document.visibilityState === 'visible'){
+              navigator.wakeLock.request('screen').then(l => { wakeLock = l; }).catch(() => {});
+            }
+          });
+        }
+
+        // Notify any other scripts that the user gesture happened
+        window.dispatchEvent(new Event('user-activated'));
+      }
+
+      // First-touch listeners (iOS/Android)
+      window.addEventListener('touchend', initOnFirstTap, { once: true });
+      window.addEventListener('click',    initOnFirstTap, { once: true });
+
+      // Error overlay helpers so mobile errors are visible
+      window.showError = function(err){
+        try {
+          const el = document.getElementById('err');
+          if (!el) return;
+          const msg = (err && err.message) ? err.message : String(err);
+          el.style.display = 'block';
+          el.textContent = 'Error: ' + msg;
+        } catch(_) {}
+      }
+      window.addEventListener('error', ev => showError(ev.error || ev.message));
+      window.addEventListener('unhandledrejection', ev => showError(ev.reason));
+
+      // Optional: add ?swreset once to clear stale SW/cache on mobile
+      if (location.search.includes('swreset')){
+        if ('serviceWorker' in navigator){
+          navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+        }
+        if (window.caches && caches.keys){
+          caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+        }
+      }
+    })();
+
     // Initialize Socket.IO connection
     const socket = io();
 
@@ -1135,38 +1272,77 @@
       updateHRDisplay();
     });
 
-    socket.on('hr_update', (data) => {
-      hrDisplayState.currentHR = data.heart_rate;
-      hrDisplayState.currentZone = data.zone;
-      hrDisplayState.zonePercentage = data.zone_percentage;
-      hrDisplayState.hrHistory.push(data);
-      
-      // Keep only last 60 data points
-      if (hrDisplayState.hrHistory.length > 60) {
-        hrDisplayState.hrHistory.shift();
-      }
-      
+    socket.on('disconnect', () => {
+      console.log('Disconnected from HR broadcast');
+      hrDisplayState.connected = false;
+      hrDisplayState.streaming = false;
       updateHRDisplay();
-      updateHRChart();
+    });
+
+    socket.on('error', (error) => {
+      console.error('WebSocket error:', error);
+      hrDisplayState.connected = false;
+      hrDisplayState.streaming = false;
+      updateHRDisplay();
+    });
+
+    socket.on('hr_update', (data) => {
+      try {
+        if (data && typeof data.heart_rate === 'number' && data.heart_rate > 0) {
+          hrDisplayState.currentHR = data.heart_rate;
+          hrDisplayState.currentZone = data.zone || 'Z1';
+          hrDisplayState.zonePercentage = data.zone_percentage || 0;
+          hrDisplayState.hrHistory.push(data);
+          
+          // Keep only last 60 data points
+          if (hrDisplayState.hrHistory.length > 60) {
+            hrDisplayState.hrHistory.shift();
+          }
+          
+          updateHRDisplay();
+          updateHRChart();
+        }
+      } catch (error) {
+        console.error('Error processing HR update:', error);
+      }
     });
 
     // Start HR streaming
     function startHRStream() {
-      if (!hrDisplayState.connected) {
-        alert('Not connected to HR service');
-        return;
+      try {
+        if (!hrDisplayState.connected) {
+          alert('Not connected to HR service');
+          return;
+        }
+        
+        fetch('/whoop/start_hr_broadcast', { method: 'POST' })
+          .then(res => {
+            if (!res.ok) {
+              throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            return res.json();
+          })
+          .then(data => {
+            if (data.success) {
+              socket.emit('start_hr_stream');
+              hrDisplayState.streaming = true;
+              const statusElement = document.getElementById('hr-status');
+              if (statusElement) {
+                statusElement.textContent = 'Streaming';
+                statusElement.style.color = '#16EC06';
+              }
+            } else {
+              alert('Failed to start HR broadcast: ' + (data.error || 'Unknown error'));
+            }
+          })
+          .catch(error => {
+            console.error('Error starting HR stream:', error);
+            alert('Error starting HR broadcast. Please try again.');
+          });
+      } catch (error) {
+        console.error('Error in startHRStream:', error);
+        alert('Error starting HR broadcast. Please try again.');
       }
-      
-      fetch('/whoop/start_hr_broadcast', { method: 'POST' })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            socket.emit('start_hr_stream');
-            hrDisplayState.streaming = true;
-            document.getElementById('hr-status').textContent = 'Streaming';
-            document.getElementById('hr-status').style.color = '#16EC06';
-          }
-        });
     }
 
     // Stop HR streaming
@@ -1179,19 +1355,19 @@
 
     // Update HR display
     function updateHRDisplay() {
+      // Color based on zone
+      const zoneColors = {
+        'Z1': '#808080',  // Gray
+        'Z2': '#007AFF',  // Blue
+        'Z3': '#16EC06',  // Green
+        'Z4': '#FFDE00',  // Yellow
+        'Z5': '#FF0026'   // Red
+      };
+      
       // Update HR value
       const hrElement = document.getElementById('current-hr-value');
       if (hrElement) {
         hrElement.textContent = hrDisplayState.currentHR;
-        
-        // Color based on zone
-        const zoneColors = {
-          'Z1': '#808080',  // Gray
-          'Z2': '#007AFF',  // Blue
-          'Z3': '#16EC06',  // Green
-          'Z4': '#FFDE00',  // Yellow
-          'Z5': '#FF0026'   // Red
-        };
         hrElement.style.color = zoneColors[hrDisplayState.currentZone] || '#000';
       }
       
@@ -1211,59 +1387,92 @@
 
     // Update HR mini chart
     function updateHRChart() {
-      const canvas = document.getElementById('hr-mini-chart');
-      if (!canvas) return;
-      
-      const ctx = canvas.getContext('2d');
-      const width = canvas.width;
-      const height = canvas.height;
-      
-      // Clear canvas
-      ctx.clearRect(0, 0, width, height);
-      
-      // Draw HR line
-      if (hrDisplayState.hrHistory.length > 1) {
-        ctx.strokeStyle = '#FF0026';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
+      try {
+        const canvas = document.getElementById('hr-mini-chart');
+        if (!canvas) return;
         
-        hrDisplayState.hrHistory.forEach((point, i) => {
-          const x = (i / 60) * width;
-          const y = height - ((point.heart_rate - 50) / 150) * height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        
+        const width = canvas.width;
+        const height = canvas.height;
+        
+        // Clear canvas
+        ctx.clearRect(0, 0, width, height);
+        
+        // Draw HR line
+        if (hrDisplayState.hrHistory.length > 1) {
+          ctx.strokeStyle = '#FF0026';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
           
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
-        });
-        
-        ctx.stroke();
+          hrDisplayState.hrHistory.forEach((point, i) => {
+            if (point && typeof point.heart_rate === 'number' && point.heart_rate > 0) {
+              const x = (i / 60) * width;
+              const y = height - ((point.heart_rate - 50) / 150) * height;
+              
+              // Ensure y is within canvas bounds
+              const clampedY = Math.max(0, Math.min(height, y));
+              
+              if (i === 0) {
+                ctx.moveTo(x, clampedY);
+              } else {
+                ctx.lineTo(x, clampedY);
+              }
+            }
+          });
+          
+          ctx.stroke();
+        }
+      } catch (error) {
+        console.error('Error updating HR chart:', error);
       }
     }
 
     // Generate zone-based workout
     function generateZoneWorkout() {
-      const targetZone = document.getElementById('target-zone-select').value;
-      const zonePercentage = parseInt(document.getElementById('zone-percentage-slider').value);
-      const duration = parseInt(document.getElementById('zone-duration-select').value);
-      
-      fetch('/generate_zone_workout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          target_zone: targetZone,
-          zone_percentage: zonePercentage,
-          duration: duration
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          // Load the workout
-          loadZoneWorkout(data.workout);
+      try {
+        const targetZone = document.getElementById('target-zone-select').value;
+        const zonePercentage = parseInt(document.getElementById('zone-percentage-slider').value);
+        const duration = parseInt(document.getElementById('zone-duration-select').value);
+        
+        // Validate inputs
+        if (!targetZone || isNaN(zonePercentage) || isNaN(duration)) {
+          alert('Please fill in all workout parameters');
+          return;
         }
-      });
+        
+        fetch('/generate_zone_workout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            target_zone: targetZone,
+            zone_percentage: zonePercentage,
+            duration: duration
+          })
+        })
+        .then(res => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then(data => {
+          if (data.success) {
+            // Load the workout
+            loadZoneWorkout(data.workout);
+          } else {
+            alert('Failed to generate workout: ' + (data.error || 'Unknown error'));
+          }
+        })
+        .catch(error => {
+          console.error('Error generating workout:', error);
+          alert('Error generating workout. Please try again.');
+        });
+      } catch (error) {
+        console.error('Error in generateZoneWorkout:', error);
+        alert('Error generating workout. Please try again.');
+      }
     }
 
     // Load zone workout with adaptive features

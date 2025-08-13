@@ -11,6 +11,9 @@ class WorkoutParser:
         """
         Parse ChatGPT's workout format into intervals
         """
+        if not text or not isinstance(text, str):
+            return []
+            
         intervals = []
         current_section = None
         repeat_count = 0
@@ -48,12 +51,15 @@ class WorkoutParser:
             interval_match = re.search(interval_pattern, line)
             
             if interval_match:
-                duration = int(interval_match.group(1))
-                speed = float(interval_match.group(2))
-                
-                # Validate inputs
-                if duration <= 0 or speed <= 0:
-                    continue  # Skip invalid intervals
+                try:
+                    duration = int(interval_match.group(1))
+                    speed = float(interval_match.group(2))
+                    
+                    # Validate inputs
+                    if duration <= 0 or speed <= 0:
+                        continue  # Skip invalid intervals
+                except (ValueError, TypeError):
+                    continue  # Skip intervals with invalid numbers
                 
                 interval = {
                     'section': current_section,

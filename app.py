@@ -114,6 +114,8 @@ class HeartRateZoneManager:
     
     def get_zone_percentage(self, hr: int, zone: str) -> float:
         """Get how far through a zone the HR is (0-100%)"""
+        if zone not in self.zones:
+            return 50.0
         min_hr, max_hr = self.zones[zone]
         if max_hr == min_hr:
             return 50.0
@@ -157,7 +159,8 @@ class WHOOPHeartRateBroadcast:
                 headers=headers
             )
             return response.status_code == 200
-        except:
+        except Exception as e:
+            print(f"Error stopping HR broadcast: {e}")
             return False
     
     def get_current_hr(self) -> Dict:
@@ -200,6 +203,12 @@ class DynamicZoneWorkout:
     def generate_base_workout(self) -> List[Dict]:
         """Generate initial workout plan targeting the zone"""
         intervals = []
+        
+        # Validate inputs
+        if self.total_duration <= 0:
+            raise ValueError("Total duration must be positive")
+        if not 0 <= self.zone_time_percentage <= 100:
+            raise ValueError("Zone time percentage must be between 0 and 100")
         
         # Warm-up: 10% of time in Z1-Z2
         warmup_time = max(5, int(self.total_duration * 0.1))
@@ -276,6 +285,12 @@ class DynamicZoneWorkout:
         
         if not current_interval.get('adaptive', True):
             return current_interval
+        
+        # Validate inputs
+        if not isinstance(current_hr, (int, float)) or current_hr < 0:
+            raise ValueError("Current heart rate must be a positive number")
+        if target_zone not in zone_manager.zones:
+            raise ValueError(f"Invalid target zone: {target_zone}")
         
         current_zone = zone_manager.get_zone(current_hr)
         target_min, target_max = zone_manager.zones[target_zone]
@@ -1862,7 +1877,8 @@ def get_whoop_user_profile(access_token):
             response = requests.get(f"{WHOOP_API_BASE_V1}/user", headers=headers)
             response.raise_for_status()
             return response.json()
-        except:
+        except Exception as e:
+            print(f"Error getting WHOOP user data from alternative endpoint: {e}")
             pass
         return None
 
@@ -3033,23 +3049,31 @@ def handle_start_hr_stream():
     def send_hr_updates():
         broadcast = WHOOPHeartRateBroadcast(access_token)
         zone_manager = HeartRateZoneManager()
+        update_count = 0
+        max_updates = 3600  # Max 1 hour of updates (3600 seconds)
         
-        while True:
-            hr_data = broadcast.get_current_hr()
-            current_hr = hr_data.get('heart_rate', 0)
-            
-            if current_hr > 0:
-                zone = zone_manager.get_zone(current_hr)
-                zone_percentage = zone_manager.get_zone_percentage(current_hr, zone)
+        while update_count < max_updates:
+            try:
+                hr_data = broadcast.get_current_hr()
+                current_hr = hr_data.get('heart_rate', 0)
                 
-                socketio.emit('hr_update', {
-                    'heart_rate': current_hr,
-                    'zone': zone,
-                    'zone_percentage': zone_percentage,
-                    'timestamp': datetime.now().isoformat()
-                })
-            
-            socketio.sleep(1)  # Update every second
+                if current_hr > 0:
+                    zone = zone_manager.get_zone(current_hr)
+                    zone_percentage = zone_manager.get_zone_percentage(current_hr, zone)
+                    
+                    socketio.emit('hr_update', {
+                        'heart_rate': current_hr,
+                        'zone': zone,
+                        'zone_percentage': zone_percentage,
+                        'timestamp': datetime.now().isoformat()
+                    })
+                
+                update_count += 1
+                socketio.sleep(1)  # Update every second
+            except Exception as e:
+                print(f"Error in HR update loop: {e}")
+                socketio.sleep(5)  # Wait longer on error
+                update_count += 1
     
     # Start background task
     socketio.start_background_task(send_hr_updates)
