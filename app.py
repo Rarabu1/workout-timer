@@ -18,12 +18,16 @@ except ImportError:
 
 # Prefer class-based parser if available; fall back to module-level parse()
 try:
-    from workout_parser import WorkoutParser
-    _PARSER_MODE = "class"
+    import workout_parser as workout_parser_module  # module import
+    try:
+        from workout_parser import WorkoutParser as _WorkoutParser  # class import if available
+    except Exception:  # pragma: no cover
+        _WorkoutParser = None  # type: ignore
+    _PARSER_MODE = "class" if _WorkoutParser is not None else "module"
 except Exception:  # pragma: no cover
-    import workout_parser  # type: ignore
-    WorkoutParser = None  # type: ignore
-    _PARSER_MODE = "module"
+    workout_parser_module = None  # type: ignore
+    _WorkoutParser = None  # type: ignore
+    _PARSER_MODE = "none"
 
 load_dotenv()
 
@@ -33,19 +37,11 @@ DATABASE = 'workouts.db'
 
 # WHOOP API Configuration
 WHOOP_CLIENT_ID = os.getenv('WHOOP_CLIENT_ID')
-WHOOP_CLIENT_SECRET = os.getenv('WHOOP_CLIENT_SECRET', '43d8c7a606083d063e422454bd593104fd66e1716b3900ff86d8752e87769db0')
+WHOOP_CLIENT_SECRET = os.getenv('WHOOP_CLIENT_SECRET')
 WHOOP_REDIRECT_URI = os.getenv('WHOOP_REDIRECT_URI', 'https://workout-timer-dskb.onrender.com/whoop/callback')
 WHOOP_API_BASE = 'https://api.prod.whoop.com'
 WHOOP_API_BASE_V1 = 'https://api.prod.whoop.com/developer/v1'
 
-# Debug: Print the actual values being used
-print(f"=== WHOOP CONFIG DEBUG ===")
-print(f"WHOOP_CLIENT_ID: {WHOOP_CLIENT_ID}")
-print(f"WHOOP_CLIENT_SECRET: {WHOOP_CLIENT_SECRET}")
-print(f"WHOOP_REDIRECT_URI: {WHOOP_REDIRECT_URI}")
-print(f"Client Secret Length: {len(WHOOP_CLIENT_SECRET) if WHOOP_CLIENT_SECRET else 0}")
-print(f"Expected Length: 64")
-print(f"=== END WHOOP CONFIG DEBUG ===")
 
 def get_db():
     db = getattr(g, '_database', None)
@@ -136,16 +132,19 @@ def init_db():
 
 def parse_intervals(text: str):
     """Parse workout text using the best available parser variant."""
-    if WorkoutParser is not None:
+    # Try class-based parser first if available
+    if _WorkoutParser is not None:
         try:
-            return WorkoutParser().parse_chatgpt_workout(text)
+            return _WorkoutParser().parse_chatgpt_workout(text)
         except Exception:
             pass
-    # Fallback to module-level parser if present
-    try:
-        return workout_parser.parse(text)  # type: ignore[name-defined]
-    except Exception:
-        return []
+    # Fallback to module-level parse if module is available
+    if 'workout_parser_module' in globals() and workout_parser_module is not None:
+        try:
+            return workout_parser_module.parse(text)  # type: ignore[attr-defined]
+        except Exception:
+            pass
+    return []
 
 @app.route("/")
 def index():
@@ -1551,10 +1550,6 @@ def exchange_whoop_code_for_token(code):
             'Content-Type': 'application/x-www-form-urlencoded'
         }
         
-        print(f"Request data: {token_data}")
-        print(f"Client secret length: {len(WHOOP_CLIENT_SECRET) if WHOOP_CLIENT_SECRET else 0}")
-        print(f"Full client ID: {WHOOP_CLIENT_ID}")
-        print(f"Full client secret: {WHOOP_CLIENT_SECRET}")
         print(f"Using client_secret_post method")
         
         response = requests.post(token_url, data=token_data, headers=headers)

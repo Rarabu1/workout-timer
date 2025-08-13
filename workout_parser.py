@@ -20,16 +20,30 @@ class WorkoutParser:
         lines = text.split('\n')
         
         for line in lines:
-            # Skip empty lines
-            if not line.strip():
-                continue
+            stripped = line.strip()
             
             # Check for section headers: **Warm-Up – 5 minutes**
             section_pattern = r'\*\*(.+?)\s*–\s*(\d+)\s*minutes?\*\*'
             section_match = re.search(section_pattern, line)
             
             if section_match:
+                # If a repeat block was in progress, close it before switching sections
+                if in_repeat_block and repeat_intervals:
+                    for _ in range(repeat_count):
+                        intervals.extend(repeat_intervals.copy())
+                    in_repeat_block = False
+                    repeat_intervals = []
+                
                 current_section = section_match.group(1).strip()
+                continue
+            
+            # Handle blank lines — also close repeat blocks if needed
+            if not stripped:
+                if in_repeat_block and repeat_intervals:
+                    for _ in range(repeat_count):
+                        intervals.extend(repeat_intervals.copy())
+                    in_repeat_block = False
+                    repeat_intervals = []
                 continue
             
             # Check for repeat instruction
@@ -67,17 +81,6 @@ class WorkoutParser:
                     repeat_intervals.append(interval)
                 else:
                     intervals.append(interval)
-            
-            # Check if we've ended a repeat block
-            # (empty line or new section after repeat_intervals)
-            if in_repeat_block and repeat_intervals and (
-                not line.strip() or section_match
-            ):
-                # Add repeated intervals
-                for _ in range(repeat_count):
-                    intervals.extend(repeat_intervals.copy())
-                in_repeat_block = False
-                repeat_intervals = []
         
         # Handle case where repeat block goes to end of file
         if in_repeat_block and repeat_intervals:
