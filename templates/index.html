@@ -1147,20 +1147,51 @@
     }
 
     // ---------- Simple sample generation / parsing ----------
+    function buildIntervalsForDuration(totalMinutes){
+      const total = Math.max(5, Number(totalMinutes) || 20);
+      const intervalsOut = [];
+      // Warm-up (5)
+      intervalsOut.push({ duration_min: 5, speed_mph: 4.0, incline: 0, description: 'Easy warm up', section: 'Warm-Up' });
+      let remaining = Math.max(0, total - 10); // leave 5 for cooldown
+      // Pattern: 10 steady, 5 tempo, 10 steady (25)
+      const addSteady = (m) => intervalsOut.push({ duration_min: m, speed_mph: 6.0, incline: 0, description: 'Steady pace', section: 'Main Workout' });
+      const addTempo  = (m) => intervalsOut.push({ duration_min: m, speed_mph: 7.0, incline: 0, description: 'Tempo interval', section: 'Main Workout' });
+      while (remaining >= 25){ addSteady(10); addTempo(5); addSteady(10); remaining -= 25; }
+      if (remaining >= 10){ addSteady(10); remaining -= 10; }
+      if (remaining >= 5){ addTempo(5); remaining -= 5; }
+      if (remaining > 0){ addSteady(remaining); remaining = 0; }
+      // Cool-down (5)
+      intervalsOut.push({ duration_min: 5, speed_mph: 4.0, incline: 0, description: 'Cool down', section: 'Cool-Down' });
+      return intervalsOut;
+    }
+
+    function sampleTextFromIntervals(ints){
+      const total = (ints||[]).reduce((s,i)=> s + (Number(i.duration_min)||0), 0);
+      const mainTotal = Math.max(0, total - 10); // minus warmup+cooldown
+      const lines = [];
+      lines.push('**Warm-Up – 5 minutes**');
+      lines.push('* 5 min @ 4.0 mph (easy warm up)');
+      lines.push('');
+      lines.push(`**Main Workout – ${mainTotal} minutes**`);
+      ints.filter(i=> (i.section||'') === 'Main Workout').forEach(i=>{
+        const sp = Number(i.speed_mph||0).toFixed(1);
+        const desc = (i.description||'').toLowerCase();
+        lines.push(`* ${i.duration_min} min @ ${sp} mph (${desc})`);
+      });
+      lines.push('');
+      lines.push('**Cool-Down – 5 minutes**');
+      lines.push('* 5 min @ 4.0 mph (cool down)');
+      return lines.join('\n');
+    }
+
     function sampleGenerate(){
-      const sample = `**Warm-Up – 5 minutes**\n* 5 min @ 4.0 mph (easy warm up)\n\n**Main Workout – ${currentMinutes - 10} minutes**\n* 10 min @ 6.0 mph (steady pace)\n* 5 min @ 7.0 mph (tempo interval)\n* 10 min @ 6.0 mph (steady pace)\n\n**Cool-Down – 5 minutes**\n* 5 min @ 4.0 mph (cool down)`;
-      $('#generatedText').value = sample;
+      const ints = buildIntervalsForDuration(currentMinutes);
+      $('#generatedText').value = sampleTextFromIntervals(ints);
       $('#generated-workout').style.display = 'block';
     }
 
     function useGenerated(){
-      intervals = [
-        { duration_min:5, speed_mph:4.0, description:'Warm up', section:'Warm-Up' },
-        { duration_min:10, speed_mph:6.0, description:'Steady pace', section:'Main Workout' },
-        { duration_min:5, speed_mph:7.0, description:'Tempo interval', section:'Main Workout' },
-        { duration_min:10, speed_mph:6.0, description:'Steady pace', section:'Main Workout' },
-        { duration_min:5, speed_mph:4.0, description:'Cool down', section:'Cool-Down' }
-      ];
+      intervals = buildIntervalsForDuration(currentMinutes);
       $('#timer-section').classList.add('active');
       currentIntervalIndex = 0; timeRemaining = intervals[0].duration_min * 60;
       displayIntervals(); updateProgressUI(); updateCurrentIntervalUI();

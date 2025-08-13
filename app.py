@@ -665,7 +665,7 @@ def generate_workout():
               * 7.0 mph = comfortable sprint
             - HR zones (WHOOP): Z2 140-152, Z3 153-164, Z4 165-177
             - Preferences: variety but structured; keep mostly Z3 with controlled Z4 surges; use mild inclines
-            - Duration defaults: 30, 40, or 45 min
+            - Duration defaults: 30, 40, 45, or 60 min
             """
 
             # Constraints & Difficulty Knobs
@@ -996,7 +996,7 @@ def generate_structured_workout():
               * 7.0 mph = comfortable sprint
             - HR zones (WHOOP): Z2 {whoop_zones['Z2'][0]}-{whoop_zones['Z2'][1]}, Z3 {whoop_zones['Z3'][0]}-{whoop_zones['Z3'][1]}, Z4 {whoop_zones['Z4'][0]}-{whoop_zones['Z4'][1]}
             - Preferences: variety but structured; keep mostly Z3 with controlled Z4 surges; use mild inclines
-            - Duration defaults: 30, 40, or 45 min
+            - Duration defaults: 30, 40, 45, or 60 min
             """
 
             # Smart Constraints
