@@ -5,5 +5,5 @@ openai>=1.12.0
 requests==2.32.4
 flask-socketio==5.3.4
 python-socketio==5.9.0
-numpy==1.24.3
+numpy>=1.26.0
 eventlet==0.33.3
