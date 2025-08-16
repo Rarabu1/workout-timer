@@ -650,6 +650,7 @@
     document.body.classList.remove('dark-mode');
     // ---------- App State ----------
     let intervals = [];
+    let lastGenerated = { text: '', intervals: [] };
     let currentIntervalIndex = 0;
     let timeRemaining = 0; // seconds
     let timerInterval = null;
@@ -1639,8 +1640,43 @@
       });
 
       // Generate / Use
-      $('#btn-generate').addEventListener('click', ()=>{ $('#generate-btn-text').style.display='none'; $('#generate-loading').style.display='inline-block'; $('#btn-generate').disabled=true; setTimeout(()=>{ sampleGenerate(); $('#generate-btn-text').style.display='inline-block'; $('#generate-loading').style.display='none'; $('#btn-generate').disabled=false; }, 1200); });
-      $('#use-generated').addEventListener('click', useGenerated);
+      $('#btn-generate').addEventListener('click', async ()=>{
+        $('#generate-btn-text').style.display='none';
+        $('#generate-loading').style.display='inline-block';
+        $('#btn-generate').disabled=true;
+        try {
+          const req = ($('#workoutRequest').value || `${currentMinutes} minute ${currentCategory} workout`).trim();
+          const res = await fetch('/generate_workout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ request: req })
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          if (!data.success) throw new Error(data.error || 'Generation failed');
+          lastGenerated.text = data.workout_text || '';
+          lastGenerated.intervals = Array.isArray(data.intervals) ? data.intervals : [];
+          $('#generatedText').value = lastGenerated.text || (lastGenerated.intervals.map(iv => `${iv.duration_min} min @ ${iv.speed_mph} mph${iv.incline ? ", incline " + iv.incline + "%" : ""} ${iv.description ? '(' + iv.description + ')' : ''}`).join('\n'));
+          $('#generated-workout').style.display = 'block';
+        } catch (err) {
+          console.error(err);
+          alert('Could not generate workout. Please try again.');
+        } finally {
+          $('#generate-btn-text').style.display='inline-block';
+          $('#generate-loading').style.display='none';
+          $('#btn-generate').disabled=false;
+        }
+      });
+      $('#use-generated').addEventListener('click', ()=>{
+        const parsed = lastGenerated.intervals && lastGenerated.intervals.length ? lastGenerated.intervals : parseWorkoutText($('#generatedText').value || '');
+        if (!parsed || !parsed.length) { alert('Nothing to use yet. Please generate first.'); return; }
+        intervals = parsed;
+        currentIntervalIndex = 0;
+        timeRemaining = intervals[0].duration_min * 60;
+        $('#timer-section').classList.add('active');
+        displayIntervals(); updateProgressUI(); updateCurrentIntervalUI();
+        try{ saveLastSession(); }catch{}
+      });
 
       // Manual parse
       $('#btn-parse').addEventListener('click', parseWorkout);
