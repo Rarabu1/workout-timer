@@ -444,6 +444,48 @@ def parse_intervals(text: str):
     except Exception:
         return []
 
+def generate_workout_text_from_intervals(intervals):
+    """Generate workout text from intervals with calculated section durations"""
+    if not intervals:
+        return ""
+    
+    result = ""
+    current_section = ""
+    section_intervals = []
+    
+    for interval in intervals:
+        section = interval.get('section', 'Workout')
+        
+        if section != current_section:
+            # Write previous section if exists
+            if section_intervals:
+                section_duration = sum(si.get('duration_min', 0) for si in section_intervals)
+                result += f"**{current_section} – {section_duration} minutes**\n"
+                for si in section_intervals:
+                    description = si.get('description', '')
+                    incline = si.get('incline', 0)
+                    incline_text = f", incline {incline}" if incline else ""
+                    result += f"* {si.get('duration_min', 0)} min @ {si.get('speed_mph', 0)} mph{incline_text}{' (' + description + ')' if description else ''}\n"
+                result += "\n"
+            
+            # Start new section
+            current_section = section
+            section_intervals = [interval]
+        else:
+            section_intervals.append(interval)
+    
+    # Write final section
+    if section_intervals:
+        section_duration = sum(si.get('duration_min', 0) for si in section_intervals)
+        result += f"**{current_section} – {section_duration} minutes**\n"
+        for si in section_intervals:
+            description = si.get('description', '')
+            incline = si.get('incline', 0)
+            incline_text = f", incline {incline}" if incline else ""
+            result += f"* {si.get('duration_min', 0)} min @ {si.get('speed_mph', 0)} mph{incline_text}{' (' + description + ')' if description else ''}\n"
+    
+    return result.strip()
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -825,28 +867,48 @@ def generate_workout():
             # Category-specific fallback workouts
             fallback_workouts = {
                 'endurance': [
-                    """5 min @ 4.0 mph (warm up)
-20 min @ 5.5 mph (steady pace)
-5 min @ 4.0 mph (cool down)""",
+                    """**Warm-Up – 5 minutes**
+* 5 min @ 4.0 mph (warm up)
+
+**Main Workout – 20 minutes**
+* 20 min @ 5.5 mph (steady pace)
+
+**Cool-Down – 5 minutes**
+* 5 min @ 4.0 mph (cool down)""",
                     
-                    """3 min @ 4.0 mph (easy warm up)
-10 min @ 5.0 mph (build pace)
-12 min @ 5.5 mph (steady state)
-5 min @ 4.0 mph (cool down)""",
+                    """**Warm-Up – 3 minutes**
+* 3 min @ 4.0 mph (easy warm up)
+
+**Main Workout – 22 minutes**
+* 10 min @ 5.0 mph (build pace)
+* 12 min @ 5.5 mph (steady state)
+
+**Cool-Down – 5 minutes**
+* 5 min @ 4.0 mph (cool down)""",
                     
-                    """5 min @ 4.5 mph (warm up)
-15 min @ 5.5 mph (endurance pace)
-5 min @ 4.5 mph (cool down)"""
+                    """**Warm-Up – 5 minutes**
+* 5 min @ 4.5 mph (warm up)
+
+**Main Workout – 15 minutes**
+* 15 min @ 5.5 mph (endurance pace)
+
+**Cool-Down – 5 minutes**
+* 5 min @ 4.5 mph (cool down)"""
                 ],
                 'speed': [
-                    """5 min @ 4.0 mph (warm up)
-3 min @ 6.0 mph (speed interval)
-2 min @ 4.5 mph (recovery)
-3 min @ 6.5 mph (speed interval)
-2 min @ 4.5 mph (recovery)
-3 min @ 7.0 mph (speed interval)
-2 min @ 4.5 mph (recovery)
-5 min @ 4.0 mph (cool down)""",
+                    """**Warm-Up – 5 minutes**
+* 5 min @ 4.0 mph (warm up)
+
+**Main Workout – 20 minutes**
+* 3 min @ 6.0 mph (speed interval)
+* 2 min @ 4.5 mph (recovery)
+* 3 min @ 6.5 mph (speed interval)
+* 2 min @ 4.5 mph (recovery)
+* 3 min @ 7.0 mph (speed interval)
+* 2 min @ 4.5 mph (recovery)
+
+**Cool-Down – 5 minutes**
+* 5 min @ 4.0 mph (cool down)""",
                     
                     """5 min @ 4.5 mph (warm up)
 5 min @ 6.0 mph (tempo)
@@ -931,6 +993,10 @@ def generate_workout():
                 "incline": 0,
                 "description": "Generated workout - manual parsing needed"
             }]
+
+        # Regenerate workout text with proper section durations
+        if intervals:
+            workout_text = generate_workout_text_from_intervals(intervals)
 
         total_minutes = sum(float(i.get("duration_min", 0) or 0) for i in intervals)
         name = f"AI Workout {int(total_minutes)}min"
@@ -1652,12 +1718,12 @@ def generate_personalized_workout(analysis_data, user_preferences=None):
         5. Include progressive overload if they're improving
         6. Keep total duration appropriate for their completion rate
         
-        Generate a workout in this exact format:
+        Generate a workout in this exact format, where section durations are calculated from the sum of intervals in that section:
         ```
         **Warm-Up – 5 minutes**
         * 5 min @ 5.0 mph (easy warm-up)
         
-        **Main Workout**
+        **Main Workout – 25 minutes**
         * 10 min @ 6.0 mph (steady pace)
         * 5 min @ 7.0 mph (tempo)
         * 10 min @ 6.0 mph (steady pace)
@@ -1665,6 +1731,8 @@ def generate_personalized_workout(analysis_data, user_preferences=None):
         **Cool-Down – 5 minutes**
         * 5 min @ 5.0 mph (easy cool-down)
         ```
+        
+        IMPORTANT: Always calculate and show the total duration for each section by summing the intervals in that section.
         
         Also provide:
         - Recommended difficulty rating (1-10)
@@ -1684,6 +1752,10 @@ def generate_personalized_workout(analysis_data, user_preferences=None):
         
         # Parse the generated workout
         intervals = parse_intervals(workout_text)
+        
+        # Regenerate workout text with proper section durations
+        if intervals:
+            workout_text = generate_workout_text_from_intervals(intervals)
         
         return {
             "success": True,

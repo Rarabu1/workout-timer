@@ -1147,8 +1147,62 @@
     }
 
     // ---------- Simple sample generation / parsing ----------
+    function calculateSectionDuration(intervals) {
+      return intervals.reduce((total, interval) => total + (interval.duration_min || 0), 0);
+    }
+    
+    function generateWorkoutText(intervals) {
+      if (!intervals || intervals.length === 0) return '';
+      
+      let result = '';
+      let currentSection = '';
+      let sectionIntervals = [];
+      
+      for (const interval of intervals) {
+        const section = interval.section || 'Workout';
+        
+        if (section !== currentSection) {
+          // Write previous section if exists
+          if (sectionIntervals.length > 0) {
+            const sectionDuration = calculateSectionDuration(sectionIntervals);
+            result += `**${currentSection} – ${sectionDuration} minutes**\n`;
+            for (const si of sectionIntervals) {
+              result += `* ${si.duration_min} min @ ${si.speed_mph} mph${si.description ? ' (' + si.description + ')' : ''}\n`;
+            }
+            result += '\n';
+          }
+          
+          // Start new section
+          currentSection = section;
+          sectionIntervals = [interval];
+        } else {
+          sectionIntervals.push(interval);
+        }
+      }
+      
+      // Write final section
+      if (sectionIntervals.length > 0) {
+        const sectionDuration = calculateSectionDuration(sectionIntervals);
+        result += `**${currentSection} – ${sectionDuration} minutes**\n`;
+        for (const si of sectionIntervals) {
+          result += `* ${si.duration_min} min @ ${si.speed_mph} mph${si.description ? ' (' + si.description + ')' : ''}\n`;
+        }
+      }
+      
+      return result.trim();
+    }
+    
     function sampleGenerate(){
-      const sample = `**Warm-Up – 5 minutes**\n* 5 min @ 4.0 mph (easy warm up)\n\n**Main Workout – ${currentMinutes - 10} minutes**\n* 10 min @ 6.0 mph (steady pace)\n* 5 min @ 7.0 mph (tempo interval)\n* 10 min @ 6.0 mph (steady pace)\n\n**Cool-Down – 5 minutes**\n* 5 min @ 4.0 mph (cool down)`;
+      // Create sample intervals
+      const sampleIntervals = [
+        { duration_min: 5, speed_mph: 4.0, description: 'easy warm up', section: 'Warm-Up' },
+        { duration_min: 10, speed_mph: 6.0, description: 'steady pace', section: 'Main Workout' },
+        { duration_min: 5, speed_mph: 7.0, description: 'tempo interval', section: 'Main Workout' },
+        { duration_min: 10, speed_mph: 6.0, description: 'steady pace', section: 'Main Workout' },
+        { duration_min: 5, speed_mph: 4.0, description: 'cool down', section: 'Cool-Down' }
+      ];
+      
+      const sample = generateWorkoutText(sampleIntervals);
       $('#generatedText').value = sample;
       $('#generated-workout').style.display = 'block';
     }
