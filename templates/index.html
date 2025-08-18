@@ -689,14 +689,16 @@
     function setSpeed(val){
       if (!intervals[currentIntervalIndex]) return;
       intervals[currentIntervalIndex].speed_mph = Math.max(0, Number(val));
-      $('#speedValue').textContent = intervals[currentIntervalIndex].speed_mph.toFixed(1) + ' mph';
+      const sv = $('#speedValue');
+      if (sv) sv.textContent = intervals[currentIntervalIndex].speed_mph.toFixed(1) + ' mph';
       $('#current-speed').textContent = intervals[currentIntervalIndex].speed_mph.toFixed(1);
       updateSummary(); updateProgressUI(); if (typeof saveLastSession === 'function') saveLastSession();
     }
     function setIncline(val){
       if (!intervals[currentIntervalIndex]) return;
       intervals[currentIntervalIndex].incline = Math.min(40, Math.max(0, Number(val)));
-      $('#inclineValue').textContent = intervals[currentIntervalIndex].incline.toFixed(1) + '%';
+      const iv = $('#inclineValue');
+      if (iv) iv.textContent = intervals[currentIntervalIndex].incline.toFixed(1) + '%';
       $('#current-incline').textContent = intervals[currentIntervalIndex].incline.toFixed(1);
       updateSummary(); updateProgressUI(); if (typeof saveLastSession === 'function') saveLastSession();
     }
@@ -969,8 +971,10 @@
       setPhaseBackground(phase);
 
       // Reflect current speed/incline in quick controls
-      $('#speedValue').textContent = (current.speed_mph ?? 0).toFixed(1) + ' mph';
-      $('#inclineValue').textContent = (current.incline || 0).toFixed(1) + '%';
+      const sv = $('#speedValue');
+      if (sv) sv.textContent = (current.speed_mph ?? 0).toFixed(1) + ' mph';
+      const iv = $('#inclineValue');
+      if (iv) iv.textContent = (current.incline || 0).toFixed(1) + '%';
 
       // Voice announce current interval
       speak(`${current.section || 'Interval'}: ${current.duration_min} minutes at ${(current.speed_mph ?? 0).toFixed(1)} miles per hour${current.incline? ', incline ' + Number(current.incline).toFixed(1) + ' percent' : ''}`);
@@ -1208,15 +1212,13 @@
     }
 
     function useGenerated(){
-      intervals = [
-        { duration_min:5, speed_mph:4.0, description:'Warm up', section:'Warm-Up' },
-        { duration_min:8, speed_mph:6.0, description:'Steady pace', section:'Main Workout' },
-        { duration_min:4, speed_mph:7.0, description:'Tempo interval', section:'Main Workout' },
-        { duration_min:8, speed_mph:6.0, description:'Steady pace', section:'Main Workout' },
-        { duration_min:5, speed_mph:4.0, description:'Cool down', section:'Cool-Down' }
-      ];
+      const text = ($('#generatedText').value || '').trim();
+      if (!text) { alert('No generated workout to use yet.'); return; }
+      const parsed = parseWorkoutText(text);
+      if (!parsed.length) { alert('Could not parse the generated workout.'); return; }
+      intervals = parsed;
       $('#timer-section').classList.add('active');
-      currentIntervalIndex = 0; timeRemaining = intervals[0].duration_min * 60;
+      currentIntervalIndex = 0; timeRemaining = Math.round((intervals[0].duration_min||0) * 60);
       displayIntervals(); updateProgressUI(); updateCurrentIntervalUI();
       try{ saveLastSession(); }catch{}
     }
@@ -1693,7 +1695,41 @@
       });
 
       // Generate / Use
-      $('#btn-generate').addEventListener('click', ()=>{ $('#generate-btn-text').style.display='none'; $('#generate-loading').style.display='inline-block'; $('#btn-generate').disabled=true; setTimeout(()=>{ sampleGenerate(); $('#generate-btn-text').style.display='inline-block'; $('#generate-loading').style.display='none'; $('#btn-generate').disabled=false; }, 1200); });
+      $('#btn-generate').addEventListener('click', async ()=>{
+        const btn = $('#btn-generate');
+        $('#generate-btn-text').style.display='none';
+        $('#generate-loading').style.display='inline-block';
+        btn.disabled = true;
+        try {
+          // Build request string from UI
+          const durChip = document.querySelector('#duration-chips .chip.active');
+          const catChip = document.querySelector('#category-chips .chip.active');
+          const minutes = durChip ? parseInt(durChip.dataset.min || '30', 10) : 30;
+          const category = (catChip ? (catChip.dataset.cat || 'endurance') : 'endurance');
+          const desc = ($('#workoutRequest').value || '').trim();
+          const req = `${minutes} minute ${category} treadmill workout. ${desc}`.trim();
+
+          const res = await fetch('/generate_workout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ request: req })
+          });
+          const data = await res.json();
+          if (!res.ok || !data || data.success === false) throw new Error(data && data.error || 'Generation failed');
+          const text = (data.workout_text || '').trim();
+          if (!text) throw new Error('Empty workout text');
+          $('#generatedText').value = text;
+          $('#generated-workout').style.display = 'block';
+        } catch (e) {
+          console.warn('Generation failed, falling back to sample:', e);
+          try { sampleGenerate(); } catch {}
+          if (window.showError) window.showError(e);
+        } finally {
+          $('#generate-btn-text').style.display='inline-block';
+          $('#generate-loading').style.display='none';
+          btn.disabled = false;
+        }
+      });
       $('#use-generated').addEventListener('click', useGenerated);
 
       // Manual parse

@@ -845,9 +845,12 @@ def generate_workout():
                 workout_text = response_text
         except Exception as openai_error:
             print(f"OpenAI error: {openai_error}")
-            # Enhanced fallback workouts with variety based on user request
+            # Dynamic fallback builder that respects requested total time and avoids symmetric 10-5-10 style patterns
+            import re
+            import random
+
             user_request_lower = user_request.lower()
-            
+
             # Determine workout type from user request
             if any(word in user_request_lower for word in ['endurance', 'steady', 'aerobic', 'long']):
                 workout_type = 'endurance'
@@ -862,121 +865,129 @@ def generate_workout():
             elif any(word in user_request_lower for word in ['fartlek', 'varied', 'mixed']):
                 workout_type = 'fartlek'
             else:
-                workout_type = 'endurance'  # default
-            
-            # Category-specific fallback workouts
-            fallback_workouts = {
-                'endurance': [
-                    """**Warm-Up – 5 minutes**
-* 5 min @ 4.0 mph (warm up)
+                workout_type = 'endurance'
 
-**Main Workout – 20 minutes**
-* 20 min @ 5.5 mph (steady pace)
+            # Extract desired total minutes, default 30 if not specified
+            target_minutes = 30
+            m = re.search(r'(\d{2,3})\s*(?:min|mins|minute|minutes)?', user_request_lower)
+            if m:
+                try:
+                    tm = int(m.group(1))
+                    if 10 <= tm <= 180:
+                        target_minutes = tm
+                except ValueError:
+                    pass
 
-**Cool-Down – 5 minutes**
-* 5 min @ 4.0 mph (cool down)""",
-                    
-                    """**Warm-Up – 3 minutes**
-* 3 min @ 4.0 mph (easy warm up)
+            # Helper: choose steady/surge speeds
+            def choose_speed(kind: str) -> float:
+                if kind == 'recovery':
+                    return round(random.uniform(4.5, 5.3), 1)
+                if kind == 'steady':
+                    return round(random.uniform(5.8, 6.3), 1)
+                if kind == 'surge':
+                    return round(random.uniform(6.7, 7.2), 1)
+                if kind == 'max':
+                    return round(random.uniform(7.3, 8.0), 1)
+                return 6.0
 
-**Main Workout – 22 minutes**
-* 10 min @ 5.0 mph (build pace)
-* 12 min @ 5.5 mph (steady state)
+            # Helper: build main block durations with variability; avoid perfect symmetry like 10-5-10 or 8-4-8
+            def build_main_blocks(total: int):
+                blocks = []
+                if total <= 8:
+                    blocks = [total]
+                else:
+                    # Number of blocks: 3 or 4 for variety
+                    n_blocks = random.choice([3, 4])
+                    remaining = total
+                    for i in range(n_blocks):
+                        min_len = 3
+                        max_len = max(min_len, int(total / n_blocks) + random.choice([-1, 0, 1, 2]))
+                        if i == n_blocks - 1:
+                            dur = max(min_len, remaining)
+                        else:
+                            dur = max(min_len, min(max_len, remaining - min_len * (n_blocks - i - 1)))
+                        blocks.append(dur)
+                        remaining -= dur
 
-**Cool-Down – 5 minutes**
-* 5 min @ 4.0 mph (cool down)""",
-                    
-                    """**Warm-Up – 5 minutes**
-* 5 min @ 4.5 mph (warm up)
+                    # If symmetric pattern emerges (like a,b,a), nudge the middle by ±1
+                    if len(blocks) == 3 and blocks[0] == blocks[2]:
+                        delta = random.choice([-1, 1])
+                        if blocks[1] + delta >= 3 and sum(blocks) + delta <= total + 1:
+                            blocks[1] += delta
+                            blocks[2] = max(3, total - blocks[0] - blocks[1])
 
-**Main Workout – 15 minutes**
-* 15 min @ 5.5 mph (endurance pace)
+                # Final sanity
+                if sum(blocks) != total:
+                    diff = total - sum(blocks)
+                    blocks[-1] += diff
+                return blocks
 
-**Cool-Down – 5 minutes**
-* 5 min @ 4.5 mph (cool down)"""
-                ],
-                'speed': [
-                    """**Warm-Up – 5 minutes**
-* 5 min @ 4.0 mph (warm up)
+            # Warm-up and Cool-down: 10-15% each, clamped to [3, 8]
+            wu = max(3, min(8, round(target_minutes * random.uniform(0.10, 0.15))))
+            cd = max(3, min(8, round(target_minutes * random.uniform(0.10, 0.15))))
+            main_total = max(5, target_minutes - wu - cd)
 
-**Main Workout – 20 minutes**
-* 3 min @ 6.0 mph (speed interval)
-* 2 min @ 4.5 mph (recovery)
-* 3 min @ 6.5 mph (speed interval)
-* 2 min @ 4.5 mph (recovery)
-* 3 min @ 7.0 mph (speed interval)
-* 2 min @ 4.5 mph (recovery)
+            # Build intervals based on workout type
+            intervals = []
+            intervals.append({
+                'duration_min': wu,
+                'speed_mph': 4.0,
+                'incline': 0,
+                'description': 'easy warm up',
+                'section': 'Warm-Up'
+            })
 
-**Cool-Down – 5 minutes**
-* 5 min @ 4.0 mph (cool down)""",
-                    
-                    """5 min @ 4.5 mph (warm up)
-5 min @ 6.0 mph (tempo)
-3 min @ 4.5 mph (recovery)
-5 min @ 6.5 mph (tempo)
-3 min @ 4.5 mph (recovery)
-4 min @ 4.0 mph (cool down)"""
-                ],
-                'hills': [
-                    """5 min @ 4.0 mph (warm up)
-5 min @ 5.0 mph, incline 2 (hill climb)
-3 min @ 4.5 mph, incline 0 (recovery)
-5 min @ 5.5 mph, incline 3 (hill climb)
-3 min @ 4.5 mph, incline 0 (recovery)
-4 min @ 4.0 mph (cool down)""",
-                    
-                    """3 min @ 4.0 mph (warm up)
-8 min @ 5.0 mph, incline 2 (rolling hills)
-4 min @ 4.5 mph, incline 0 (recovery)
-8 min @ 5.5 mph, incline 3 (rolling hills)
-2 min @ 4.0 mph (cool down)"""
-                ],
-                'recovery': [
-                    """5 min @ 3.5 mph (easy warm up)
-15 min @ 4.0 mph (recovery pace)
-5 min @ 3.5 mph (cool down)""",
-                    
-                    """3 min @ 3.0 mph (walk warm up)
-12 min @ 4.0 mph (easy jog)
-5 min @ 3.5 mph (walk cool down)"""
-                ],
-                'race': [
-                    """5 min @ 4.0 mph (warm up)
-5 min @ 6.0 mph (race pace)
-3 min @ 4.5 mph (recovery)
-5 min @ 6.5 mph (race pace)
-3 min @ 4.5 mph (recovery)
-4 min @ 4.0 mph (cool down)""",
-                    
-                    """3 min @ 4.0 mph (warm up)
-8 min @ 6.0 mph (tempo pace)
-4 min @ 4.5 mph (recovery)
-8 min @ 6.5 mph (tempo pace)
-2 min @ 4.0 mph (cool down)"""
-                ],
-                'fartlek': [
-                    """5 min @ 4.0 mph (warm up)
-2 min @ 6.0 mph (speed)
-3 min @ 4.5 mph (recovery)
-2 min @ 6.5 mph (speed)
-3 min @ 4.5 mph (recovery)
-2 min @ 7.0 mph (speed)
-3 min @ 4.5 mph (recovery)
-5 min @ 4.0 mph (cool down)""",
-                    
-                    """3 min @ 4.0 mph (warm up)
-3 min @ 5.5 mph (steady)
-2 min @ 6.5 mph (surge)
-3 min @ 5.0 mph (steady)
-2 min @ 7.0 mph (surge)
-3 min @ 5.0 mph (steady)
-3 min @ 4.0 mph (cool down)"""
-                ]
-            }
-            
-            # Get appropriate fallback workout
-            category_workouts = fallback_workouts.get(workout_type, fallback_workouts['endurance'])
-            workout_text = random.choice(category_workouts)
+            if workout_type in ('endurance', 'race'):
+                blocks = build_main_blocks(main_total)
+                for idx, d in enumerate(blocks):
+                    kind = 'steady' if idx % 2 == 0 else 'surge'
+                    intervals.append({
+                        'duration_min': d,
+                        'speed_mph': choose_speed(kind),
+                        'incline': 0 if kind != 'surge' else random.choice([0, 1, 2]),
+                        'description': 'steady pace' if kind == 'steady' else 'tempo surge',
+                        'section': 'Main Workout'
+                    })
+            elif workout_type == 'speed':
+                # Shorter alternating efforts with recoveries
+                remaining = main_total
+                while remaining > 0:
+                    work = max(1, min(4, random.randint(1, 4)))
+                    rec = max(1, min(3, random.randint(1, 3)))
+                    if remaining - (work + rec) < 0:
+                        work = max(1, remaining)
+                        rec = 0
+                    intervals.append({'duration_min': work, 'speed_mph': choose_speed('surge'), 'incline': random.choice([0, 1, 2]), 'description': 'speed interval', 'section': 'Main Workout'})
+                    remaining -= work
+                    if rec > 0 and remaining > 0:
+                        intervals.append({'duration_min': min(rec, remaining), 'speed_mph': choose_speed('recovery'), 'incline': 0, 'description': 'recovery', 'section': 'Main Workout'})
+                        remaining -= min(rec, remaining)
+            elif workout_type == 'hills':
+                blocks = build_main_blocks(main_total)
+                for d in blocks:
+                    intervals.append({'duration_min': d, 'speed_mph': choose_speed('steady'), 'incline': random.choice([1, 2, 3, 4]), 'description': 'rolling hill', 'section': 'Main Workout'})
+            elif workout_type == 'recovery':
+                intervals.append({'duration_min': main_total, 'speed_mph': choose_speed('recovery'), 'incline': 0, 'description': 'recovery pace', 'section': 'Main Workout'})
+            else:  # fartlek or default
+                remaining = main_total
+                while remaining > 0:
+                    block = max(2, min(6, random.randint(2, 6)))
+                    if block > remaining:
+                        block = remaining
+                    kind = random.choice(['steady', 'surge'])
+                    intervals.append({'duration_min': block, 'speed_mph': choose_speed(kind), 'incline': 0 if kind=='steady' else random.choice([0,1,2]), 'description': 'varied effort', 'section': 'Main Workout'})
+                    remaining -= block
+
+            intervals.append({
+                'duration_min': cd,
+                'speed_mph': 4.0,
+                'incline': 0,
+                'description': 'cool down',
+                'section': 'Cool-Down'
+            })
+
+            # Produce workout text from intervals
+            workout_text = generate_workout_text_from_intervals(intervals)
 
         # Parse the generated workout using our parser wrapper
         intervals = []
