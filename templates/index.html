@@ -689,14 +689,12 @@
     function setSpeed(val){
       if (!intervals[currentIntervalIndex]) return;
       intervals[currentIntervalIndex].speed_mph = Math.max(0, Number(val));
-      $('#speedValue').textContent = intervals[currentIntervalIndex].speed_mph.toFixed(1) + ' mph';
       $('#current-speed').textContent = intervals[currentIntervalIndex].speed_mph.toFixed(1);
       updateSummary(); updateProgressUI(); if (typeof saveLastSession === 'function') saveLastSession();
     }
     function setIncline(val){
       if (!intervals[currentIntervalIndex]) return;
       intervals[currentIntervalIndex].incline = Math.min(40, Math.max(0, Number(val)));
-      $('#inclineValue').textContent = intervals[currentIntervalIndex].incline.toFixed(1) + '%';
       $('#current-incline').textContent = intervals[currentIntervalIndex].incline.toFixed(1);
       updateSummary(); updateProgressUI(); if (typeof saveLastSession === 'function') saveLastSession();
     }
@@ -969,8 +967,9 @@
       setPhaseBackground(phase);
 
       // Reflect current speed/incline in quick controls
-      $('#speedValue').textContent = (current.speed_mph ?? 0).toFixed(1) + ' mph';
-      $('#inclineValue').textContent = (current.incline || 0).toFixed(1) + '%';
+      // Elements #speedValue/#inclineValue are not present; keep current-* in sync instead
+      $('#current-speed').textContent = (current.speed_mph ?? 0).toFixed(1);
+      $('#current-incline').textContent = (current.incline || 0).toFixed(1);
 
       // Voice announce current interval
       speak(`${current.section || 'Interval'}: ${current.duration_min} minutes at ${(current.speed_mph ?? 0).toFixed(1)} miles per hour${current.incline? ', incline ' + Number(current.incline).toFixed(1) + ' percent' : ''}`);
@@ -1148,21 +1147,43 @@
 
     // ---------- Simple sample generation / parsing ----------
     function sampleGenerate(){
-      const sample = `**Warm-Up – 5 minutes**\n* 5 min @ 4.0 mph (easy warm up)\n\n**Main Workout – ${currentMinutes - 10} minutes**\n* 10 min @ 6.0 mph (steady pace)\n* 5 min @ 7.0 mph (tempo interval)\n* 10 min @ 6.0 mph (steady pace)\n\n**Cool-Down – 5 minutes**\n* 5 min @ 4.0 mph (cool down)`;
+      // Build a dynamic sample that sums to the selected duration
+      const totalMinutes = Number(currentMinutes) || 20;
+      const warmUpMin = 5;
+      const coolDownMin = 5;
+      const mainTarget = Math.max(0, totalMinutes - warmUpMin - coolDownMin);
+
+      // Heuristic split: ensure at least 2 intervals; favor 10/5 repeats
+      const blocks = [];
+      let remaining = mainTarget;
+      let toggleFast = false;
+      while (remaining > 0){
+        const chunk = remaining >= 10 ? 10 : remaining >= 5 ? 5 : remaining; // last small remainder allowed
+        const speed = toggleFast ? 7.0 : 6.0;
+        const desc = toggleFast ? 'tempo interval' : 'steady pace';
+        blocks.push({ min: chunk, speed, desc });
+        remaining -= chunk;
+        toggleFast = !toggleFast;
+      }
+
+      const mainHeader = `**Main Workout – ${mainTarget} minutes**`;
+      const mainLines = blocks.map(b => `* ${b.min} min @ ${b.speed.toFixed(1)} mph (${b.desc})`).join('\n');
+      const sample = `**Warm-Up – ${warmUpMin} minutes**\n* ${warmUpMin} min @ 4.0 mph (easy warm up)\n\n${mainHeader}\n${mainLines}\n\n**Cool-Down – ${coolDownMin} minutes**\n* ${coolDownMin} min @ 4.0 mph (cool down)`;
       $('#generatedText').value = sample;
       $('#generated-workout').style.display = 'block';
     }
 
     function useGenerated(){
-      intervals = [
-        { duration_min:5, speed_mph:4.0, description:'Warm up', section:'Warm-Up' },
-        { duration_min:10, speed_mph:6.0, description:'Steady pace', section:'Main Workout' },
-        { duration_min:5, speed_mph:7.0, description:'Tempo interval', section:'Main Workout' },
-        { duration_min:10, speed_mph:6.0, description:'Steady pace', section:'Main Workout' },
-        { duration_min:5, speed_mph:4.0, description:'Cool down', section:'Cool-Down' }
-      ];
+      // Parse the text we just generated so bullets are not hardcoded
+      const text = ($('#generatedText').value || '').trim();
+      const parsed = text ? parseWorkoutText(text) : [];
+      if (!parsed.length){
+        alert('Nothing to use yet. Please generate a workout first.');
+        return;
+      }
+      intervals = parsed;
       $('#timer-section').classList.add('active');
-      currentIntervalIndex = 0; timeRemaining = intervals[0].duration_min * 60;
+      currentIntervalIndex = 0; timeRemaining = (intervals[0]?.duration_min || 0) * 60;
       displayIntervals(); updateProgressUI(); updateCurrentIntervalUI();
       try{ saveLastSession(); }catch{}
     }
