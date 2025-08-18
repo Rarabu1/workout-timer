@@ -1290,8 +1290,8 @@
       }
     })();
 
-    // Initialize Socket.IO connection
-    const socket = io();
+    // Initialize Socket.IO connection (safe if client lib blocked by CSP or offline)
+    const socket = (typeof io !== 'undefined') ? io() : { on: () => {}, emit: () => {} };
 
     // HR Display State
     let hrDisplayState = {
@@ -1740,11 +1740,17 @@
       }
       function backToEmail(){ document.getElementById('emailStep').style.display='block'; document.getElementById('codeStep').style.display='none'; document.getElementById('codeInput').value=''; }
 
-      // Wire auth buttons and check state
-      document.getElementById('sendCodeBtn').addEventListener('click', sendVerificationCode);
-      document.getElementById('verifyBtn').addEventListener('click', verifyCode);
-      document.getElementById('backBtn').addEventListener('click', backToEmail);
-      checkAuthState();
+      // Wire auth buttons and check state (guard if overlay not present)
+      const sendBtn = document.getElementById('sendCodeBtn');
+      const verifyBtnEl = document.getElementById('verifyBtn');
+      const backBtnEl = document.getElementById('backBtn');
+      const authContainer = document.getElementById('authContainer');
+      if (sendBtn && verifyBtnEl && backBtnEl && authContainer) {
+        sendBtn.addEventListener('click', sendVerificationCode);
+        verifyBtnEl.addEventListener('click', verifyCode);
+        backBtnEl.addEventListener('click', backToEmail);
+        checkAuthState();
+      }
 
       // Seed request text
       $('#workoutRequest').value = `${currentMinutes} minute ${currentCategory} workout`;

@@ -49,11 +49,11 @@ def add_security_headers(response):
     # Content Security Policy - restrict script sources
     csp_policy = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline'; "  # Allow inline scripts for now (will be improved)
+        "script-src 'self' 'unsafe-inline' https://cdn.socket.io; "  # Allow inline scripts for now (will be improved)
         "style-src 'self' 'unsafe-inline'; "   # Allow inline styles
         "img-src 'self' data: https:; "
         "font-src 'self'; "
-        "connect-src 'self'; "
+        "connect-src 'self' wss:; "
         "frame-ancestors 'none';"
     )
     response.headers['Content-Security-Policy'] = csp_policy
