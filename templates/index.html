@@ -1147,22 +1147,68 @@
     }
 
     // ---------- Simple sample generation / parsing ----------
+    function buildSampleIntervals(totalMinutes){
+      const warmup = { duration_min: 5, speed_mph: 4.0, description: 'Warm up', section: 'Warm-Up' };
+      const cooldown = { duration_min: 5, speed_mph: 4.0, description: 'Cool down', section: 'Cool-Down' };
+      let remaining = Math.max(0, Math.round(totalMinutes) - warmup.duration_min - cooldown.duration_min);
+      const main = [];
+      // Start with a steady block
+      if (remaining >= 10){
+        main.push({ duration_min: 10, speed_mph: 6.0, description: 'Steady pace', section: 'Main Workout' });
+        remaining -= 10;
+      }
+      // Alternate 5-min tempo and 10-min steady as long as it fits
+      while (remaining >= 15){
+        main.push({ duration_min: 5, speed_mph: 7.0, description: 'Tempo interval', section: 'Main Workout' });
+        main.push({ duration_min: 10, speed_mph: 6.0, description: 'Steady pace', section: 'Main Workout' });
+        remaining -= 15;
+      }
+      // Fill any leftover time sensibly
+      if (remaining >= 10){
+        main.push({ duration_min: 10, speed_mph: 6.0, description: 'Steady pace', section: 'Main Workout' });
+        remaining -= 10;
+      }
+      if (remaining >= 5){
+        // Use a steady 5-min finisher if there is leftover time
+        main.push({ duration_min: 5, speed_mph: 6.0, description: 'Steady pace', section: 'Main Workout' });
+        remaining -= 5;
+      }
+      // Compose full interval list
+      return [warmup, ...main, cooldown];
+    }
+
     function sampleGenerate(){
-      const sample = `**Warm-Up – 5 minutes**\n* 5 min @ 4.0 mph (easy warm up)\n\n**Main Workout – ${currentMinutes - 10} minutes**\n* 10 min @ 6.0 mph (steady pace)\n* 5 min @ 7.0 mph (tempo interval)\n* 10 min @ 6.0 mph (steady pace)\n\n**Cool-Down – 5 minutes**\n* 5 min @ 4.0 mph (cool down)`;
-      $('#generatedText').value = sample;
+      // Build intervals that exactly match the selected duration
+      const sampleIntervals = buildSampleIntervals(currentMinutes);
+      const mainTotal = sampleIntervals
+        .filter(i => i.section === 'Main Workout')
+        .reduce((s, i) => s + Number(i.duration_min || 0), 0);
+      const lines = [];
+      lines.push('**Warm-Up – 5 minutes**');
+      lines.push('* 5 min @ 4.0 mph (easy warm up)');
+      lines.push('');
+      lines.push(`**Main Workout – ${mainTotal} minutes**`);
+      sampleIntervals.filter(i => i.section === 'Main Workout').forEach(i => {
+        lines.push(`* ${i.duration_min} min @ ${i.speed_mph.toFixed(1)} mph (${i.description.toLowerCase()})`);
+      });
+      lines.push('');
+      lines.push('**Cool-Down – 5 minutes**');
+      lines.push('* 5 min @ 4.0 mph (cool down)');
+      $('#generatedText').value = lines.join('\n');
       $('#generated-workout').style.display = 'block';
     }
 
     function useGenerated(){
-      intervals = [
-        { duration_min:5, speed_mph:4.0, description:'Warm up', section:'Warm-Up' },
-        { duration_min:10, speed_mph:6.0, description:'Steady pace', section:'Main Workout' },
-        { duration_min:5, speed_mph:7.0, description:'Tempo interval', section:'Main Workout' },
-        { duration_min:10, speed_mph:6.0, description:'Steady pace', section:'Main Workout' },
-        { duration_min:5, speed_mph:4.0, description:'Cool down', section:'Cool-Down' }
-      ];
+      const text = ($('#generatedText').value || '').trim();
+      let parsed = [];
+      try { parsed = parseWorkoutText(text); } catch {}
+      if (!parsed.length){
+        // Fallback: rebuild based on the current duration selection
+        parsed = buildSampleIntervals(currentMinutes);
+      }
+      intervals = parsed;
       $('#timer-section').classList.add('active');
-      currentIntervalIndex = 0; timeRemaining = intervals[0].duration_min * 60;
+      currentIntervalIndex = 0; timeRemaining = Math.round((intervals[0]?.duration_min || 0) * 60);
       displayIntervals(); updateProgressUI(); updateCurrentIntervalUI();
       try{ saveLastSession(); }catch{}
     }
