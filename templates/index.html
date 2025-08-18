@@ -609,6 +609,8 @@
         <div class="metric-card"><div class="metric-label">Heart Rate Zone</div><div class="metric-value" id="current-hr-zone" style="font-size:1.5rem;">Z3</div></div>
         <div class="metric-card"><div class="metric-label">Time Remaining</div><div class="metric-value" id="time-remaining">-</div></div>
       </div>
+      <!-- Back-compat hidden elements for older cached clients -->
+      <div style="display:none" aria-hidden="true"><span id="speedValue"></span><span id="inclineValue"></span></div>
       <div id="current-description" style="text-align:center; margin-top: var(--spacing-md); font-style: italic; color: var(--ios-gray);">-</div>
     </div>
 
