@@ -2,1857 +2,663 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>The Treadmill Run Coach</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-
-  <!-- PWA Meta Tags -->
+  <title>Treadmill Workout Timer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="The Treadmill Run Coach">
-  <meta name="mobile-web-app-capable" content="yes">
-  
-  <!-- iOS App Icons -->
-  <link rel="apple-touch-icon" sizes="180x180" href="/static/app-icon.svg">
-  <link rel="apple-touch-icon" sizes="152x152" href="/static/app-icon.svg">
-  <link rel="apple-touch-icon" sizes="144x144" href="/static/app-icon.svg">
-  <link rel="apple-touch-icon" sizes="120x120" href="/static/app-icon.svg">
-  <link rel="apple-touch-icon" sizes="114x114" href="/static/app-icon.svg">
-  <link rel="apple-touch-icon" sizes="76x76" href="/static/app-icon.svg">
-  <link rel="apple-touch-icon" sizes="72x72" href="/static/app-icon.svg">
-  <link rel="apple-touch-icon" sizes="60x60" href="/static/app-icon.svg">
-  <link rel="apple-touch-icon" sizes="57x57" href="/static/app-icon.svg">
+  <meta name="apple-mobile-web-app-title" content="Workout Timer">
   <link rel="apple-touch-icon" href="/static/app-icon.svg">
-  
-  <meta name="color-scheme" content="light">
-  <meta id="meta-theme-color" name="theme-color" content="#F2F2F7">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
-
-  <!-- Socket.IO for real-time HR updates -->
-  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-  
-  <!-- Web App Manifest -->
   <link rel="manifest" href="/static/manifest.json">
-
-  <!-- Mobile error overlay -->
-  <div id="err" style="position:fixed;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);color:#fff;padding:.75rem;font:14px/1.4 system-ui;z-index:99999;display:none"></div>
-
+  
   <style>
-    /* Core Design System Variables */
     :root {
-      /* WHOOP colors */
-      --whoop-recovery-high: #16EC06;
-      --whoop-recovery-medium: #FFDE00;
-      --whoop-recovery-low: #FF0026;
-      --whoop-strain: #0093E7;
-      --whoop-teal: #00F19F;
-      --whoop-black: #000000;
-      --whoop-white: #FFFFFF;
-
-      /* iOS System Colors */
-      --ios-blue: #007AFF;
-      --ios-green: #34C759;
-      --ios-red: #FF3B30;
-      --ios-orange: #FF9500;
-      --ios-purple: #AF52DE;
-      --ios-gray: #8E8E93;
-      --ios-light-gray: #F2F2F7;
-      --ios-border: #C6C6C8;
-
-      /* Typography */
-      --font-system: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
-      --font-mono: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-
-      /* Spacing */
-      --spacing-xs: 4px;
-      --spacing-sm: 8px;
-      --spacing-md: 16px;
-      --spacing-lg: 24px;
-      --spacing-xl: 32px;
-
-      /* Radius */
-      --radius-sm: 8px;
-      --radius-md: 12px;
-      --radius-lg: 16px;
-      --radius-xl: 24px;
-
-      /* Safe Areas */
-      --safe-area-inset-top: env(safe-area-inset-top);
-      --safe-area-inset-bottom: env(safe-area-inset-bottom);
-      --safe-area-inset-left: env(safe-area-inset-left);
-      --safe-area-inset-right: env(safe-area-inset-right);
+      --primary: #007AFF;
+      --success: #34C759;
+      --warning: #FF9500;
+      --danger: #FF3B30;
+      --gray: #8E8E93;
+      --bg: #F2F2F7;
+      --card-bg: #FFFFFF;
+      --text: #000000;
+      --border: #C6C6C8;
+      --radius: 12px;
+      --spacing: 16px;
     }
-
-    html { color-scheme: light; }
-
-    /* Mobile activation styles */
-    html:not(.user-activated) .requires-user-activation {
-      opacity: 0.5;
-      pointer-events: none;
-    }
-
-    /* Error overlay styling */
-    #err {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,.85);
-      color: #fff;
-      padding: .75rem;
-      font: 14px/1.4 system-ui;
-      z-index: 99999;
-      display: none;
-      border-top: 1px solid rgba(255,255,255,0.2);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-    }
-
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
-
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
     body {
-      font-family: var(--font-system);
-      max-width: 1000px;
-      margin: 0 auto;
-      padding: var(--spacing-lg);
-      padding-top: calc(var(--spacing-lg) + var(--safe-area-inset-top));
-      padding-bottom: calc(var(--spacing-lg) + var(--safe-area-inset-bottom));
-      padding-left: calc(var(--spacing-lg) + var(--safe-area-inset-left));
-      padding-right: calc(var(--spacing-lg) + var(--safe-area-inset-right));
-      background: var(--ios-light-gray);
-      color: #1D1D1F;
-      line-height: 1.4;
-      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
-      min-height: 100vh; overflow-x: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: var(--spacing);
+      line-height: 1.5;
     }
-
-    /* Header */
-    .app-header { display:flex; align-items:center; gap:var(--spacing-md); margin-bottom:var(--spacing-lg); padding:var(--spacing-md); background:var(--whoop-white); border-radius:var(--radius-lg); border:1px solid var(--ios-border); box-shadow:0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06); }
-    .app-logo { width:120px; height:120px; flex-shrink:0; border-radius:var(--radius-lg); background:#007AFF; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 20px rgba(0,122,255,0.4); overflow:hidden; position:relative; }
-    .app-logo img { width:100%; height:100%; border-radius:var(--radius-lg); }
-    .app-title h1 { margin:0; font-size:24px; font-weight:700; color:#1D1D1F; line-height:1.2; }
-    .app-subtitle { margin:4px 0 0 0; font-size:14px; color:var(--ios-gray); font-weight:500; }
-
-    /* Theme Toggle */
-    .theme-toggle { background: var(--ios-light-gray); border:1px solid var(--ios-border); border-radius:var(--radius-md); padding:var(--spacing-sm); cursor:pointer; transition: all .3s ease; display:flex; align-items:center; justify-content:center; width:40px; height:40px; margin-left:auto; }
-    .theme-toggle:hover { background: var(--ios-blue); color: var(--whoop-white); transform: translateY(-1px); }
-
-    /* Dark theme override (manual) */
-    /* (Removed dark-theme manual CSS) */
-
-    /* Tabs */
-    .tab-navigation { position: sticky; top: var(--spacing-md); z-index: 100; margin-bottom: var(--spacing-lg); }
-    .tabs { display:flex; background:var(--whoop-white); border-radius:var(--radius-md); border:1px solid var(--ios-border); overflow-x:auto; box-shadow:0 2px 8px rgba(0,0,0,.08); scrollbar-width:none; -ms-overflow-style:none; }
-    .tabs::-webkit-scrollbar{ display:none; }
-    .tab { padding:var(--spacing-md) var(--spacing-lg); cursor:pointer; background:transparent; border:none; color:var(--ios-gray); flex-shrink:0; min-width:120px; text-align:center; transition: all .3s cubic-bezier(.4,0,.2,1); font-weight:600; font-size:14px; min-height:48px; display:flex; align-items:center; justify-content:center; white-space:nowrap; position:relative; }
-    .tab.active { background:var(--ios-blue); color:var(--whoop-white); font-weight:700; transform: translateY(-1px); box-shadow:0 4px 12px rgba(0,122,255,.3); }
-    .tab:not(.active):hover{ background: rgba(0,122,255,.08); color: var(--ios-blue); }
-
-    .tab-content { display:none; background:var(--whoop-white); border-radius:var(--radius-lg); border:1px solid var(--ios-border); padding:var(--spacing-xl); margin-bottom:var(--spacing-lg); box-shadow:0 2px 8px rgba(0,0,0,.08); }
-    .tab-content.active { display:block; animation: fadeInUp .3s cubic-bezier(.4,0,.2,1); }
-    @keyframes fadeInUp { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
-
-    /* Chips & Buttons */
-    .chip { border:1.5px solid var(--ios-border); background:var(--whoop-white); color:#1D1D1F; padding:var(--spacing-md) var(--spacing-lg); border-radius:var(--radius-xl); cursor:pointer; font-size:14px; font-weight:600; min-height:48px; display:inline-flex; align-items:center; justify-content:center; transition: all .3s cubic-bezier(.4,0,.2,1); position:relative; overflow:hidden; }
-    .chip.active { background: linear-gradient(135deg, var(--ios-blue) 0%, var(--whoop-strain) 100%); border-color: var(--ios-blue); color: var(--whoop-white); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,122,255,.3); }
-
-    button { background: var(--ios-blue); color: var(--whoop-white); border:none; padding:var(--spacing-md) var(--spacing-xl); border-radius:var(--radius-md); cursor:pointer; margin:var(--spacing-sm); font-size:16px; font-weight:600; transition: all .3s cubic-bezier(.4,0,.2,1); min-height:48px; display:inline-flex; align-items:center; justify-content:center; font-family:inherit; position:relative; overflow:hidden; }
-    button:hover:not(:disabled){ background:#0056CC; transform: translateY(-2px); box-shadow:0 6px 16px rgba(0,122,255,.3); }
-    button:disabled{ background:var(--ios-gray); cursor:not-allowed; opacity:.6; }
-    .btn-generate{ background:linear-gradient(135deg, var(--ios-purple) 0%, var(--whoop-teal) 100%); width:100%; margin:var(--spacing-lg) 0; font-size:18px; min-height:56px; box-shadow:0 4px 16px rgba(175,82,222,.3); }
-
-    /* Metrics */
-    .metrics-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap:var(--spacing-md); margin-bottom:var(--spacing-lg); }
-    .metric-card{ background: linear-gradient(135deg, var(--whoop-white) 0%, rgba(0,122,255,.02) 100%); border:1px solid var(--ios-border); border-radius:var(--radius-lg); padding:var(--spacing-lg); text-align:center; position:relative; overflow:hidden; }
-    .metric-card::before{ content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg, var(--ios-blue) 0%, var(--whoop-teal) 100%); }
-    .metric-label{ font-size:12px; color:var(--ios-gray); text-transform:uppercase; letter-spacing:.5px; margin-bottom:var(--spacing-sm); font-weight:700; }
-    .metric-value{ font-weight:800; font-size:2.2rem; line-height:1; color:#1D1D1F; font-variant-numeric: tabular-nums; }
-    .metric-unit{ font-size:1rem; color:var(--ios-gray); margin-left:4px; font-weight:500; }
-
-    /* Summary row */
-    .summary{ display:flex; justify-content:space-between; align-items:center; margin:var(--spacing-md) 0 var(--spacing-lg); flex-wrap:wrap; gap:var(--spacing-md); padding:var(--spacing-md); background:var(--whoop-white); border-radius:var(--radius-md); border:1px solid var(--ios-border); }
-    #summary-pill{ font-size:16px; color:var(--ios-gray); font-weight:600; }
-
-    /* Progress */
-    .progress{ height:8px; background:var(--ios-light-gray); border-radius:4px; overflow:hidden; margin:var(--spacing-md) 0; box-shadow: inset 0 1px 3px rgba(0,0,0,.1); }
-    .progress-bar{ height:100%; background: linear-gradient(90deg, var(--whoop-recovery-high) 0%, var(--whoop-teal) 50%, var(--ios-blue) 100%); transition: width .3s cubic-bezier(.4,0,.2,1); border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,.2); width:0%; }
-
-    /* Timer */
-    .timer-display{ background: linear-gradient(135deg, var(--whoop-white) 0%, rgba(0,241,159,.02) 100%); border-radius:var(--radius-xl); border:1px solid var(--ios-border); padding:var(--spacing-xl); margin:var(--spacing-lg) 0; text-align:center; display:none; box-shadow: 0 8px 32px rgba(0,0,0,.12); position:relative; overflow:hidden; }
-    .timer-display.active{ display:block; animation: slideInUp .5s cubic-bezier(.4,0,.2,1); }
-    @keyframes slideInUp{ from{ opacity:0; transform: translateY(20px);} to{ opacity:1; transform: translateY(0);} }
-    .countdown-wrap{ display:flex; justify-content:center; margin:var(--spacing-lg) 0; }
-    .countdown-pill{ display:flex; align-items:center; justify-content:center; min-width:320px; height:180px; padding:var(--spacing-xl); border-radius:var(--radius-xl); border:3px solid var(--ios-border); background: linear-gradient(135deg, var(--whoop-white) 0%, rgba(0,122,255,.02) 100%); color:#1D1D1F; font-weight:900; font-size:84px; line-height:1; letter-spacing:2px; box-shadow:0 8px 32px rgba(0,0,0,.16); font-variant-numeric: tabular-nums; }
-
-    /* Interval list */
-    .interval-item{ padding:var(--spacing-md); border-radius:var(--radius-md); margin-bottom:var(--spacing-sm); border:1px solid var(--ios-border); background:var(--whoop-white); }
-    .interval-item.current{ background: linear-gradient(135deg, rgba(0,122,255,.1) 0%, rgba(0,241,159,.1) 100%); border-color: var(--ios-blue); transform: scale(1.02); }
-    .interval-item.completed{ opacity:.6; background: var(--ios-light-gray); }
-
-    /* WHOOP metric color classes */
-    .recovery-high .metric-value { color: var(--whoop-recovery-high) !important; }
-    .recovery-medium .metric-value { color: var(--whoop-recovery-medium) !important; }
-    .recovery-low .metric-value { color: var(--whoop-recovery-low) !important; }
-
-    /* Focus / landscape compact background (only when focus mode is active) */
-    body.landscape-compact { position:fixed !important; inset:0 !important; z-index:9999 !important; overflow:hidden !important; margin:0 !important; padding:0 !important; display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:center !important; background: linear-gradient(135deg, var(--whoop-black) 0%, #1a1a1a 100%) !important; }
-    body.landscape-compact.phase-recovery { background: linear-gradient(135deg, var(--whoop-strain) 0%, #0066CC 100%) !important; }
-    body.landscape-compact.phase-low { background: linear-gradient(135deg, var(--whoop-recovery-high) 0%, #00C851 100%) !important; }
-    body.landscape-compact.phase-medium { background: linear-gradient(135deg, var(--whoop-recovery-medium) 0%, #FFD700 100%) !important; }
-    body.landscape-compact.phase-high { background: linear-gradient(135deg, var(--whoop-recovery-low) 0%, #FF4444 100%) !important; }
-
-    /* Toggles */
-    .toggle{ display:flex; align-items:center; gap:var(--spacing-sm); font-size:14px; color:#1D1D1F; cursor:pointer; }
-    .toggle input[type="checkbox"]{ appearance:none; width:44px; height:24px; background:var(--ios-gray); border-radius:12px; position:relative; cursor:pointer; transition: all .3s cubic-bezier(.4,0,.2,1); }
-    .toggle input[type="checkbox"]:checked{ background: var(--ios-blue); }
-    .toggle input[type="checkbox"]::before{ content:''; position:absolute; width:20px; height:20px; border-radius:50%; background:var(--whoop-white); top:2px; left:2px; transition: all .3s cubic-bezier(.4,0,.2,1); box-shadow:0 2px 4px rgba(0,0,0,.2); }
-    .toggle input[type="checkbox"]:checked::before{ transform: translateX(20px); }
-
-    /* Accessibility */
-    .tab:focus-visible, .chip:focus-visible, button:focus-visible{ outline:2px solid var(--ios-blue); outline-offset:2px; }
-
-    /* Responsive */
-    @media (max-width:640px){
-      body{ padding:var(--spacing-md); padding-top: calc(var(--spacing-md) + var(--safe-area-inset-top)); padding-bottom: calc(var(--spacing-md) + var(--safe-area-inset-bottom)); }
-      .countdown-pill{ min-width:280px; height:160px; font-size:72px; }
-      .metric-value{ font-size:1.8rem; }
-      .tab{ min-width:100px; font-size:13px; padding:var(--spacing-sm) var(--spacing-md); }
+    
+    .app-header {
+      text-align: center;
+      margin-bottom: var(--spacing);
+      padding: var(--spacing);
+      background: var(--card-bg);
+      border-radius: var(--radius);
     }
-
-    /* --- Auth Overlay --- */
-    .auth-container { position: fixed; inset: 0; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); display: none; align-items: center; justify-content: center; z-index: 10000; padding: var(--spacing-lg); }
-    .auth-container.visible { display: flex; }
-    .auth-card { background: rgba(255,255,255,.95); backdrop-filter: blur(20px); border-radius: var(--radius-xl); padding: var(--spacing-xl); max-width: 400px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.3); animation: slideUp .4s ease-out; }
-    @keyframes slideUp { from{opacity:0; transform: translateY(20px);} to{opacity:1; transform: translateY(0);} }
-    .auth-input { width:100%; padding:var(--spacing-md); background:#fff; border:2px solid var(--ios-border); border-radius:var(--radius-md); font-size:16px; margin-bottom:var(--spacing-md); }
-    .auth-button { width:100%; padding:var(--spacing-md); background:linear-gradient(135deg, var(--ios-blue) 0%, var(--ios-purple) 100%); color:#fff; border:none; border-radius:var(--radius-md); font-size:16px; font-weight:600; cursor:pointer; }
-    .auth-message { text-align:center; padding: var(--spacing-sm); border-radius: var(--radius-md); margin-bottom: var(--spacing-md); font-size: 14px; display:none; }
-    .auth-message.success { background: rgba(52,199,89,.1); color: var(--ios-green); }
-    .auth-message.error { background: rgba(255,59,48,.1); color: var(--ios-red); }
-
-    /* --- Bottom Nav mapped to existing tabs --- */
-    .bottom-nav { position: fixed; left:0; right:0; bottom:0; background: rgba(255,255,255,.95); backdrop-filter: blur(20px); border-top:1px solid var(--ios-border); padding: var(--spacing-sm) 0 calc(var(--spacing-sm) + var(--safe-area-inset-bottom)); z-index:999; display:flex; justify-content:space-around; }
-    .bottom-nav .nav-item { flex:1; text-align:center; padding: var(--spacing-sm); cursor:pointer; background:none; border:none; color: var(--ios-gray); font-weight:600; }
-    .bottom-nav .nav-item.active { color: var(--ios-blue); }
-    .bottom-nav .nav-icon { display:block; font-size:22px; }
-    .bottom-nav .nav-label { display:block; font-size:11px; }
-
-    /* keep content clear of the nav */
-    body { padding-bottom: calc(var(--spacing-lg) + 72px + var(--safe-area-inset-bottom)); }
-
-    /* --- Voice guidance pill --- */
-    .voice-indicator { position: fixed; top: calc(var(--spacing-lg) + var(--safe-area-inset-top)); right: var(--spacing-lg); background: var(--ios-green); color:#fff; padding: var(--spacing-xs) var(--spacing-md); border-radius: var(--radius-xl); font-size:12px; font-weight:700; display:none; z-index:1000; }
-    .voice-indicator.active { display:block; }
-
-    /* --- High contrast helper --- */
-    body.high-contrast * { color:#000 !important; background:#fff !important; border-color:#000 !important; }
-
-    /* ===== Hard Light Overrides (defensive) ===== */
-    :root { color-scheme: light; }
-    html, body { background: #F2F2F7 !important; color: #1D1D1F !important; }
-    /* Remove forced light mode @media (prefers-color-scheme: dark) block */
-
-    /* ===== WHOOP HR Integration Styles ===== */
-    .adaptation-notification {
-      position: fixed;
-      top: 80px;
-      right: 20px;
-      background: linear-gradient(135deg, var(--whoop-recovery-high) 0%, var(--whoop-teal) 100%);
+    
+    .app-header h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    
+    .app-header p {
+      color: var(--gray);
+      font-size: 14px;
+    }
+    
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: var(--spacing);
+      overflow-x: auto;
+      padding: 4px;
+      background: var(--card-bg);
+      border-radius: var(--radius);
+    }
+    
+    .tab {
+      padding: 12px 20px;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--gray);
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    
+    .tab.active {
+      background: var(--primary);
       color: white;
-      padding: var(--spacing-md);
-      border-radius: var(--radius-md);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      z-index: 1000;
-      animation: slideInRight 0.3s ease-out;
     }
-
-    @keyframes slideInRight {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
+    
+    .tab-content {
+      display: none;
+      background: var(--card-bg);
+      padding: var(--spacing);
+      border-radius: var(--radius);
+      margin-bottom: var(--spacing);
     }
-
-    .hr-zone-indicator {
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      margin-left: 8px;
-      animation: pulse 2s infinite;
+    
+    .tab-content.active {
+      display: block;
     }
-
-    @keyframes pulse {
-      0% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.2); opacity: 0.7; }
-      100% { transform: scale(1); opacity: 1; }
+    
+    .form-group {
+      margin-bottom: var(--spacing);
     }
-
-    .zone-Z1 { background: #808080; }
-    .zone-Z2 { background: #007AFF; }
-    .zone-Z3 { background: #16EC06; }
-    .zone-Z4 { background: #FFDE00; }
-    .zone-Z5 { background: #FF0026; }
-
-    #hr-mini-chart {
-      border: 1px solid var(--ios-border);
-      border-radius: var(--radius-sm);
-      background: rgba(255,255,255,0.5);
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      font-size: 14px;
     }
-
-    .hr-broadcast-active {
-      border: 2px solid var(--whoop-recovery-high);
-      animation: broadcast-pulse 2s infinite;
+    
+    input, textarea, select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 16px;
+      font-family: inherit;
     }
-
-    @keyframes broadcast-pulse {
-      0% { box-shadow: 0 0 0 0 rgba(22, 236, 6, 0.4); }
-      50% { box-shadow: 0 0 20px 10px rgba(22, 236, 6, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(22, 236, 6, 0); }
+    
+    textarea {
+      min-height: 150px;
+      resize: vertical;
+    }
+    
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--primary);
+      color: white;
+      width: 100%;
+      transition: opacity 0.2s;
+    }
+    
+    button:hover {
+      opacity: 0.8;
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-success { background: var(--success); }
+    .btn-warning { background: var(--warning); }
+    .btn-danger { background: var(--danger); }
+    .btn-gray { background: var(--gray); }
+    
+    .timer-section {
+      text-align: center;
+      background: var(--card-bg);
+      padding: calc(var(--spacing) * 2);
+      border-radius: var(--radius);
+      margin-bottom: var(--spacing);
+    }
+    
+    .timer {
+      font-size: 72px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      margin: 20px 0;
+    }
+    
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: var(--spacing);
+      margin: var(--spacing) 0;
+    }
+    
+    .metric {
+      padding: var(--spacing);
+      background: var(--bg);
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .metric-label {
+      font-size: 12px;
+      color: var(--gray);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    
+    .metric-value {
+      font-size: 24px;
+      font-weight: 700;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin: var(--spacing) 0;
+      flex-wrap: wrap;
+    }
+    
+    .controls button {
+      flex: 1;
+      min-width: 120px;
+    }
+    
+    .interval-list {
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: var(--spacing);
+    }
+    
+    .interval-item {
+      padding: 12px;
+      background: var(--bg);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .interval-item.current {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .workout-item {
+      padding: var(--spacing);
+      background: var(--bg);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    .workout-item:hover {
+      transform: translateY(-2px);
+    }
+    
+    .workout-item h3 {
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+    
+    .workout-item p {
+      font-size: 14px;
+      color: var(--gray);
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--gray);
     }
   </style>
 </head>
 <body>
   <div class="app-header">
-    <div class="app-logo">
-      <img src="/static/logo.svg" alt="The Treadmill Run Coach Logo" width="120" height="120">
-    </div>
-    <div class="app-title">
-      <h1>The Treadmill Run Coach</h1>
-      <p class="app-subtitle">AI-Powered WHOOP-Integrated Training</p>
-    </div>
-    <button id="theme-toggle" class="theme-toggle" title="Toggle theme"><span class="icon">☀️</span></button>
-    <!-- Build badge removed for light mode troubleshooting cleanup -->
+    <h1>🏃 Treadmill Workout Timer</h1>
+    <p>AI-powered workout generation and interval timer</p>
   </div>
 
   <!-- Tabs -->
-  <div class="tab-navigation">
-    <div class="tabs" role="tablist" aria-label="Main sections">
-      <button id="tab-generate" class="tab active" role="tab" aria-selected="true" aria-controls="generate-tab" tabindex="0">🤖 AI Workout</button>
-      <button id="tab-manual" class="tab" role="tab" aria-selected="false" aria-controls="manual-tab" tabindex="-1">📝 Manual Entry</button>
-      <button id="tab-saved" class="tab" role="tab" aria-selected="false" aria-controls="saved-tab" tabindex="-1">💾 My Workouts</button>
-      <button id="tab-progress" class="tab" role="tab" aria-selected="false" aria-controls="progress-tab" tabindex="-1">📊 Progress</button>
-      <button id="tab-whoop" class="tab" role="tab" aria-selected="false" aria-controls="whoop-tab" tabindex="-1">💪 WHOOP</button>
-      <button id="tab-insights" class="tab" role="tab" aria-selected="false" aria-controls="insights-tab" tabindex="-1">🧠 Insights</button>
-    </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="generate">🤖 AI Workout</button>
+    <button class="tab" data-tab="manual">📝 Manual Entry</button>
+    <button class="tab" data-tab="saved">💾 My Workouts</button>
   </div>
 
   <!-- AI Generation Tab -->
-  <section id="generate-tab" class="tab-content active" role="tabpanel" aria-labelledby="tab-generate">
-    <h2>Generate AI Workout</h2>
-    <label for="workoutRequest" style="display:block; margin-bottom:8px; color:#666; font-size:14px; font-weight:600;">Describe your ideal workout</label>
-    <input type="text" id="workoutRequest" class="workout-request" placeholder="e.g., '30 minute endurance run with tempo intervals'" style="width:100%; padding:var(--spacing-md); background:var(--whoop-white); border:2px solid var(--ios-border); color:#1D1D1F; border-radius:var(--radius-md); margin-bottom:var(--spacing-md); font-size:16px; font-family:inherit;">
-
-    <div class="suggestion-section" style="background: linear-gradient(135deg, rgba(0, 122, 255, 0.02) 0%, rgba(0, 241, 159, 0.02) 100%); border: 1px solid rgba(0, 122, 255, 0.1); border-radius: var(--radius-lg); padding: var(--spacing-lg); margin-bottom: var(--spacing-md);">
-      <div class="section-header" style="display:flex; align-items:center; gap:var(--spacing-sm); margin-bottom:var(--spacing-md);">
-        <div class="section-icon" style="font-size:20px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--ios-blue) 0%, var(--whoop-teal) 100%); border-radius:var(--radius-sm); color:var(--whoop-white);">🎯</div>
-        <span class="section-title" style="font-weight:700; font-size:18px;">Workout Type</span>
-        <span class="section-subtitle" style="font-size:13px; color:var(--ios-gray); margin-left:auto; font-style:italic;">Choose your training focus</span>
-      </div>
-      <div class="chip-row" id="category-chips" style="display:flex; flex-wrap:wrap; gap:var(--spacing-sm); align-items:center;">
-        <button type="button" class="chip active" data-cat="endurance">Endurance</button>
-        <button type="button" class="chip" data-cat="speed">Speed</button>
-        <button type="button" class="chip" data-cat="hills">Hills</button>
-        <button type="button" class="chip" data-cat="recovery">Recovery</button>
-        <button type="button" class="chip" data-cat="race">Race Prep</button>
-        <button type="button" class="chip" data-cat="fartlek">Fartlek</button>
-      </div>
+  <div id="generate-tab" class="tab-content active">
+    <div class="form-group">
+      <label for="workout-prompt">What kind of workout do you want?</label>
+      <textarea id="workout-prompt" placeholder="E.g., 30 minute tempo run with intervals"></textarea>
     </div>
-
-    <div class="suggestion-section" style="background: linear-gradient(135deg, rgba(0, 122, 255, 0.02) 0%, rgba(0, 241, 159, 0.02) 100%); border: 1px solid rgba(0, 122, 255, 0.1); border-radius: var(--radius-lg); padding: var(--spacing-lg); margin-bottom: var(--spacing-md);">
-      <div class="section-header" style="display:flex; align-items:center; gap:var(--spacing-sm); margin-bottom:var(--spacing-md);">
-        <div class="section-icon" style="font-size:20px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--ios-blue) 0%, var(--whoop-teal) 100%); border-radius:var(--radius-sm); color:var(--whoop-white);">⏱️</div>
-        <span class="section-title" style="font-weight:700; font-size:18px;">Duration</span>
-        <span class="section-subtitle" style="font-size:13px; color:var(--ios-gray); margin-left:auto; font-style:italic;">How long to train?</span>
-      </div>
-      <div class="chip-row" id="duration-chips" style="display:flex; flex-wrap:wrap; gap:var(--spacing-sm); align-items:center;">
-        <button type="button" class="chip active" data-min="20">20 min</button>
-        <button type="button" class="chip" data-min="30">30 min</button>
-        <button type="button" class="chip" data-min="40">40 min</button>
-        <button type="button" class="chip" data-min="45">45 min</button>
-        <button type="button" class="chip" data-min="60">60 min</button>
-      </div>
-    </div>
-
-    <button class="btn-generate" id="btn-generate"><span id="generate-btn-text">🚀 Generate Workout</span><span id="generate-loading" class="loading" style="display:none; margin-left:8px; width:20px; height:20px; border:3px solid rgba(255,255,255,.35); border-top:3px solid #fff; border-radius:50%;"></span></button>
-
-    <div id="generated-workout" style="display:none;">
-      <h3>Generated Workout:</h3>
-      <textarea id="generatedText" class="workout-request" readonly style="min-height:120px; font-family: var(--font-mono); width:100%; padding:var(--spacing-md); background:var(--whoop-white); border:2px solid var(--ios-border); border-radius:var(--radius-md);"></textarea>
-      <button id="use-generated" class="btn-generate">Use This Workout</button>
-    </div>
-  </section>
-
-  <!-- Manual Entry Tab -->
-  <section id="manual-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-manual" tabindex="0">
-    <h2>Manual Workout Entry</h2>
-    <div class="suggestion-section" style="background: linear-gradient(135deg, rgba(0, 122, 255, 0.02) 0%, rgba(0, 241, 159, 0.02) 100%); border: 1px solid rgba(0, 122, 255, 0.1); border-radius: var(--radius-lg); padding: var(--spacing-lg); margin-bottom: var(--spacing-md);">
-      <div class="section-header" style="display:flex; align-items:center; gap:var(--spacing-sm); margin-bottom:var(--spacing-md);">
-        <div class="section-icon" style="font-size:20px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--ios-blue) 0%, var(--whoop-teal) 100%); border-radius:var(--radius-sm); color:var(--whoop-white);">📝</div>
-        <span class="section-title" style="font-weight:700; font-size:18px;">Paste Your Workout</span>
-        <span class="section-subtitle" style="font-size:13px; color:var(--ios-gray); margin-left:auto; font-style:italic;">From ChatGPT or other source</span>
-      </div>
-      <textarea id="workoutText" class="workout-request" style="min-height: 200px; font-family: var(--font-mono); width:100%; padding:var(--spacing-md); background:var(--whoop-white); border:2px solid var(--ios-border); border-radius:var(--radius-md);" placeholder="Paste your workout here...\n\nExample format:\n**Warm-Up – 5 minutes**\n* 5 min @ 4.0 mph (easy warm up)\n\n**Main Workout**\n* 10 min @ 6.0 mph (steady pace)\n* 5 min @ 7.0 mph (tempo)\n\n**Cool-Down – 5 minutes**\n* 5 min @ 4.0 mph (cool down)"></textarea>
-      <button id="btn-parse" class="btn-generate">Parse Workout</button>
-    </div>
-  </section>
-
-  <!-- Saved Workouts Tab -->
-  <section id="saved-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-saved" tabindex="0">
-    <h2>My Saved Workouts</h2>
-    <div class="suggestion-section" style="background: linear-gradient(135deg, rgba(0, 122, 255, 0.02) 0%, rgba(0, 241, 159, 0.02) 100%); border: 1px solid rgba(0, 122, 255, 0.1); border-radius: var(--radius-lg); padding: var(--spacing-lg); margin-bottom: var(--spacing-md);">
-      <div class="section-header" style="display:flex; align-items:center; gap:var(--spacing-sm); margin-bottom:var(--spacing-md);">
-        <div class="section-icon" style="font-size:20px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--ios-blue) 0%, var(--whoop-teal) 100%); border-radius:var(--radius-sm); color:var(--whoop-white);">💾</div>
-        <span class="section-title" style="font-weight:700; font-size:18px;">Workout Library</span>
-        <span class="section-subtitle" style="font-size:13px; color:var(--ios-gray); margin-left:auto; font-style:italic;">Your personal collection</span>
-      </div>
-      <div id="saved-workouts-list" class="saved-workouts">
-        <div class="metric-card" style="text-align: center; padding: var(--spacing-xl);">
-          <div class="metric-value" style="font-size: 3rem;">📚</div>
-          <div class="metric-label">No saved workouts yet</div>
-          <p style="color: var(--ios-gray); margin-top: var(--spacing-sm);">Generate or create some workouts to build your library!</p>
-        </div>
-      </div>
-      <button id="btn-refresh-saved" class="btn-generate">Refresh List</button>
-    </div>
-  </section>
-
-  <!-- Progress Tab -->
-  <section id="progress-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-progress" tabindex="0">
-    <h2>Progress & Analytics</h2>
-    <div class="suggestion-section">
-      <div class="section-header" style="display:flex; align-items:center; gap:var(--spacing-sm); margin-bottom:var(--spacing-md);">
-        <div class="section-icon" style="font-size:20px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--ios-blue) 0%, var(--whoop-teal) 100%); border-radius:var(--radius-sm); color:var(--whoop-white);">🏃</div>
-        <span class="section-title" style="font-weight:700; font-size:18px;">Current Session</span>
-        <span class="section-subtitle" style="font-size:13px; color:var(--ios-gray); margin-left:auto; font-style:italic;">Real-time tracking</span>
-      </div>
-      <div id="current-session-info" style="display:none;">
-        <div class="metrics-grid">
-          <div class="metric-card"><div class="metric-label">Session ID</div><div class="metric-value" id="session-id">-</div></div>
-          <div class="metric-card"><div class="metric-label">Started</div><div class="metric-value" id="session-start" style="font-size:1.2rem;">-</div></div>
-        </div>
-        <button id="btn-complete-session" class="btn-generate">Complete Session</button>
-      </div>
-      <div id="no-session-info">
-        <div class="metric-card" style="text-align:center;">
-          <div class="metric-value" style="font-size:3rem;">⏸️</div>
-          <div class="metric-label">No Active Session</div>
-          <p style="color: var(--ios-gray); margin-top: var(--spacing-sm);">Start a workout to begin tracking</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- WHOOP Tab (UI only / placeholders) -->
-  <section id="whoop-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-whoop" tabindex="0">
-    <h2>WHOOP Integration</h2>
-    <div class="suggestion-section">
-      <div class="section-header" style="display:flex; align-items:center; gap:var(--spacing-sm); margin-bottom:var(--spacing-md);">
-        <div class="section-icon" style="font-size:20px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--ios-blue) 0%, var(--whoop-teal) 100%); border-radius:var(--radius-sm); color:var(--whoop-white);">🔗</div>
-        <span class="section-title" style="font-weight:700; font-size:18px;">Connect WHOOP</span>
-        <span class="section-subtitle" style="font-size:13px; color:var(--ios-gray); margin-left:auto; font-style:italic;">Personalized insights</span>
-      </div>
-      <div class="metric-card" style="text-align:center;">
-        <div class="metric-value" style="font-size:3rem;">💪</div>
-        <div class="metric-label">WHOOP Integration</div>
-        <p style="color: var(--ios-gray); margin: var(--spacing-md) 0;">Connect your WHOOP account for personalized recommendations and real-time heart rate monitoring.</p>
-        <button id="whoop-connect-btn" class="btn-generate">🔗 Connect WHOOP Account</button>
-      </div>
-      <div id="whoop-status" style="margin-top: var(--spacing-md); padding: var(--spacing-md); background: var(--ios-light-gray); border-radius: var(--radius-md);"></div>
-    </div>
-
-    <!-- Live Heart Rate Display -->
-    <div class="hr-broadcast-section" style="background: linear-gradient(135deg, rgba(0, 122, 255, 0.02) 0%, rgba(0, 241, 159, 0.02) 100%); border: 1px solid rgba(0, 122, 255, 0.1); border-radius: var(--radius-lg); padding: var(--spacing-lg); margin-bottom: var(--spacing-md);">
-      <div class="section-header" style="display:flex; align-items:center; gap:var(--spacing-sm); margin-bottom:var(--spacing-md);">
-        <div class="section-icon" style="font-size:20px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--ios-blue) 0%, var(--whoop-teal) 100%); border-radius:var(--radius-sm); color:var(--whoop-white);">❤️</div>
-        <span class="section-title" style="font-weight:700; font-size:18px;">Live Heart Rate</span>
-        <span id="hr-status" style="font-size:13px; color:var(--ios-gray); margin-left:auto;">Not Connected</span>
-      </div>
-      
-      <!-- HR Display -->
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <div class="metric-label">Current HR</div>
-          <div class="metric-value">
-            <span id="current-hr-value">--</span>
-            <span class="metric-unit">bpm</span>
-          </div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Zone</div>
-          <div id="current-hr-zone-display" class="metric-value" style="font-size:2rem; padding:8px; border-radius:8px;">--</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Zone %</div>
-          <div class="progress" style="margin-top:12px;">
-            <div id="zone-percentage-bar" class="progress-bar" style="width:0%;"></div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- HR Chart -->
-      <canvas id="hr-mini-chart" width="400" height="100" style="width:100%; max-width:400px; height:100px; margin:var(--spacing-md) auto; display:block;"></canvas>
-      
-      <!-- Controls -->
-      <div style="display:flex; gap:var(--spacing-md); justify-content:center; margin-top:var(--spacing-lg);">
-        <button onclick="startHRStream()" class="btn-generate" style="width:auto;">Start HR Broadcast</button>
-        <button onclick="stopHRStream()" style="width:auto; background:var(--ios-red);">Stop Broadcast</button>
-      </div>
-    </div>
-
-    <!-- Zone-Based Workout Generator -->
-    <div class="zone-workout-section" style="background: linear-gradient(135deg, rgba(0, 122, 255, 0.02) 0%, rgba(0, 241, 159, 0.02) 100%); border: 1px solid rgba(0, 122, 255, 0.1); border-radius: var(--radius-lg); padding: var(--spacing-lg); margin-bottom: var(--spacing-md);">
-      <div class="section-header" style="display:flex; align-items:center; gap:var(--spacing-sm); margin-bottom:var(--spacing-md);">
-        <div class="section-icon" style="font-size:20px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--ios-blue) 0%, var(--whoop-teal) 100%); border-radius:var(--radius-sm); color:var(--whoop-white);">🎯</div>
-        <span class="section-title" style="font-weight:700; font-size:18px;">Zone-Based Workout</span>
-      </div>
-      
-      <!-- Zone Workout Settings -->
-      <div class="zone-settings" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:var(--spacing-md); margin-bottom:var(--spacing-lg);">
-        <div>
-          <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:600;">Target Zone</label>
-          <select id="target-zone-select" style="width:100%; padding:var(--spacing-sm); border:1px solid var(--ios-border); border-radius:var(--radius-sm);">
-            <option value="Z2">Zone 2 - Base</option>
-            <option value="Z3" selected>Zone 3 - Threshold</option>
-            <option value="Z4">Zone 4 - VO2 Max</option>
-          </select>
-        </div>
-        <div>
-          <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:600;">Zone Time %</label>
-          <input type="range" id="zone-percentage-slider" min="20" max="90" value="70" style="width:100%;">
-          <span id="zone-percentage-value" style="text-align:center; display:block;">70%</span>
-        </div>
-        <div>
-          <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:600;">Duration</label>
-          <select id="zone-duration-select" style="width:100%; padding:var(--spacing-sm); border:1px solid var(--ios-border); border-radius:var(--radius-sm);">
-            <option value="20">20 min</option>
-            <option value="30" selected>30 min</option>
-            <option value="40">40 min</option>
-            <option value="45">45 min</option>
-            <option value="60">60 min</option>
-          </select>
-        </div>
-      </div>
-      
-      <button onclick="generateZoneWorkout()" class="btn-generate">Generate Zone Workout</button>
-      
-      <!-- Adaptive Mode Indicator -->
-      <div id="adaptive-mode" style="display:none; margin-top:var(--spacing-lg); padding:var(--spacing-md); background:rgba(22, 236, 6, 0.1); border:1px solid var(--whoop-recovery-high); border-radius:var(--radius-md);">
-        <strong>🎯 Adaptive Mode Active</strong>
-        <p style="margin:8px 0 0 0; font-size:14px;">Speed and incline will adjust automatically to keep you in your target zone.</p>
-      </div>
-    </div>
-    </div>
-
-    <div class="suggestion-section" id="whoop-recovery-section" style="display:none;">
-      <div class="section-header" style="display:flex; align-items:center; gap:var(--spacing-sm); margin-bottom:var(--spacing-md);">
-        <div class="section-icon" style="font-size:20px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--ios-blue) 0%, var(--whoop-teal) 100%); border-radius:var(--radius-sm); color:var(--whoop-white);">📊</div>
-        <span class="section-title" style="font-weight:700; font-size:18px;">Today's Recovery</span>
-        <span class="section-subtitle" style="font-size:13px; color:var(--ios-gray); margin-left:auto; font-style:italic;">WHOOP metrics</span>
-      </div>
-      <div class="metrics-grid">
-        <div class="metric-card" id="card-recovery"><div class="metric-label">Recovery Score</div><div class="metric-value" id="recovery-score">--</div></div>
-        <div class="metric-card" id="card-sleep"><div class="metric-label">Sleep Score</div><div class="metric-value" id="sleep-score">--</div></div>
-        <div class="metric-card" id="card-strain"><div class="metric-label">Strain Score</div><div class="metric-value" id="strain-score">--</div></div>
-        <div class="metric-card" id="card-hrv"><div class="metric-label">HRV</div><div class="metric-value" id="hrv-value">--</div></div>
-      </div>
-      <button id="btn-refresh-whoop" class="btn-generate">🔄 Refresh Data</button>
-    </div>
-  </section>
-
-  <!-- Insights Tab (placeholder) -->
-  <section id="insights-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-insights" tabindex="0">
-    <h2>ML Insights</h2>
-    <div class="suggestion-section">
-      <div class="section-header" style="display:flex; align-items:center; gap:var(--spacing-sm); margin-bottom:var(--spacing-md);">
-        <div class="section-icon" style="font-size:20px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--ios-blue) 0%, var(--whoop-teal) 100%); border-radius:var(--radius-sm); color:var(--whoop-white);">🧠</div>
-        <span class="section-title" style="font-weight:700; font-size:18px;">Performance Analysis</span>
-        <span class="section-subtitle" style="font-size:13px; color:var(--ios-gray); margin-left:auto; font-style:italic;">AI-powered insights</span>
-      </div>
-      <div class="metric-card" style="text-align:center; padding: var(--spacing-xl);">
-        <div class="metric-value" style="font-size: 3rem;">🤖</div>
-        <div class="metric-label">AI Analysis</div>
-        <p style="color: var(--ios-gray); margin-top: var(--spacing-sm);">Complete some workouts to get personalized insights</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- Summary & Controls -->
-  <div class="summary">
-    <div>
-      <span id="summary-pill">Select a workout to begin</span>
-      <div id="stats-line" style="margin-top: var(--spacing-xs); font-size: 14px; color: var(--ios-gray);"></div>
-    </div>
-    <div style="display:flex; align-items:center; gap:var(--spacing-md); flex-wrap:wrap;">
-              <label class="toggle requires-user-activation" title="Mute interval beeps"><input type="checkbox" id="mute-toggle"> <span style="font-size:14px;">Mute</span></label>
-        <label class="toggle requires-user-activation" title="Bell sound for intervals"><input type="checkbox" id="bell-toggle"> <span style="font-size:14px;">Bell</span></label>
-      <label class="toggle" title="Keep screen awake"><input type="checkbox" id="wakelock-toggle"> <span style="font-size:14px;">Wake Lock</span></label>
-      <label class="toggle" title="Voice guidance"><input type="checkbox" id="voice-toggle"> <span style="font-size:14px;">Voice</span></label>
-      <label class="toggle" title="High contrast visuals"><input type="checkbox" id="contrast-toggle"> <span style="font-size:14px;">Contrast</span></label>
-      <button id="focus-toggle" class="chip" style="margin:0;">Focus Mode</button>
+    <button id="btn-generate">Generate Workout</button>
+    <div id="generated-output" class="hidden" style="margin-top: var(--spacing); padding: var(--spacing); background: var(--bg); border-radius: 8px;">
+      <h3 style="margin-bottom: 8px;">Generated Workout:</h3>
+      <pre id="generated-text" style="white-space: pre-wrap; font-size: 14px;"></pre>
+      <button id="btn-use-generated" class="btn-success" style="margin-top: var(--spacing);">Use This Workout</button>
     </div>
   </div>
-  <div class="progress"><div id="progress-bar" class="progress-bar"></div></div>
+
+  <!-- Manual Entry Tab -->
+  <div id="manual-tab" class="tab-content">
+    <div class="form-group">
+      <label for="workout-text">Paste or type your workout:</label>
+      <textarea id="workout-text" placeholder="**Warm-Up – 5 minutes**&#10;* 5 min @ 4.0 mph&#10;&#10;**Main Set – 20 minutes**&#10;* 3 min @ 6.5 mph&#10;* 2 min @ 5.0 mph"></textarea>
+    </div>
+    <button id="btn-parse">Parse & Start</button>
+  </div>
+
+  <!-- Saved Workouts Tab -->
+  <div id="saved-tab" class="tab-content">
+    <div id="saved-workouts-list">
+      <div class="loading">Loading workouts...</div>
+    </div>
+  </div>
 
   <!-- Timer Section -->
-  <section id="timer-section" class="timer-display" aria-live="polite">
-    <div class="countdown-wrap"><div class="countdown-pill"><span id="timer">0:00</span></div></div>
-
-    <div class="suggestion-section">
-      <div class="section-header" style="display:flex; align-items:center; gap:var(--spacing-sm); margin-bottom:var(--spacing-md);">
-        <div class="section-icon" style="font-size:20px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--ios-blue) 0%, var(--whoop-teal) 100%); border-radius:var(--radius-sm); color:var(--whoop-white);">🏃</div>
-        <span class="section-title" style="font-weight:700; font-size:18px;">Current Interval</span>
-        <span class="section-subtitle" id="current-section" style="font-size:13px; color:var(--ios-gray); margin-left:auto; font-style:italic;">Ready to start</span>
+  <div id="timer-section" class="timer-section hidden">
+    <div class="timer" id="timer">0:00</div>
+    
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-label">Speed</div>
+        <div class="metric-value"><span id="current-speed">-</span> mph</div>
       </div>
-      <div class="metrics-grid">
-        <div class="metric-card"><div class="metric-label">Target Speed</div><div class="metric-value"><span id="current-speed">-</span><span class="metric-unit"> mph</span></div></div>
-        <div class="metric-card"><div class="metric-label">Incline</div><div class="metric-value"><span id="current-incline">0</span><span class="metric-unit"> %</span></div></div>
-        <div class="metric-card"><div class="metric-label">Heart Rate Zone</div><div class="metric-value" id="current-hr-zone" style="font-size:1.5rem;">Z3</div></div>
-        <div class="metric-card"><div class="metric-label">Time Remaining</div><div class="metric-value" id="time-remaining">-</div></div>
+      <div class="metric">
+        <div class="metric-label">Incline</div>
+        <div class="metric-value"><span id="current-incline">0</span>%</div>
       </div>
-      <div id="current-description" style="text-align:center; margin-top: var(--spacing-md); font-style: italic; color: var(--ios-gray);">-</div>
-    </div>
-
-    <div style="display:flex; justify-content:center; gap:var(--spacing-md); margin:var(--spacing-lg) 0; flex-wrap:wrap;">
-      <button id="btn-start" style="margin:0; width:auto; min-width:120px;" class="btn-generate">▶️ Start</button>
-      <button id="btn-pause" style="display:none; margin:0; width:auto; min-width:120px; background: var(--ios-orange);">⏸ Pause</button>
-      <button id="btn-prev" style="margin:0; width:auto; background: var(--ios-gray);">⏮ Back</button>
-      <button id="btn-skip" style="margin:0; width:auto; background: var(--ios-blue);">⏭ Skip</button>
-      <button id="btn-stop" style="margin:0; width:auto; background: var(--ios-red);">⏹ Stop</button>
-      <button id="btn-save-workout" style="margin:0; width:auto; background: var(--ios-green);">💾 Save Workout</button>
-    </div>
-
-    <div class="suggestion-section">
-      <div class="section-header" style="display:flex; align-items:center; gap:var(--spacing-sm); margin-bottom:var(--spacing-md);">
-        <div class="section-icon" style="font-size:20px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--ios-blue) 0%, var(--whoop-teal) 100%); border-radius:var(--radius-sm); color:var(--whoop-white);">⏭️</div>
-        <span class="section-title" style="font-weight:700; font-size:18px;">Up Next</span>
-        <span class="section-subtitle" style="font-size:13px; color:var(--ios-gray); margin-left:auto; font-style:italic;">Prepare for your next interval</span>
+      <div class="metric">
+        <div class="metric-label">Interval</div>
+        <div class="metric-value"><span id="interval-num">-</span></div>
       </div>
-      <div id="next-interval" style="text-align:center; font-size:16px; color: var(--ios-gray);">-</div>
     </div>
-
-    <div class="suggestion-section">
-      <div class="section-header" style="display:flex; align-items:center; gap:var(--spacing-sm); margin-bottom:var(--spacing-md);">
-        <div class="section-icon" style="font-size:20px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--ios-blue) 0%, var(--whoop-teal) 100%); border-radius:var(--radius-sm); color:var(--whoop-white);">📋</div>
-        <span class="section-title" style="font-weight:700; font-size:18px;">Workout Overview</span>
-        <span class="section-subtitle" style="font-size:13px; color:var(--ios-gray); margin-left:auto; font-style:italic;">All intervals</span>
-      </div>
-      <div id="intervals-list" style="max-height:300px; overflow-y:auto;"></div>
+    
+    <div id="current-description" style="font-style: italic; color: var(--gray); margin: var(--spacing) 0;">-</div>
+    
+    <div class="controls">
+      <button id="btn-start" class="btn-success">▶️ Start</button>
+      <button id="btn-pause" class="btn-warning hidden">⏸ Pause</button>
+      <button id="btn-resume" class="btn-success hidden">▶️ Resume</button>
+      <button id="btn-prev" class="btn-gray">⏮ Back</button>
+      <button id="btn-skip" class="btn-gray">⏭ Skip</button>
+      <button id="btn-stop" class="btn-danger">⏹ Stop</button>
     </div>
-  </section>
-
-  <audio id="bell-audio" preload="auto">
-    <source src="/static/bell.mp3" type="audio/mpeg">
-  </audio>
+    
+    <div id="btn-save-workout-container" class="hidden" style="margin-top: var(--spacing);">
+      <button id="btn-save-workout" class="btn-success">💾 Save Workout</button>
+    </div>
+    
+    <div class="interval-list" id="intervals-list"></div>
+  </div>
 
   <script>
-    // Force light mode regardless of system settings
-    document.documentElement.style.colorScheme = 'light';
-    document.body.classList.remove('dark-mode');
-    // ---------- App State ----------
+    // State
     let intervals = [];
     let currentIntervalIndex = 0;
-    let timeRemaining = 0; // seconds
+    let secondsRemaining = 0;
     let timerInterval = null;
     let isPaused = false;
+    let currentWorkoutText = '';
 
-    // UI state
-    let currentCategory = 'endurance';
-    let currentMinutes = 20;
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabName = tab.dataset.tab;
+        
+        // Update active tab
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        
+        // Update active content
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById(`${tabName}-tab`).classList.add('active');
+        
+        // Load saved workouts if that tab is selected
+        if (tabName === 'saved') {
+          loadSavedWorkouts();
+        }
+      });
+    });
 
-    // Audio state
-    const bellAudio = document.getElementById('bell-audio');
-    let bellEnabled = false;
-    let muted = false;
-
-    // Wake Lock
-    let wakeLock = null;
-
-    // --- Voice & Contrast state ---
-    let voiceEnabled = false;
-    const THEME_CONTRAST_KEY = 'ttc_contrast';
-
-    function speak(text){
-      if (!voiceEnabled) return;
-      if (!('speechSynthesis' in window)) return;
-      try { speechSynthesis.cancel(); } catch {}
-      const u = new SpeechSynthesisUtterance(text);
-      u.rate = 1; u.pitch = 1;
-      speechSynthesis.speak(u);
-    }
-
-    function setContrast(on){
-      document.body.classList.toggle('high-contrast', !!on);
-      try { localStorage.setItem(THEME_CONTRAST_KEY, on? '1':'0'); } catch {}
-    }
-
-    // --- Quick Controls ---
-    function setSpeed(val){
-      if (!intervals[currentIntervalIndex]) return;
-      intervals[currentIntervalIndex].speed_mph = Math.max(0, Number(val));
-      const sv = $('#speedValue');
-      if (sv) sv.textContent = intervals[currentIntervalIndex].speed_mph.toFixed(1) + ' mph';
-      $('#current-speed').textContent = intervals[currentIntervalIndex].speed_mph.toFixed(1);
-      updateSummary(); updateProgressUI(); if (typeof saveLastSession === 'function') saveLastSession();
-    }
-    function setIncline(val){
-      if (!intervals[currentIntervalIndex]) return;
-      intervals[currentIntervalIndex].incline = Math.min(40, Math.max(0, Number(val)));
-      const iv = $('#inclineValue');
-      if (iv) iv.textContent = intervals[currentIntervalIndex].incline.toFixed(1) + '%';
-      $('#current-incline').textContent = intervals[currentIntervalIndex].incline.toFixed(1);
-      updateSummary(); updateProgressUI(); if (typeof saveLastSession === 'function') saveLastSession();
-    }
-    function changeSpeed(delta){ const cur = intervals[currentIntervalIndex]?.speed_mph ?? 0; setSpeed(cur + delta); }
-    function changeIncline(delta){ const cur = intervals[currentIntervalIndex]?.incline || 0; setIncline(cur + delta); }
-
-    // ---------- Persistence (localStorage) ----------
-    const LS_KEY = 'ttc_workouts_v1';
-
-    // ---- Last Active Session Autosave ----
-    const LS_LAST_KEY = 'ttc_last_session_v1';
-
-    function saveLastSession(){
-      try{
-        const payload = {
-          intervals,
-          currentIntervalIndex,
-          timeRemaining,
-          isPaused,
-          bellEnabled,
-          muted,
-          timestamp: Date.now()
-        };
-        localStorage.setItem(LS_LAST_KEY, JSON.stringify(payload));
-      }catch(e){ console.log('saveLastSession error', e); }
-    }
-
-    function loadLastSession(){
-      try{
-        const raw = localStorage.getItem(LS_LAST_KEY);
-        if (!raw) return null;
-        const data = JSON.parse(raw);
-        // sanity checks
-        if (!Array.isArray(data.intervals) || data.intervals.length === 0) return null;
-        return data;
-      }catch(e){ console.log('loadLastSession error', e); return null; }
-    }
-
-    function clearLastSession(){
-      try{ localStorage.removeItem(LS_LAST_KEY); }catch{}
-    }
-
-    function resumeLastSession(data){
-      intervals = (data.intervals || []).map(iv => ({...iv}));
-      currentIntervalIndex = Number(data.currentIntervalIndex) || 0;
-      timeRemaining = Number(data.timeRemaining) || Math.round((intervals[currentIntervalIndex]?.duration_min || 0) * 60);
-      isPaused = !!data.isPaused;
-      bellEnabled = !!data.bellEnabled;
-      muted = !!data.muted;
-      try{ bellAudio.muted = muted; }catch{}
-      // ensure timer section visible & UI hydrated
-      $('#timer-section').classList.add('active');
-      displayIntervals();
-      updateProgressUI();
-      updateCurrentIntervalUI();
-      // If it was running when saved, keep it paused to avoid surprise
-      if (!isPaused){
-        $('#btn-start').style.display = 'inline-block';
-        $('#btn-pause').style.display = 'none';
-      }
-    }
-
-    function readStore(){
-      try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch { return {}; }
-    }
-    function writeStore(obj){ localStorage.setItem(LS_KEY, JSON.stringify(obj)); }
-    // Every time we write the library, also snapshot last session if there is one
-    try{ saveLastSession(); }catch{}
-
-    function workoutSummary(ints){
-      const totalMin = (ints||[]).reduce((s,i)=> s + (Number(i.duration_min)||0), 0);
-      const segs = (ints||[]).length;
-      return `${totalMin} min • ${segs} intervals`;
-    }
-
-    function saveCurrentWorkout(){
-      if (!intervals.length){ alert('No workout loaded to save.'); return; }
-      const name = prompt('Save workout as (name):', `Workout ${new Date().toLocaleString()}`);
-      if (!name) return;
-      const store = readStore();
-      store[name] = {
-        name,
-        created_at: Date.now(),
-        intervals: intervals,
-      };
-      writeStore(store);
-      try{ saveLastSession(); }catch{}
-      alert('Saved!');
-      loadSavedWorkouts();
-    }
-
-    function deleteWorkout(name){
-      const store = readStore();
-      if (!(name in store)) return;
-      if (!confirm(`Delete "${name}"?`)) return;
-      delete store[name];
-      writeStore(store);
-      loadSavedWorkouts();
-    }
-
-    function startWorkoutFromSaved(name){
-      const store = readStore();
-      const item = store[name];
-      if (!item){ alert('Not found'); return; }
-      intervals = (item.intervals||[]).map(i=>({ ...i }));
-      currentIntervalIndex = 0;
-      timeRemaining = Math.round((intervals[0]?.duration_min||0) * 60);
-      $('#timer-section').classList.add('active');
-      displayIntervals();
-      updateProgressUI();
-      updateCurrentIntervalUI();
-      try{ saveLastSession(); }catch{}
-      switchTabById('progress');
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-    }
-
-    function renderSavedWorkouts(){
-      const container = document.getElementById('saved-workouts-list');
-      const store = readStore();
-      const names = Object.keys(store).sort((a,b)=> store[b].created_at - store[a].created_at);
-      container.innerHTML = '';
-      if (!names.length){
-        container.innerHTML = `
-          <div class="metric-card" style="text-align:center; padding: var(--spacing-xl);">
-            <div class="metric-value" style="font-size:3rem;">📚</div>
-            <div class="metric-label">No saved workouts yet</div>
-            <p style="color: var(--ios-gray); margin-top: var(--spacing-sm);">Generate or create some workouts to build your library!</p>
-          </div>`;
+    // Generate workout with AI
+    document.getElementById('btn-generate').addEventListener('click', async () => {
+      const prompt = document.getElementById('workout-prompt').value.trim();
+      if (!prompt) {
+        alert('Please enter a workout description');
         return;
       }
-      names.forEach(name=>{
-        const item = store[name];
-        const div = document.createElement('div');
-        div.className = 'interval-item';
-        div.innerHTML = `
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-            <div>
-              <strong>${name}</strong><br>
-              <span style="font-size:12px; color:var(--ios-gray);">${workoutSummary(item.intervals)} • ${new Date(item.created_at).toLocaleDateString()}</span>
-            </div>
-            <div style="display:flex; gap:8px;">
-              <button class="chip" data-act="load" data-name="${name}">Start</button>
-              <button class="chip" data-act="delete" data-name="${name}" style="background: var(--ios-red); color:white; border-color: transparent;">Delete</button>
-            </div>
-          </div>`;
-        container.appendChild(div);
-      });
-
-      // delegate actions
-      container.onclick = (e)=>{
-        const btn = e.target.closest('button');
-        if (!btn) return;
-        const act = btn.getAttribute('data-act');
-        const name = btn.getAttribute('data-name');
-        if (act === 'load') startWorkoutFromSaved(name);
-        if (act === 'delete') deleteWorkout(name);
-      };
-    }
-
-    function loadSavedWorkouts(){ renderSavedWorkouts(); }
-
-    // ---------- Utilities ----------
-    const $ = (sel) => document.querySelector(sel);
-    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
-
-    function formatTime(seconds){
-      // Validate input
-      if (typeof seconds !== 'number' || isNaN(seconds)) {
-        seconds = 0;
-      }
-      // Ensure non-negative
-      seconds = Math.max(0, Math.floor(seconds));
-      const mins = Math.floor(seconds / 60);
-      const secs = seconds % 60;
-      return `${mins}:${secs.toString().padStart(2,'0')}`;
-    }
-
-    function intensityPhaseForInterval(iv){
-      // Map to low/medium/high/recovery using speed mph and section hint
-      if (!iv) return 'low';
-      if ((iv.section||'').toLowerCase().includes('cool') || (iv.section||'').toLowerCase().includes('warm') || (iv.description||'').toLowerCase().includes('recovery')) return 'recovery';
-      const sp = Number(iv.speed_mph || 0);
-      if (sp >= 6.5) return 'high';
-      if (sp >= 5.5) return 'medium';
-      return 'low';
-    }
-
-    function setPhaseBackground(phase){
-      document.body.classList.remove('phase-low','phase-medium','phase-high','phase-recovery');
-      if (document.body.classList.contains('landscape-compact')) {
-        document.body.classList.add(`phase-${phase}`);
-      }
-    }
-
-    function updateSummary(){
-      const totalMin = intervals.reduce((s,i)=> s + (i.duration_min||0), 0);
-      const txt = intervals.length ? `${totalMin} min workout • ${intervals.length} intervals` : 'Select a workout to begin';
-      $('#summary-pill').textContent = txt;
-    }
-
-    function updateProgressUI(){
+      
+      const btn = document.getElementById('btn-generate');
+      btn.disabled = true;
+      btn.textContent = 'Generating...';
+      
       try {
-        const total = intervals.reduce((s,i)=> s + (i.duration_min||0), 0) * 60; // in seconds
-        const elapsedInCompleted = intervals.slice(0, currentIntervalIndex).reduce((s,i)=> s + (i.duration_min||0)*60, 0);
-        const currentElapsed = Math.max(0, (intervals[currentIntervalIndex]?.duration_min||0)*60 - timeRemaining);
-        const pct = total ? Math.min(100, Math.round(((elapsedInCompleted + currentElapsed) / total) * 100)) : 0;
-        $('#progress-bar').style.width = pct + '%';
-        // list classes
-        $$('#intervals-list .interval-item').forEach((el,i)=>{
-          el.classList.toggle('current', i === currentIntervalIndex);
-          el.classList.toggle('completed', i < currentIntervalIndex);
+        const response = await fetch('/generate_workout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt })
         });
-      } catch (error) {
-        console.error('Error updating progress UI:', error);
-        // Use mobile error display if available
-        if (window.showError) {
-          window.showError('Progress update error: ' + error.message);
-        }
-      }
-    }
-
-    function updateNextPreview(){
-      const next = intervals[currentIntervalIndex + 1];
-      $('#next-interval').textContent = next ? `${next.duration_min} min @ ${next.speed_mph||'-'} mph${next.description? ' - ' + next.description : ''}` : 'Final interval!';
-    }
-
-    // ---------- Interval Rendering ----------
-    function displayIntervals(){
-      try {
-        const list = $('#intervals-list');
-        if (!list) return;
         
-        list.innerHTML = '';
-        intervals.forEach((iv, i)=>{
-          const div = document.createElement('div');
-          div.className = 'interval-item';
-          div.id = `interval-${i}`;
-          // Sanitize content to prevent XSS
-          const duration = iv.duration_min || 0;
-          const speed = iv.speed_mph || '-';
-          const incline = iv.incline || 0;
-          const description = iv.description || '';
+        const data = await response.json();
+        
+        if (data.success) {
+          currentWorkoutText = data.workout_text;
+          intervals = data.intervals;
           
-          div.innerHTML = `<strong>${i+1}.</strong> ${duration} min @ ${speed} mph ${incline? '(incl ' + incline + '%)' : ''} ${description? '- ' + description : ''}`;
-          list.appendChild(div);
-        });
-        updateSummary();
-        updateCurrentIntervalUI();
-        updateProgressUI();
-        try{ saveLastSession(); }catch{}
-      } catch (error) {
-        console.error('Error displaying intervals:', error);
-        // Use mobile error display if available
-        if (window.showError) {
-          window.showError('Display error: ' + error.message);
+          document.getElementById('generated-text').textContent = data.workout_text;
+          document.getElementById('generated-output').classList.remove('hidden');
+        } else {
+          alert('Error: ' + data.error);
         }
+      } catch (error) {
+        alert('Failed to generate workout: ' + error.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generate Workout';
       }
+    });
+
+    // Use generated workout
+    document.getElementById('btn-use-generated').addEventListener('click', () => {
+      if (intervals.length > 0) {
+        loadWorkout(intervals);
+      }
+    });
+
+    // Parse manual workout
+    document.getElementById('btn-parse').addEventListener('click', async () => {
+      const text = document.getElementById('workout-text').value.trim();
+      if (!text) {
+        alert('Please enter a workout');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.intervals.length > 0) {
+          currentWorkoutText = text;
+          intervals = data.intervals;
+          loadWorkout(intervals);
+        } else {
+          alert('No intervals found. Check your format.');
+        }
+      } catch (error) {
+        alert('Error parsing workout: ' + error.message);
+      }
+    });
+
+    // Load workout into timer
+    function loadWorkout(workoutIntervals) {
+      intervals = workoutIntervals;
+      currentIntervalIndex = 0;
+      
+      // Show timer section
+      document.getElementById('timer-section').classList.remove('hidden');
+      
+      // Render intervals list
+      renderIntervalsList();
+      
+      // Load first interval
+      loadInterval(0);
+      
+      // Show start button
+      document.getElementById('btn-start').classList.remove('hidden');
+      document.getElementById('btn-pause').classList.add('hidden');
+      document.getElementById('btn-resume').classList.add('hidden');
+      
+      // Scroll to timer
+      document.getElementById('timer-section').scrollIntoView({ behavior: 'smooth' });
     }
 
-    function updateCurrentIntervalUI(){
-      const current = intervals[currentIntervalIndex];
-      if (!current) return;
-      $('#current-section').textContent = current.section || 'Interval';
-      $('#current-speed').textContent = current.speed_mph ?? '-';
-      $('#current-incline').textContent = current.incline || 0;
-      $('#current-description').textContent = current.description || '';
-      $('#time-remaining').textContent = formatTime(timeRemaining);
-      updateNextPreview();
-      const phase = intensityPhaseForInterval(current);
-      setPhaseBackground(phase);
-
-      // Reflect current speed/incline in quick controls
-      const sv = $('#speedValue');
-      if (sv) sv.textContent = (current.speed_mph ?? 0).toFixed(1) + ' mph';
-      const iv = $('#inclineValue');
-      if (iv) iv.textContent = (current.incline || 0).toFixed(1) + '%';
-
-      // Voice announce current interval
-      speak(`${current.section || 'Interval'}: ${current.duration_min} minutes at ${(current.speed_mph ?? 0).toFixed(1)} miles per hour${current.incline? ', incline ' + Number(current.incline).toFixed(1) + ' percent' : ''}`);
+    // Render intervals list
+    function renderIntervalsList() {
+      const listEl = document.getElementById('intervals-list');
+      listEl.innerHTML = intervals.map((interval, i) => `
+        <div class="interval-item ${i === currentIntervalIndex ? 'current' : ''}" data-index="${i}">
+          <span>${interval.duration_min} min @ ${interval.speed_mph} mph</span>
+          <span>${interval.description || interval.section || ''}</span>
+        </div>
+      `).join('');
+      
+      // Make intervals clickable
+      listEl.querySelectorAll('.interval-item').forEach(item => {
+        item.addEventListener('click', () => {
+          if (timerInterval) return; // Don't allow switching during active workout
+          const index = parseInt(item.dataset.index);
+          loadInterval(index);
+        });
+      });
     }
 
-    // ---------- Timer Controls ----------
-    function startTimer(){
-      if (!intervals.length) return;
-      if (!$('#timer-section').classList.contains('active')) $('#timer-section').classList.add('active');
-      if (timeRemaining <= 0) { timeRemaining = Math.round((intervals[currentIntervalIndex].duration_min||0) * 60); }
-      $('#timer').textContent = formatTime(timeRemaining);
-      $('#btn-start').style.display = 'none';
-      $('#btn-pause').style.display = 'inline-block';
-      isPaused = false;
-      clearInterval(timerInterval);
-      timerInterval = setInterval(()=>{
-        try {
-          timeRemaining--;
-          // periodic autosave while running
-          if ((timeRemaining % 5) === 0){ try{ saveLastSession(); }catch{} }
-          $('#timer').textContent = formatTime(timeRemaining);
-          $('#time-remaining').textContent = formatTime(timeRemaining);
-          updateProgressUI();
-          if (timeRemaining <= 0){
-            // next interval
-            currentIntervalIndex++;
-            if (currentIntervalIndex < intervals.length){
-              ding();
-              timeRemaining = Math.round((intervals[currentIntervalIndex].duration_min||0) * 60);
-              updateCurrentIntervalUI();
-            } else {
-              stopTimer();
-              alert('Workout Complete! 🎉');
-            }
+    // Load specific interval
+    function loadInterval(index) {
+      if (index < 0 || index >= intervals.length) return;
+      
+      currentIntervalIndex = index;
+      const interval = intervals[index];
+      
+      secondsRemaining = interval.duration_min * 60;
+      
+      document.getElementById('current-speed').textContent = interval.speed_mph;
+      document.getElementById('current-incline').textContent = interval.incline || 0;
+      document.getElementById('interval-num').textContent = `${index + 1}/${intervals.length}`;
+      document.getElementById('current-description').textContent = 
+        interval.description || interval.section || 'Interval ' + (index + 1);
+      
+      updateTimerDisplay();
+      renderIntervalsList();
+    }
+
+    // Update timer display
+    function updateTimerDisplay() {
+      const minutes = Math.floor(secondsRemaining / 60);
+      const seconds = secondsRemaining % 60;
+      document.getElementById('timer').textContent = 
+        `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // Start timer
+    document.getElementById('btn-start').addEventListener('click', () => {
+      startTimer();
+      document.getElementById('btn-start').classList.add('hidden');
+      document.getElementById('btn-pause').classList.remove('hidden');
+    });
+
+    // Pause timer
+    document.getElementById('btn-pause').addEventListener('click', () => {
+      pauseTimer();
+      document.getElementById('btn-pause').classList.add('hidden');
+      document.getElementById('btn-resume').classList.remove('hidden');
+    });
+
+    // Resume timer
+    document.getElementById('btn-resume').addEventListener('click', () => {
+      startTimer();
+      document.getElementById('btn-resume').classList.add('hidden');
+      document.getElementById('btn-pause').classList.remove('hidden');
+    });
+
+    // Previous interval
+    document.getElementById('btn-prev').addEventListener('click', () => {
+      if (currentIntervalIndex > 0) {
+        stopTimer();
+        loadInterval(currentIntervalIndex - 1);
+      }
+    });
+
+    // Skip interval
+    document.getElementById('btn-skip').addEventListener('click', () => {
+      if (currentIntervalIndex < intervals.length - 1) {
+        stopTimer();
+        loadInterval(currentIntervalIndex + 1);
+      }
+    });
+
+    // Stop workout
+    document.getElementById('btn-stop').addEventListener('click', () => {
+      if (confirm('Stop workout?')) {
+        stopTimer();
+        document.getElementById('btn-save-workout-container').classList.remove('hidden');
+      }
+    });
+
+    function startTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      
+      timerInterval = setInterval(() => {
+        secondsRemaining--;
+        updateTimerDisplay();
+        
+        if (secondsRemaining <= 0) {
+          // Move to next interval
+          if (currentIntervalIndex < intervals.length - 1) {
+            loadInterval(currentIntervalIndex + 1);
+          } else {
+            // Workout complete
+            stopTimer();
+            alert('Workout complete! 🎉');
+            document.getElementById('btn-save-workout-container').classList.remove('hidden');
           }
-        } catch (error) {
-          console.error('Timer error:', error);
-          // Use mobile error display if available
-          if (window.showError) {
-            window.showError('Timer error: ' + error.message);
-          }
-          stopTimer(); // Stop timer on error
         }
       }, 1000);
     }
 
-    function pauseTimer(){
-      clearInterval(timerInterval);
-      $('#btn-start').style.display = 'inline-block';
-      $('#btn-pause').style.display = 'none';
-      isPaused = true;
-      try{ saveLastSession(); }catch{}
-    }
-
-    function stopTimer(){
-      clearInterval(timerInterval);
-      currentIntervalIndex = 0;
-      timeRemaining = 0;
-      $('#timer').textContent = '0:00';
-      $('#btn-start').style.display = 'inline-block';
-      $('#btn-pause').style.display = 'none';
-      updateCurrentIntervalUI();
-      updateProgressUI();
-      try{ saveLastSession(); }catch{}
-    }
-
-    function skipInterval(){
-      if (currentIntervalIndex < intervals.length - 1){
-        currentIntervalIndex++;
-        timeRemaining = Math.round((intervals[currentIntervalIndex].duration_min||0) * 60);
-        updateCurrentIntervalUI();
-        updateProgressUI();
-        try{ saveLastSession(); }catch{}
-        ding();
+    function pauseTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
       }
     }
 
-    function prevInterval(){
-      if (currentIntervalIndex > 0){
-        currentIntervalIndex--;
-        timeRemaining = Math.round((intervals[currentIntervalIndex].duration_min||0) * 60);
-        updateCurrentIntervalUI();
-        updateProgressUI();
-        try{ saveLastSession(); }catch{}
-        ding();
-      }
+    function stopTimer() {
+      pauseTimer();
+      document.getElementById('btn-start').classList.remove('hidden');
+      document.getElementById('btn-pause').classList.add('hidden');
+      document.getElementById('btn-resume').classList.add('hidden');
     }
 
-    // ---------- Sound / Wake Lock ----------
-    function ding(){ 
-      if (bellEnabled && !muted) { 
-        // Try the new mobile-friendly beep first, fall back to bell audio
-        if (window.__beep__) {
-          try {
-            window.__beep__();
-          } catch (e) {
-            // Fall back to bell audio
-            bellAudio.currentTime = 0; 
-            bellAudio.play().catch(()=>{});
-          }
-        } else {
-          // Fall back to bell audio
-          bellAudio.currentTime = 0; 
-          bellAudio.play().catch(()=>{});
-        }
-      } 
-    }
-
-    async function setWakeLockEnabled(on){
-      try{
-        if (on && 'wakeLock' in navigator){
-          wakeLock = await navigator.wakeLock.request('screen');
-          wakeLock.addEventListener('release', ()=> console.log('Wake Lock released'));
-          
-          // Also handle visibility changes to re-acquire wake lock
-          document.addEventListener('visibilitychange', () => {
-            if (wakeLock && document.visibilityState === 'visible'){
-              navigator.wakeLock.request('screen').then(l => { wakeLock = l; }).catch(() => {});
-            }
-          });
-        } else if (wakeLock){ 
-          await wakeLock.release(); 
-          wakeLock = null; 
-        }
-      }catch(e){ 
-        console.log('Wake Lock error', e); 
-        // Use the mobile error display if available
-        if (window.showError) {
-          window.showError('Wake Lock not available: ' + e.message);
-        }
-      }
-    }
-
-    // ---------- Tabs & Focus Mode ----------
-    function switchTabById(id){
-      // deactivate all
-      $$('.tab').forEach(t=>{ t.classList.remove('active'); t.setAttribute('aria-selected','false'); t.setAttribute('tabindex','-1'); });
-      $$('.tab-content').forEach(p=> p.classList.remove('active'));
-      // activate
-      const tab = document.getElementById('tab-' + id);
-      const panel = document.getElementById(id + '-tab');
-      if (tab && panel){
-        tab.classList.add('active'); tab.setAttribute('aria-selected','true'); tab.setAttribute('tabindex','0');
-        panel.classList.add('active'); tab.focus();
-      }
-    }
-
-    function enableFocusMode(on){
-      document.body.classList.toggle('landscape-compact', on);
-      // When turning off, also remove phase classes to avoid trapping background
-      if (!on){ setPhaseBackground('low'); }
-    }
-
-    // ---------- Theme Toggle ----------
-    function setThemeColorMeta() {
-      const el = document.getElementById('meta-theme-color');
-      if (!el) return;
-      el.setAttribute('content', '#F2F2F7');
-    }
-
-    function applyThemeFromStorage(){
-      const icon = document.querySelector('#theme-toggle .icon');
-      document.body.classList.remove('dark-theme');
-      if(icon) icon.textContent='☀️';
-      setThemeColorMeta();
-    }
-
-    function toggleTheme(){
-      document.body.classList.remove('dark-theme');
-      localStorage.setItem('ttc_theme', 'light');
-      const icon = document.querySelector('#theme-toggle .icon');
-      if (icon) icon.textContent = '☀️';
-      setThemeColorMeta();
-    }
-
-    // ---------- Simple sample generation / parsing ----------
-    function calculateSectionDuration(intervals) {
-      return intervals.reduce((total, interval) => total + (interval.duration_min || 0), 0);
-    }
-    
-    function generateWorkoutText(intervals) {
-      if (!intervals || intervals.length === 0) return '';
+    // Save workout
+    document.getElementById('btn-save-workout').addEventListener('click', async () => {
+      const description = prompt('Name this workout:');
+      if (!description) return;
       
-      let result = '';
-      let currentSection = '';
-      let sectionIntervals = [];
-      
-      for (const interval of intervals) {
-        const section = interval.section || 'Workout';
-        
-        if (section !== currentSection) {
-          // Write previous section if exists
-          if (sectionIntervals.length > 0) {
-            const sectionDuration = calculateSectionDuration(sectionIntervals);
-            result += `**${currentSection} – ${sectionDuration} minutes**\n`;
-            for (const si of sectionIntervals) {
-              result += `* ${si.duration_min} min @ ${si.speed_mph} mph${si.description ? ' (' + si.description + ')' : ''}\n`;
-            }
-            result += '\n';
-          }
-          
-          // Start new section
-          currentSection = section;
-          sectionIntervals = [interval];
-        } else {
-          sectionIntervals.push(interval);
-        }
-      }
-      
-      // Write final section
-      if (sectionIntervals.length > 0) {
-        const sectionDuration = calculateSectionDuration(sectionIntervals);
-        result += `**${currentSection} – ${sectionDuration} minutes**\n`;
-        for (const si of sectionIntervals) {
-          result += `* ${si.duration_min} min @ ${si.speed_mph} mph${si.description ? ' (' + si.description + ')' : ''}\n`;
-        }
-      }
-      
-      return result.trim();
-    }
-    
-    function sampleGenerate(){
-      // Create sample intervals
-      const sampleIntervals = [
-        { duration_min: 5, speed_mph: 4.0, description: 'easy warm up', section: 'Warm-Up' },
-        { duration_min: 8, speed_mph: 6.0, description: 'steady pace', section: 'Main Workout' },
-        { duration_min: 4, speed_mph: 7.0, description: 'tempo interval', section: 'Main Workout' },
-        { duration_min: 8, speed_mph: 6.0, description: 'steady pace', section: 'Main Workout' },
-        { duration_min: 5, speed_mph: 4.0, description: 'cool down', section: 'Cool-Down' }
-      ];
-      
-      const sample = generateWorkoutText(sampleIntervals);
-      $('#generatedText').value = sample;
-      $('#generated-workout').style.display = 'block';
-    }
-
-    function useGenerated(){
-      const text = ($('#generatedText').value || '').trim();
-      if (!text) { alert('No generated workout to use yet.'); return; }
-      const parsed = parseWorkoutText(text);
-      if (!parsed.length) { alert('Could not parse the generated workout.'); return; }
-      intervals = parsed;
-      $('#timer-section').classList.add('active');
-      currentIntervalIndex = 0; timeRemaining = Math.round((intervals[0].duration_min||0) * 60);
-      displayIntervals(); updateProgressUI(); updateCurrentIntervalUI();
-      try{ saveLastSession(); }catch{}
-    }
-
-    function parseWorkoutText(text){
-      // Minimal parser: detect lines with "min @ X mph"; everything else ignored
-      const lines = text.split(/\n+/);
-      const out = [];
-      let section = 'Workout';
-      for (const ln of lines){
-        const secMatch = ln.match(/\*\*(.+?)\*\*/);
-        if (secMatch){ section = secMatch[1]; continue; }
-        const m = ln.match(/(\d+)\s*min\s*@\s*(\d+(?:\.\d+)?)\s*mph(?:.*incl(?:ine)?\s*(\d+(?:\.\d+)?)%?)?/i);
-        if (m){ out.push({ duration_min: Number(m[1]), speed_mph: Number(m[2]), incline: m[3]? Number(m[3]) : 0, section, description: ln.replace(/^[*\-\s]+/,'') }); }
-      }
-      return out;
-    }
-
-    function parseWorkout(){
-      const text = $('#workoutText').value.trim();
-      if (!text){ alert('Please paste a workout first!'); return; }
-      const parsed = parseWorkoutText(text);
-      if (!parsed.length){ alert('Could not parse any intervals. Please check the format.'); return; }
-      intervals = parsed; currentIntervalIndex = 0; timeRemaining = intervals[0].duration_min*60;
-      $('#timer-section').classList.add('active');
-      displayIntervals(); updateProgressUI(); updateCurrentIntervalUI();
-      try{ saveLastSession(); }catch{}
-    }
-
-    // ---------- WHOOP placeholders ----------
-    function displayWHOOPData(recoveryData){
-      const rec = Math.round(recoveryData?.recovery_score || 0);
-      const sleep = Math.round(recoveryData?.sleep_score || 0);
-      const strain = Math.round(recoveryData?.strain_score || 0);
-      const hrv = Math.round(recoveryData?.hrv_value || 0);
-      $('#recovery-score').textContent = rec; $('#sleep-score').textContent = sleep; $('#strain-score').textContent = strain; $('#hrv-value').textContent = hrv;
-      $('#card-recovery').className = 'metric-card ' + (rec>=67? 'recovery-high' : rec>=34? 'recovery-medium' : 'recovery-low');
-      $('#whoop-recovery-section').style.display = 'block';
-    }
-
-    function connectWHOOP(){
-      const btn = $('#whoop-connect-btn'); const status = $('#whoop-status');
-      btn.textContent='🔄 Connecting...'; btn.disabled = true; status.textContent='Redirecting to WHOOP for authorization...';
-      setTimeout(()=>{ btn.textContent='✅ Connected to WHOOP'; status.innerHTML='<p style="color: var(--whoop-recovery-high);">✅ Successfully connected!</p>'; displayWHOOPData({ recovery_score:85, sleep_score:78, strain_score:12, hrv_value:45 }); }, 1500);
-    }
-    function refreshWHOOPData(){ displayWHOOPData({ recovery_score: Math.floor(Math.random()*40)+60, sleep_score: Math.floor(Math.random()*30)+70, strain_score: Math.floor(Math.random()*15)+5, hrv_value: Math.floor(Math.random()*30)+30 }); }
-
-    // ==================== WHOOP HR Integration JavaScript ====================
-
-    // Mobile first-tap activation + error capture
-    (function(){
-      let userActivated = false;
-      let audioCtx = null;
-      let wakeLock = null;
-
-      function initOnFirstTap(){
-        if (userActivated) return;
-        userActivated = true;
-        document.documentElement.classList.add('user-activated');
-
-        // Safe AudioContext init (iOS requires a user gesture)
-        try {
-          const AC = window.AudioContext || window.webkitAudioContext;
-          if (AC) {
-            audioCtx = new AC();
-            // Lightweight beep helper available globally
-            window.__beep__ = function(){
-              try {
-                const o = audioCtx.createOscillator();
-                const g = audioCtx.createGain();
-                o.connect(g); g.connect(audioCtx.destination);
-                o.type = 'sine'; o.frequency.value = 880; g.gain.value = 0.0001;
-                o.start();
-                g.gain.exponentialRampToValueAtTime(0.2,  audioCtx.currentTime + 0.01);
-                g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime + 0.12);
-                o.stop(audioCtx.currentTime + 0.13);
-              } catch (e) { console.warn('beep failed', e); }
-            }
-          }
-        } catch(e){ console.warn('Audio init failed', e); showError(e); }
-
-        // Screen Wake Lock (guarded and resumable)
-        if ('wakeLock' in navigator && document.visibilityState === 'visible'){
-          navigator.wakeLock.request('screen').then(lock => {
-            wakeLock = lock;
-            lock.addEventListener('release', () => console.log('WakeLock released'));
-          }).catch(e => console.warn('WakeLock not available:', e));
-
-          document.addEventListener('visibilitychange', () => {
-            if (wakeLock && document.visibilityState === 'visible'){
-              navigator.wakeLock.request('screen').then(l => { wakeLock = l; }).catch(() => {});
-            }
-          });
-        }
-
-        // Notify any other scripts that the user gesture happened
-        window.dispatchEvent(new Event('user-activated'));
-      }
-
-      // First-touch listeners (iOS/Android)
-      window.addEventListener('touchend', initOnFirstTap, { once: true });
-      window.addEventListener('click',    initOnFirstTap, { once: true });
-
-      // Error overlay helpers so mobile errors are visible
-      window.showError = function(err){
-        try {
-          const el = document.getElementById('err');
-          if (!el) return;
-          const msg = (err && err.message) ? err.message : String(err);
-          el.style.display = 'block';
-          el.textContent = 'Error: ' + msg;
-        } catch(_) {}
-      }
-      window.addEventListener('error', ev => showError(ev.error || ev.message));
-      window.addEventListener('unhandledrejection', ev => showError(ev.reason));
-
-      // Optional: add ?swreset once to clear stale SW/cache on mobile
-      if (location.search.includes('swreset')){
-        if ('serviceWorker' in navigator){
-          navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
-        }
-        if (window.caches && caches.keys){
-          caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
-        }
-      }
-    })();
-
-    // Initialize Socket.IO connection (safe if client lib blocked by CSP or offline)
-    const socket = (typeof io !== 'undefined') ? io() : { on: () => {}, emit: () => {} };
-
-    // HR Display State
-    let hrDisplayState = {
-      connected: false,
-      streaming: false,
-      currentHR: 0,
-      currentZone: 'Z1',
-      zonePercentage: 0,
-      hrHistory: [],
-      zones: {}
-    };
-
-    // Connect to WebSocket
-    socket.on('connect', () => {
-      console.log('Connected to HR broadcast');
-      hrDisplayState.connected = true;
-      updateHRDisplay();
-    });
-
-    socket.on('disconnect', () => {
-      console.log('Disconnected from HR broadcast');
-      hrDisplayState.connected = false;
-      hrDisplayState.streaming = false;
-      updateHRDisplay();
-    });
-
-    socket.on('error', (error) => {
-      console.error('WebSocket error:', error);
-      hrDisplayState.connected = false;
-      hrDisplayState.streaming = false;
-      updateHRDisplay();
-    });
-
-    socket.on('hr_update', (data) => {
       try {
-        if (data && typeof data.heart_rate === 'number' && data.heart_rate > 0) {
-          hrDisplayState.currentHR = data.heart_rate;
-          hrDisplayState.currentZone = data.zone || 'Z1';
-          hrDisplayState.zonePercentage = data.zone_percentage || 0;
-          hrDisplayState.hrHistory.push(data);
-          
-          // Keep only last 60 data points
-          if (hrDisplayState.hrHistory.length > 60) {
-            hrDisplayState.hrHistory.shift();
-          }
-          
-          updateHRDisplay();
-          updateHRChart();
-        }
-      } catch (error) {
-        console.error('Error processing HR update:', error);
-      }
-    });
-
-    // Start HR streaming
-    function startHRStream() {
-      try {
-        if (!hrDisplayState.connected) {
-          alert('Not connected to HR service');
-          return;
-        }
-        
-        fetch('/whoop/start_hr_broadcast', { method: 'POST' })
-          .then(res => {
-            if (!res.ok) {
-              throw new Error(`HTTP error! status: ${res.status}`);
-            }
-            return res.json();
-          })
-          .then(data => {
-            if (data.success) {
-              socket.emit('start_hr_stream');
-              hrDisplayState.streaming = true;
-              const statusElement = document.getElementById('hr-status');
-              if (statusElement) {
-                statusElement.textContent = 'Streaming';
-                statusElement.style.color = '#16EC06';
-              }
-            } else {
-              alert('Failed to start HR broadcast: ' + (data.error || 'Unknown error'));
-            }
-          })
-          .catch(error => {
-            console.error('Error starting HR stream:', error);
-            alert('Error starting HR broadcast. Please try again.');
-          });
-      } catch (error) {
-        console.error('Error in startHRStream:', error);
-        alert('Error starting HR broadcast. Please try again.');
-      }
-    }
-
-    // Stop HR streaming
-    function stopHRStream() {
-      socket.emit('stop_hr_stream');
-      hrDisplayState.streaming = false;
-      document.getElementById('hr-status').textContent = 'Stopped';
-      document.getElementById('hr-status').style.color = '#FF0026';
-    }
-
-    // Update HR display
-    function updateHRDisplay() {
-      // Color based on zone
-      const zoneColors = {
-        'Z1': '#808080',  // Gray
-        'Z2': '#007AFF',  // Blue
-        'Z3': '#16EC06',  // Green
-        'Z4': '#FFDE00',  // Yellow
-        'Z5': '#FF0026'   // Red
-      };
-      
-      // Update HR value
-      const hrElement = document.getElementById('current-hr-value');
-      if (hrElement) {
-        hrElement.textContent = hrDisplayState.currentHR;
-        hrElement.style.color = zoneColors[hrDisplayState.currentZone] || '#000';
-      }
-      
-      // Update zone display
-      const zoneElement = document.getElementById('current-hr-zone-display');
-      if (zoneElement) {
-        zoneElement.textContent = hrDisplayState.currentZone;
-        zoneElement.style.backgroundColor = zoneColors[hrDisplayState.currentZone];
-      }
-      
-      // Update zone percentage bar
-      const percentBar = document.getElementById('zone-percentage-bar');
-      if (percentBar) {
-        percentBar.style.width = hrDisplayState.zonePercentage + '%';
-      }
-    }
-
-    // Update HR mini chart
-    function updateHRChart() {
-      try {
-        const canvas = document.getElementById('hr-mini-chart');
-        if (!canvas) return;
-        
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        
-        const width = canvas.width;
-        const height = canvas.height;
-        
-        // Clear canvas
-        ctx.clearRect(0, 0, width, height);
-        
-        // Draw HR line
-        if (hrDisplayState.hrHistory.length > 1) {
-          ctx.strokeStyle = '#FF0026';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          
-          hrDisplayState.hrHistory.forEach((point, i) => {
-            if (point && typeof point.heart_rate === 'number' && point.heart_rate > 0) {
-              const x = (i / 60) * width;
-              const y = height - ((point.heart_rate - 50) / 150) * height;
-              
-              // Ensure y is within canvas bounds
-              const clampedY = Math.max(0, Math.min(height, y));
-              
-              if (i === 0) {
-                ctx.moveTo(x, clampedY);
-              } else {
-                ctx.lineTo(x, clampedY);
-              }
-            }
-          });
-          
-          ctx.stroke();
-        }
-      } catch (error) {
-        console.error('Error updating HR chart:', error);
-      }
-    }
-
-    // Generate zone-based workout
-    function generateZoneWorkout() {
-      try {
-        const targetZone = document.getElementById('target-zone-select').value;
-        const zonePercentage = parseInt(document.getElementById('zone-percentage-slider').value);
-        const duration = parseInt(document.getElementById('zone-duration-select').value);
-        
-        // Validate inputs
-        if (!targetZone || isNaN(zonePercentage) || isNaN(duration)) {
-          alert('Please fill in all workout parameters');
-          return;
-        }
-        
-        fetch('/generate_zone_workout', {
+        const response = await fetch('/save_workout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            target_zone: targetZone,
-            zone_percentage: zonePercentage,
-            duration: duration
+            description,
+            intervals
           })
-        })
-        .then(res => {
-          if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
-          }
-          return res.json();
-        })
-        .then(data => {
-          if (data.success) {
-            // Load the workout
-            loadZoneWorkout(data.workout);
-          } else {
-            alert('Failed to generate workout: ' + (data.error || 'Unknown error'));
-          }
-        })
-        .catch(error => {
-          console.error('Error generating workout:', error);
-          alert('Error generating workout. Please try again.');
         });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          alert('Workout saved!');
+          document.getElementById('btn-save-workout-container').classList.add('hidden');
+        } else {
+          alert('Error saving: ' + data.error);
+        }
       } catch (error) {
-        console.error('Error in generateZoneWorkout:', error);
-        alert('Error generating workout. Please try again.');
+        alert('Failed to save: ' + error.message);
       }
-    }
+    });
 
-    // Load zone workout with adaptive features
-    function loadZoneWorkout(workout) {
-      // Store as current workout
-      window.currentZoneWorkout = workout;
+    // Load saved workouts
+    async function loadSavedWorkouts() {
+      const container = document.getElementById('saved-workouts-list');
+      container.innerHTML = '<div class="loading">Loading...</div>';
       
-      // Display workout
-      displayWorkout(workout.intervals);
-      
-      // Enable adaptive features
-      document.getElementById('adaptive-mode').style.display = 'block';
-      
-      // Start adaptation monitoring if HR streaming
-      if (hrDisplayState.streaming) {
-        startAdaptiveMonitoring();
-      }
-    }
-
-    // Monitor and adapt workout based on HR
-    function startAdaptiveMonitoring() {
-      setInterval(() => {
-        if (!window.currentZoneWorkout || !hrDisplayState.streaming) return;
+      try {
+        const response = await fetch('/workouts');
+        const workouts = await response.json();
         
-        const currentInterval = getCurrentInterval();
-        if (!currentInterval || !currentInterval.adaptive) return;
+        if (workouts.length === 0) {
+          container.innerHTML = '<div class="loading">No saved workouts yet</div>';
+          return;
+        }
         
-        // Check if adaptation needed
-        const targetZone = currentInterval.target_zone;
-        const currentZone = hrDisplayState.currentZone;
+        container.innerHTML = workouts.map(workout => `
+          <div class="workout-item" data-id="${workout.id}">
+            <h3>${workout.description}</h3>
+            <p>${workout.intervals.length} intervals • ${workout.created_at}</p>
+          </div>
+        `).join('');
         
-        if (targetZone !== currentZone) {
-          // Request adaptation
-          fetch('/adapt_current_interval', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              current_interval: currentInterval,
-              current_hr: hrDisplayState.currentHR
-            })
-          })
-          .then(res => res.json())
-          .then(data => {
-            if (data.success) {
-              // Update current interval
-              updateCurrentInterval(data.adapted_interval);
+        // Make workouts clickable
+        container.querySelectorAll('.workout-item').forEach(item => {
+          item.addEventListener('click', async () => {
+            const id = item.dataset.id;
+            try {
+              const response = await fetch(`/load_workout/${id}`);
+              const data = await response.json();
               
-              // Show adaptation notification
-              showAdaptationNotification(data.adapted_interval);
+              if (data.success) {
+                loadWorkout(data.workout.intervals);
+                // Switch to generate tab to show the workout
+                document.querySelector('.tab[data-tab="generate"]').click();
+              }
+            } catch (error) {
+              alert('Error loading workout: ' + error.message);
             }
           });
-        }
-      }, 10000);  // Check every 10 seconds
+        });
+      } catch (error) {
+        container.innerHTML = '<div class="loading">Error loading workouts</div>';
+      }
     }
 
-    // Show adaptation notification
-    function showAdaptationNotification(adaptedInterval) {
-      const notification = document.createElement('div');
-      notification.className = 'adaptation-notification';
-      notification.innerHTML = `
-        <strong>Workout Adapted!</strong><br>
-        Speed: ${adaptedInterval.speed_mph} mph<br>
-        Incline: ${adaptedInterval.incline}%
-      `;
-      document.body.appendChild(notification);
-      
-      setTimeout(() => {
-        notification.remove();
-      }, 5000);
-    }
-
-    // Update zone percentage slider display
-    document.getElementById('zone-percentage-slider').addEventListener('input', function() {
-      document.getElementById('zone-percentage-value').textContent = this.value + '%';
-    });
-
-    // ---------- Event wiring ----------
-    document.addEventListener('DOMContentLoaded', ()=>{
-      document.body.classList.remove('dark-theme');
-      // ---- One-time: clear any old service workers/caches that could be serving stale CSS ----
-      try {
-        if (!localStorage.getItem('ttc_sw_nuked_v1') && 'serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
-          if (window.caches) { caches.keys().then(keys => keys.forEach(k => caches.delete(k))); }
-          localStorage.setItem('ttc_sw_nuked_v1','1');
-        }
-      } catch (e) { console.log('SW cleanup error', e); }
-
-      // Theme
-      applyThemeFromStorage();
-      $('#theme-toggle').addEventListener('click', toggleTheme);
-
-      // Tabs click
-      $$('#tab-generate, #tab-manual, #tab-saved, #tab-progress, #tab-whoop, #tab-insights').forEach(tab=>{
-        tab.addEventListener('click', ()=> switchTabById(tab.id.replace('tab-','')));
-      });
-      // Tabs keyboard: left/right
-      document.querySelector('[role="tablist"]').addEventListener('keydown', (e)=>{
-        const tabs = $$('.tabs [role="tab"]');
-        const currentIndex = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true');
-        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft'){
-          e.preventDefault();
-          const dir = e.key === 'ArrowRight' ? 1 : -1;
-          const next = (currentIndex + dir + tabs.length) % tabs.length;
-          switchTabById(tabs[next].id.replace('tab-',''));
-        }
-      });
-
-      // Chips (category & duration)
-      $('#category-chips').addEventListener('click', (e)=>{
-        if (e.target.classList.contains('chip')){
-          $$('#category-chips .chip').forEach(c=> c.classList.remove('active'));
-          e.target.classList.add('active');
-          currentCategory = e.target.getAttribute('data-cat');
-          $('#workoutRequest').value = `${currentMinutes} minute ${currentCategory} workout`;
-        }
-      });
-      $('#duration-chips').addEventListener('click', (e)=>{
-        if (e.target.classList.contains('chip')){
-          $$('#duration-chips .chip').forEach(c=> c.classList.remove('active'));
-          e.target.classList.add('active');
-          currentMinutes = parseInt(e.target.getAttribute('data-min'));
-          $('#workoutRequest').value = `${currentMinutes} minute ${currentCategory} workout`;
-        }
-      });
-
-      // Generate / Use
-      $('#btn-generate').addEventListener('click', async ()=>{
-        const btn = $('#btn-generate');
-        $('#generate-btn-text').style.display='none';
-        $('#generate-loading').style.display='inline-block';
-        btn.disabled = true;
-        try {
-          // Build request string from UI
-          const durChip = document.querySelector('#duration-chips .chip.active');
-          const catChip = document.querySelector('#category-chips .chip.active');
-          const minutes = durChip ? parseInt(durChip.dataset.min || '30', 10) : 30;
-          const category = (catChip ? (catChip.dataset.cat || 'endurance') : 'endurance');
-          const desc = ($('#workoutRequest').value || '').trim();
-          const req = `${minutes} minute ${category} treadmill workout. ${desc}`.trim();
-
-          const res = await fetch('/generate_workout', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ request: req })
-          });
-          const data = await res.json();
-          if (!res.ok || !data || data.success === false) throw new Error(data && data.error || 'Generation failed');
-          const text = (data.workout_text || '').trim();
-          if (!text) throw new Error('Empty workout text');
-          $('#generatedText').value = text;
-          $('#generated-workout').style.display = 'block';
-        } catch (e) {
-          console.warn('Generation failed, falling back to sample:', e);
-          try { sampleGenerate(); } catch {}
-          if (window.showError) window.showError(e);
-        } finally {
-          $('#generate-btn-text').style.display='inline-block';
-          $('#generate-loading').style.display='none';
-          btn.disabled = false;
-        }
-      });
-      $('#use-generated').addEventListener('click', useGenerated);
-
-      // Manual parse
-      $('#btn-parse').addEventListener('click', parseWorkout);
-
-      // Timer controls
-      $('#btn-start').addEventListener('click', startTimer);
-      $('#btn-pause').addEventListener('click', pauseTimer);
-      $('#btn-stop').addEventListener('click', stopTimer);
-      $('#btn-skip').addEventListener('click', skipInterval);
-      $('#btn-prev').addEventListener('click', prevInterval);
-
-      // Mute/Bell/WakeLock/Focus
-      $('#mute-toggle').addEventListener('change', (e)=>{ muted = e.target.checked; bellAudio.muted = muted; });
-      $('#bell-toggle').addEventListener('change', (e)=>{ bellEnabled = e.target.checked; });
-      $('#wakelock-toggle').addEventListener('change', (e)=> setWakeLockEnabled(e.target.checked));
-      $('#focus-toggle').addEventListener('click', ()=>{ const on = !document.body.classList.contains('landscape-compact'); enableFocusMode(on); if (on) setPhaseBackground(intensityPhaseForInterval(intervals[currentIntervalIndex])); });
-      $('#mute-toggle').addEventListener('change', ()=>{ try{ saveLastSession(); }catch{} });
-      $('#bell-toggle').addEventListener('change', ()=>{ try{ saveLastSession(); }catch{} });
-
-      // Save / Saved tab
-      const saveBtn = document.getElementById('btn-save-workout');
-      if (saveBtn) saveBtn.addEventListener('click', saveCurrentWorkout);
-      document.getElementById('btn-refresh-saved').addEventListener('click', loadSavedWorkouts);
-
-      // Populate Saved tab on load
-      loadSavedWorkouts();
-      $('#whoop-connect-btn').addEventListener('click', connectWHOOP);
-      $('#btn-refresh-whoop').addEventListener('click', refreshWHOOPData);
-
-      // Bottom nav -> existing tabs
-      $$('.bottom-nav .nav-item').forEach(btn=>{
-        btn.addEventListener('click', ()=>{
-          $$('.bottom-nav .nav-item').forEach(b=> b.classList.remove('active'));
-          btn.classList.add('active');
-          switchTabById(btn.getAttribute('data-tab'));
-        });
-      });
-
-      // Voice & Contrast toggles
-      const voiceToggle = document.getElementById('voice-toggle');
-      const contrastToggle = document.getElementById('contrast-toggle');
-      if (voiceToggle){
-        voiceToggle.addEventListener('change', (e)=>{
-          voiceEnabled = e.target.checked;
-          document.getElementById('voiceIndicator').classList.toggle('active', voiceEnabled);
-        });
-      }
-      if (contrastToggle){
-        const persisted = (localStorage.getItem(THEME_CONTRAST_KEY) === '1');
-        contrastToggle.checked = persisted; setContrast(persisted);
-        contrastToggle.addEventListener('change', (e)=> setContrast(e.target.checked));
-      }
-
-      // Quick control buttons
-      const incS = document.getElementById('inc-speed'); const decS = document.getElementById('dec-speed');
-      const incI = document.getElementById('inc-incline'); const decI = document.getElementById('dec-incline');
-      if (incS) incS.addEventListener('click', ()=> changeSpeed(0.1));
-      if (decS) decS.addEventListener('click', ()=> changeSpeed(-0.1));
-      if (incI) incI.addEventListener('click', ()=> changeIncline(0.5));
-      if (decI) decI.addEventListener('click', ()=> changeIncline(-0.5));
-
-      // --- Demo passwordless auth overlay ---
-      let currentUser = null; let verificationCode = null;
-      function showAuthScreen(){ document.getElementById('authContainer').classList.add('visible'); }
-      function hideAuthScreen(){ document.getElementById('authContainer').classList.remove('visible'); }
-      function checkAuthState(){
-        try{
-          const raw = localStorage.getItem('treadmill_user');
-          if (!raw) { showAuthScreen(); return; }
-          const u = JSON.parse(raw);
-          if (!u || (u.expiresAt && Date.now() > u.expiresAt)) { localStorage.removeItem('treadmill_user'); showAuthScreen(); return; }
-          currentUser = u; hideAuthScreen();
-        }catch{ showAuthScreen(); }
-      }
-      function showAuthMessage(msg, type){ const el = document.getElementById('authMessage'); el.className = 'auth-message ' + (type||''); el.textContent = msg; el.style.display='block'; setTimeout(()=> el.style.display='none', 4000); }
-      function validateEmail(email){ return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email); }
-      function generateUserId(){ return 'user_' + Math.random().toString(36).slice(2,10); }
-      function sendVerificationCode(){
-        const email = document.getElementById('emailInput').value.trim();
-        if (!validateEmail(email)) { showAuthMessage('Enter a valid email', 'error'); return; }
-        verificationCode = Math.floor(100000 + Math.random()*900000).toString();
-        console.log('Demo code:', verificationCode);
-        document.getElementById('emailStep').style.display='none';
-        document.getElementById('codeStep').style.display='block';
-        showAuthMessage(`Code sent to ${email} (demo: console)`, 'success');
-      }
-      function verifyCode(){
-        const code = document.getElementById('codeInput').value.trim();
-        if (code === verificationCode){
-          const email = document.getElementById('emailInput').value.trim();
-          currentUser = { id: generateUserId(), email, signedInAt: new Date().toISOString(), expiresAt: Date.now() + 7*24*3600*1000 };
-          localStorage.setItem('treadmill_user', JSON.stringify(currentUser));
-          verificationCode = null;
-          hideAuthScreen();
-          showAuthMessage('Signed in', 'success');
-        } else { showAuthMessage('Invalid code', 'error'); }
-      }
-      function backToEmail(){ document.getElementById('emailStep').style.display='block'; document.getElementById('codeStep').style.display='none'; document.getElementById('codeInput').value=''; }
-
-      // Wire auth buttons and check state (guard if overlay not present)
-      const sendBtn = document.getElementById('sendCodeBtn');
-      const verifyBtnEl = document.getElementById('verifyBtn');
-      const backBtnEl = document.getElementById('backBtn');
-      const authContainer = document.getElementById('authContainer');
-      if (sendBtn && verifyBtnEl && backBtnEl && authContainer) {
-        sendBtn.addEventListener('click', sendVerificationCode);
-        verifyBtnEl.addEventListener('click', verifyCode);
-        backBtnEl.addEventListener('click', backToEmail);
-        checkAuthState();
-      }
-
-      // Seed request text
-      $('#workoutRequest').value = `${currentMinutes} minute ${currentCategory} workout`;
-
-      // --- Offer to resume last active session ---
-      const last = loadLastSession();
-      if (last){
-        const tooOld = (Date.now() - (last.timestamp || 0)) > (1000 * 60 * 60 * 24 * 3); // 3 days
-        const shouldResume = !tooOld && confirm('Resume your last session?');
-        if (shouldResume){ resumeLastSession(last); }
-      }
-    });
+    // Load saved workouts on page load
+    loadSavedWorkouts();
   </script>
 </body>
 </html>
