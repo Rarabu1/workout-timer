@@ -250,9 +250,234 @@
       padding: 40px;
       color: var(--gray);
     }
+    
+    /* Focus Mode Styles */
+    #focus-mode {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100vw;
+      height: 100dvh;
+      z-index: 9999;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      transition: background-color 300ms ease-out;
+    }
+    
+    #focus-mode.active {
+      display: flex;
+    }
+    
+    .focus-main-clock {
+      font-size: clamp(72px, 15vw, 160px);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+      animation: breathe 3s ease-in-out infinite;
+    }
+    
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+    
+    @media (prefers-reduced-motion: reduce) {
+      .focus-main-clock {
+        animation: none;
+      }
+      #focus-mode {
+        transition: none;
+      }
+    }
+    
+    .focus-metrics {
+      display: flex;
+      gap: 24px;
+      margin-top: 32px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    .focus-metric {
+      text-align: center;
+      min-width: 100px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      transition: transform 250ms ease;
+    }
+    
+    .focus-metric-value {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    
+    .focus-metric-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      opacity: 0.8;
+      letter-spacing: 0.05em;
+    }
+    
+    .focus-controls {
+      position: absolute;
+      top: env(safe-area-inset-top, 20px);
+      right: env(safe-area-inset-right, 20px);
+      display: flex;
+      gap: 12px;
+    }
+    
+    .focus-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: transform 150ms ease, opacity 150ms ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .focus-btn:active {
+      transform: scale(0.95);
+    }
+    
+    .focus-progress {
+      position: absolute;
+      bottom: env(safe-area-inset-bottom, 20px);
+      left: env(safe-area-inset-left, 20px);
+      right: env(safe-area-inset-right, 20px);
+    }
+    
+    .focus-progress-bar {
+      height: 4px;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    
+    .focus-progress-fill {
+      height: 100%;
+      transition: width 100ms linear;
+    }
+    
+    .focus-progress-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      opacity: 0.7;
+    }
+    
+    .focus-toast {
+      position: absolute;
+      top: calc(env(safe-area-inset-top, 20px) + 60px);
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      border-radius: 24px;
+      backdrop-filter: blur(10px);
+      font-size: 14px;
+      animation: slideDown 300ms ease-out;
+      max-width: 90%;
+      text-align: center;
+    }
+    
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+    
+    .focus-countdown {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 120px;
+      font-weight: 700;
+      animation: countdownPulse 1s ease-out;
+    }
+    
+    @keyframes countdownPulse {
+      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+      50% { transform: translate(-50%, -50%) scale(1.1); }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
   </style>
 </head>
 <body>
+  <!-- Focus Mode Overlay -->
+  <div id="focus-mode">
+    <div class="focus-controls">
+      <button id="focus-voice-btn" class="focus-btn" title="Toggle Voice Cues">
+        <span id="focus-voice-icon">🔇</span>
+      </button>
+      <button id="focus-pause-btn" class="focus-btn" title="Pause/Resume (Space)">
+        <span id="focus-pause-icon">⏸</span>
+      </button>
+      <button id="focus-exit-btn" class="focus-btn" title="Exit Focus Mode (Esc)">✕</button>
+    </div>
+    
+    <div id="focus-toast" class="focus-toast hidden">
+      Rotate to portrait to exit Focus Mode
+    </div>
+    
+    <div id="focus-countdown" class="focus-countdown hidden"></div>
+    
+    <div class="focus-main-clock" id="focus-clock">0:00</div>
+    
+    <div class="focus-metrics">
+      <div class="focus-metric" id="focus-speed-metric">
+        <div class="focus-metric-value" id="focus-speed">-</div>
+        <div class="focus-metric-label" id="focus-speed-label">MPH</div>
+      </div>
+      
+      <div class="focus-metric" id="focus-incline-metric">
+        <div class="focus-metric-value" id="focus-incline">0</div>
+        <div class="focus-metric-label">Incline %</div>
+      </div>
+      
+      <div class="focus-metric" id="focus-interval-metric">
+        <div class="focus-metric-value" id="focus-interval">-/-</div>
+        <div class="focus-metric-label">Interval</div>
+      </div>
+      
+      <div class="focus-metric" id="focus-total-metric">
+        <div class="focus-metric-value" id="focus-total">-</div>
+        <div class="focus-metric-label">Total Left</div>
+      </div>
+    </div>
+    
+    <div class="focus-progress">
+      <div class="focus-progress-bar" style="background: rgba(255,255,255,0.2);">
+        <div id="focus-segment-progress" class="focus-progress-fill" style="width: 0%; background: rgba(255,255,255,0.8);"></div>
+      </div>
+      <div class="focus-progress-label">
+        <span>Segment Progress</span>
+      </div>
+      
+      <div class="focus-progress-bar" style="background: rgba(255,255,255,0.2); margin-top: 8px;">
+        <div id="focus-run-progress" class="focus-progress-fill" style="width: 0%; background: rgba(255,255,255,0.6);"></div>
+      </div>
+      <div class="focus-progress-label">
+        <span>Total Progress</span>
+      </div>
+    </div>
+  </div>
   <div class="app-header">
     <h1>🏃 Treadmill Workout Timer</h1>
     <p>AI-powered workout generation and interval timer</p>
@@ -659,6 +884,289 @@
 
     // Load saved workouts on page load
     loadSavedWorkouts();
+  </script>
+  
+  <!-- Focus Mode Integration -->
+  <script type="module">
+    import orientationDetector from '/static/orientation.js';
+    import FocusTimer from '/static/focus-timer.js';
+    import { getIntensityColors } from '/static/intensity-colors.js';
+    import VoiceCues from '/static/voice-cues.js';
+    
+    // Initialize Focus Timer and Voice Cues
+    const focusTimer = new FocusTimer();
+    const voiceCues = new VoiceCues();
+    let focusModeActive = false;
+    let toastShown = false;
+    let countdownActive = false;
+    
+    // Focus Mode DOM elements
+    const focusMode = document.getElementById('focus-mode');
+    const focusClock = document.getElementById('focus-clock');
+    const focusSpeed = document.getElementById('focus-speed');
+    const focusSpeedLabel = document.getElementById('focus-speed-label');
+    const focusIncline = document.getElementById('focus-incline');
+    const focusInterval = document.getElementById('focus-interval');
+    const focusTotal = document.getElementById('focus-total');
+    const focusSegmentProgress = document.getElementById('focus-segment-progress');
+    const focusRunProgress = document.getElementById('focus-run-progress');
+    const focusPauseBtn = document.getElementById('focus-pause-btn');
+    const focusPauseIcon = document.getElementById('focus-pause-icon');
+    const focusExitBtn = document.getElementById('focus-exit-btn');
+    const focusVoiceBtn = document.getElementById('focus-voice-btn');
+    const focusVoiceIcon = document.getElementById('focus-voice-icon');
+    const focusToast = document.getElementById('focus-toast');
+    const focusCountdown = document.getElementById('focus-countdown');
+    
+    // Track previous interval for change detection
+    let previousIntervalIndex = -1;
+    
+    // Update focus mode when timer state changes
+    focusTimer.onChange(state => {
+      if (!focusModeActive) return;
+      
+      updateFocusMode(state);
+      
+      // Detect interval change
+      if (state.currentIntervalIndex !== previousIntervalIndex) {
+        handleIntervalChange(state);
+        previousIntervalIndex = state.currentIntervalIndex;
+      }
+      
+      // Voice warning at 10 seconds
+      if (state.segmentRemainingSec <= 10 && 
+          state.segmentRemainingSec > 9.5 && 
+          state.state === 'running') {
+        voiceCues.announceWarning(10);
+      }
+    });
+    
+    // Handle interval change with countdown
+    function handleIntervalChange(state) {
+      if (countdownActive) return;
+      
+      const interval = state.interval;
+      if (!interval) return;
+      
+      // Announce new interval
+      voiceCues.announceInterval(
+        state.speed,
+        interval.duration_min,
+        interval.description || ''
+      );
+      
+      // Show 3-2-1 countdown
+      showCountdown();
+    }
+    
+    // 3-2-1 countdown animation
+    function showCountdown() {
+      if (countdownActive) return;
+      countdownActive = true;
+      
+      const numbers = [3, 2, 1, 'GO!'];
+      let index = 0;
+      
+      function showNext() {
+        if (index >= numbers.length) {
+          focusCountdown.classList.add('hidden');
+          countdownActive = false;
+          return;
+        }
+        
+        const num = numbers[index];
+        focusCountdown.textContent = num;
+        focusCountdown.classList.remove('hidden');
+        
+        // Voice announcement
+        if (typeof num === 'number') {
+          voiceCues.announceCountdown(num);
+        } else {
+          voiceCues.announceStart();
+        }
+        
+        // Trigger animation by forcing reflow
+        focusCountdown.style.animation = 'none';
+        setTimeout(() => {
+          focusCountdown.style.animation = '';
+        }, 10);
+        
+        index++;
+        setTimeout(showNext, 1000);
+      }
+      
+      showNext();
+    }
+    
+    function updateFocusMode(state) {
+      // Update clock
+      focusClock.textContent = focusTimer.formatTime(state.segmentRemainingSec);
+      
+      // Update metrics
+      focusSpeed.textContent = state.speed;
+      focusSpeedLabel.textContent = state.unitSystem.toUpperCase();
+      focusIncline.textContent = state.incline;
+      focusInterval.textContent = `${state.currentIntervalIndex + 1}/${state.totalIntervals}`;
+      focusTotal.textContent = focusTimer.formatTime(state.runRemainingSec);
+      
+      // Update progress bars
+      focusSegmentProgress.style.width = `${state.progressSegment}%`;
+      focusRunProgress.style.width = `${state.progressRun}%`;
+      
+      // Update background color based on intensity
+      const colors = state.colors;
+      focusMode.style.backgroundColor = colors.bg;
+      focusMode.style.color = colors.fg;
+      
+      // Update metric cards
+      const metrics = document.querySelectorAll('.focus-metric');
+      metrics.forEach(metric => {
+        metric.style.backgroundColor = colors.subtle;
+        metric.style.color = colors.fg;
+      });
+      
+      // Update buttons
+      const buttons = document.querySelectorAll('.focus-btn');
+      buttons.forEach(btn => {
+        btn.style.backgroundColor = colors.subtle;
+        btn.style.color = colors.fg;
+      });
+      
+      // Update toast
+      focusToast.style.backgroundColor = colors.subtle;
+      focusToast.style.color = colors.fg;
+      
+      // Update pause icon
+      focusPauseIcon.textContent = state.state === 'running' ? '⏸' : '▶️';
+    }
+    
+    function enterFocusMode() {
+      if (focusModeActive || intervals.length === 0) return;
+      
+      focusModeActive = true;
+      focusMode.classList.add('active');
+      
+      // Load intervals into focus timer if not already running
+      if (focusTimer.intervals.length === 0) {
+        focusTimer.load(intervals);
+      }
+      
+      // Show toast on first time
+      if (!toastShown) {
+        focusToast.classList.remove('hidden');
+        setTimeout(() => focusToast.classList.add('hidden'), 3000);
+        toastShown = true;
+      }
+      
+      // Update display
+      updateFocusMode(focusTimer.getState());
+      
+      // Auto-start if main timer is running
+      if (timerInterval && !focusTimer.state === 'running') {
+        focusTimer.start();
+      }
+    }
+    
+    function exitFocusMode() {
+      if (!focusModeActive) return;
+      
+      focusModeActive = false;
+      focusMode.classList.add('hidden');
+      
+      // Don't stop the timer, just hide focus mode
+      setTimeout(() => {
+        focusMode.classList.remove('active');
+      }, 300);
+    }
+    
+    // Orientation change handler
+    orientationDetector.onChange(({ isLandscape }) => {
+      if (isLandscape && intervals.length > 0) {
+        enterFocusMode();
+      } else if (!isLandscape && focusModeActive) {
+        exitFocusMode();
+      }
+    });
+    
+    // Check initial orientation
+    if (orientationDetector.getState().isLandscape && intervals.length > 0) {
+      enterFocusMode();
+    }
+    
+    // Focus Mode Controls
+    focusPauseBtn.addEventListener('click', () => {
+      focusTimer.togglePause();
+      
+      // Sync with main timer
+      if (focusTimer.state === 'running' && !timerInterval) {
+        startTimer();
+      } else if (focusTimer.state === 'paused' && timerInterval) {
+        pauseTimer();
+      }
+    });
+    
+    focusExitBtn.addEventListener('click', () => {
+      exitFocusMode();
+    });
+    
+    focusVoiceBtn.addEventListener('click', () => {
+      const enabled = voiceCues.toggle();
+      focusVoiceIcon.textContent = enabled ? '🔊' : '🔇';
+    });
+    
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+      if (!focusModeActive) return;
+      
+      if (e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        focusPauseBtn.click();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        exitFocusMode();
+      }
+    });
+    
+    // Allow clicking on speed to toggle mph/kph
+    document.getElementById('focus-speed-metric').addEventListener('click', () => {
+      focusTimer.toggleUnitSystem();
+    });
+    
+    // Sync main timer with focus timer
+    const originalStartTimer = window.startTimer;
+    window.startTimer = function() {
+      if (focusModeActive && intervals.length > 0) {
+        focusTimer.load(intervals);
+        focusTimer.currentIntervalIndex = currentIntervalIndex;
+        focusTimer.segmentRemainingSec = secondsRemaining;
+        focusTimer.calculateRemaining();
+        focusTimer.start();
+      }
+      if (originalStartTimer) originalStartTimer();
+    };
+    
+    const originalPauseTimer = window.pauseTimer;
+    window.pauseTimer = function() {
+      if (focusModeActive) {
+        focusTimer.pause();
+      }
+      if (originalPauseTimer) originalPauseTimer();
+    };
+    
+    const originalLoadInterval = window.loadInterval;
+    window.loadInterval = function(index) {
+      if (originalLoadInterval) originalLoadInterval(index);
+      if (focusModeActive && focusTimer.intervals.length > 0) {
+        focusTimer.currentIntervalIndex = index;
+        focusTimer.calculateRemaining();
+        updateFocusMode(focusTimer.getState());
+      }
+    };
+    
+    // Make functions available globally
+    window.focusTimer = focusTimer;
+    window.enterFocusMode = enterFocusMode;
+    window.exitFocusMode = exitFocusMode;
   </script>
 </body>
 </html>
