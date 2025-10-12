@@ -410,6 +410,8 @@
       font-size: 120px;
       font-weight: 700;
       animation: countdownPulse 1s ease-out;
+      pointer-events: none; /* Don't block clicks */
+      z-index: 100;
     }
     
     @keyframes countdownPulse {
@@ -496,7 +498,10 @@
       <label for="workout-prompt">What kind of workout do you want?</label>
       <textarea id="workout-prompt" placeholder="E.g., 30 minute tempo run with intervals"></textarea>
     </div>
-    <button id="btn-generate">Generate Workout</button>
+    <div style="display: flex; gap: 8px; margin-bottom: var(--spacing);">
+      <button id="btn-generate" style="flex: 1;">Generate Workout</button>
+      <button id="btn-random" style="flex: 0 0 auto; min-width: 140px; background: var(--warning);">🎲 Random Workout</button>
+    </div>
     <div id="generated-output" class="hidden" style="margin-top: var(--spacing); padding: var(--spacing); background: var(--bg); border-radius: 8px;">
       <h3 style="margin-bottom: 8px;">Generated Workout:</h3>
       <pre id="generated-text" style="white-space: pre-wrap; font-size: 14px;"></pre>
@@ -586,6 +591,74 @@
       });
     });
 
+    // Generate random workout (no AI needed)
+    function generateRandomWorkout() {
+      const durations = [20, 25, 30, 35, 40, 45];
+      const duration = durations[Math.floor(Math.random() * durations.length)];
+      
+      const workoutTypes = [
+        { name: 'Tempo Run', warmup: 5, cooldown: 5, intervals: [[5, 6.5], [3, 5.5], [5, 6.8], [3, 5.5], [4, 7.0]] },
+        { name: 'Progressive Run', warmup: 5, cooldown: 5, intervals: [[5, 5.5], [5, 6.0], [5, 6.5], [5, 7.0]] },
+        { name: 'Interval Training', warmup: 5, cooldown: 5, intervals: [[2, 7.5], [2, 5.0], [2, 7.5], [2, 5.0], [2, 7.5], [2, 5.0]] },
+        { name: 'Endurance Base', warmup: 5, cooldown: 5, intervals: [[10, 5.8], [5, 6.2], [10, 5.8]] },
+        { name: 'Hill Workout', warmup: 5, cooldown: 5, intervals: [[3, 5.5, 3], [2, 5.0, 0], [3, 5.5, 4], [2, 5.0, 0], [3, 5.5, 5]] }
+      ];
+      
+      const workout = workoutTypes[Math.floor(Math.random() * workoutTypes.length)];
+      
+      // Build workout text
+      let text = `**${workout.name} – ${duration} minutes**\n\n`;
+      text += `**Warm-Up – ${workout.warmup} minutes**\n`;
+      text += `* ${workout.warmup} min @ 4.0 mph (easy pace)\n\n`;
+      text += `**Main Set – ${duration - workout.warmup - workout.cooldown} minutes**\n`;
+      
+      workout.intervals.forEach(([mins, speed, incline]) => {
+        text += `* ${mins} min @ ${speed} mph`;
+        if (incline) text += ` (${incline}% incline)`;
+        text += '\n';
+      });
+      
+      text += `\n**Cool-Down – ${workout.cooldown} minutes**\n`;
+      text += `* ${workout.cooldown} min @ 4.0 mph (easy recovery)\n`;
+      
+      return text;
+    }
+    
+    // Random workout button
+    document.getElementById('btn-random').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-random');
+      btn.disabled = true;
+      const originalText = btn.textContent;
+      btn.textContent = '🎲 Generating...';
+      
+      try {
+        // Generate random workout
+        const workoutText = generateRandomWorkout();
+        
+        // Parse it
+        const response = await fetch('/parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: workoutText })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.intervals.length > 0) {
+          currentWorkoutText = workoutText;
+          intervals = data.intervals;
+          
+          document.getElementById('generated-text').textContent = workoutText;
+          document.getElementById('generated-output').classList.remove('hidden');
+        }
+      } catch (error) {
+        alert('Failed to generate random workout: ' + error.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    });
+    
     // Generate workout with AI
     document.getElementById('btn-generate').addEventListener('click', async () => {
       const prompt = document.getElementById('workout-prompt').value.trim();
@@ -1037,7 +1110,16 @@
       focusToast.style.color = colors.fg;
       
       // Update pause icon
-      focusPauseIcon.textContent = state.state === 'running' ? '⏸' : '▶️';
+      if (state.state === 'idle') {
+        focusPauseIcon.textContent = '▶️';
+        focusPauseBtn.title = 'Start (Space)';
+      } else if (state.state === 'running') {
+        focusPauseIcon.textContent = '⏸';
+        focusPauseBtn.title = 'Pause (Space)';
+      } else {
+        focusPauseIcon.textContent = '▶️';
+        focusPauseBtn.title = 'Resume (Space)';
+      }
     }
     
     function enterFocusMode() {
@@ -1046,10 +1128,11 @@
       focusModeActive = true;
       focusMode.classList.add('active');
       
-      // Load intervals into focus timer if not already running
-      if (focusTimer.intervals.length === 0) {
-        focusTimer.load(intervals);
-      }
+      // Sync focus timer with main timer state
+      focusTimer.load(intervals);
+      focusTimer.currentIntervalIndex = currentIntervalIndex;
+      focusTimer.segmentRemainingSec = secondsRemaining;
+      focusTimer.calculateRemaining();
       
       // Show toast on first time
       if (!toastShown) {
@@ -1062,7 +1145,12 @@
       updateFocusMode(focusTimer.getState());
       
       // Auto-start if main timer is running
-      if (timerInterval && !focusTimer.state === 'running') {
+      if (timerInterval) {
+        // Stop main timer, let focus timer take over
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
         focusTimer.start();
       }
     }
@@ -1073,7 +1161,21 @@
       focusModeActive = false;
       focusMode.classList.add('hidden');
       
-      // Don't stop the timer, just hide focus mode
+      // Sync main timer with focus timer state
+      currentIntervalIndex = focusTimer.currentIntervalIndex;
+      secondsRemaining = Math.ceil(focusTimer.segmentRemainingSec);
+      
+      // Update main UI
+      loadInterval(currentIntervalIndex);
+      updateTimerDisplay();
+      
+      // Transfer control back to main timer if running
+      if (focusTimer.state === 'running') {
+        focusTimer.pause();
+        startTimer();
+      }
+      
+      // Hide focus mode after transition
       setTimeout(() => {
         focusMode.classList.remove('active');
       }, 300);
@@ -1095,14 +1197,16 @@
     
     // Focus Mode Controls
     focusPauseBtn.addEventListener('click', () => {
-      focusTimer.togglePause();
-      
-      // Sync with main timer
-      if (focusTimer.state === 'running' && !timerInterval) {
-        startTimer();
-      } else if (focusTimer.state === 'paused' && timerInterval) {
-        pauseTimer();
+      if (focusTimer.state === 'idle') {
+        // Start the workout
+        focusTimer.start();
+      } else {
+        // Toggle pause/resume
+        focusTimer.togglePause();
       }
+      
+      // Update UI
+      updateFocusMode(focusTimer.getState());
     });
     
     focusExitBtn.addEventListener('click', () => {
@@ -1132,34 +1236,22 @@
       focusTimer.toggleUnitSystem();
     });
     
-    // Sync main timer with focus timer
-    const originalStartTimer = window.startTimer;
+    // When main timer starts/stops in portrait, sync if we switch to landscape
+    const originalStartTimer = startTimer;
     window.startTimer = function() {
-      if (focusModeActive && intervals.length > 0) {
-        focusTimer.load(intervals);
-        focusTimer.currentIntervalIndex = currentIntervalIndex;
-        focusTimer.segmentRemainingSec = secondsRemaining;
-        focusTimer.calculateRemaining();
+      if (focusModeActive) {
         focusTimer.start();
+      } else {
+        originalStartTimer();
       }
-      if (originalStartTimer) originalStartTimer();
     };
     
-    const originalPauseTimer = window.pauseTimer;
+    const originalPauseTimer = pauseTimer;
     window.pauseTimer = function() {
       if (focusModeActive) {
         focusTimer.pause();
-      }
-      if (originalPauseTimer) originalPauseTimer();
-    };
-    
-    const originalLoadInterval = window.loadInterval;
-    window.loadInterval = function(index) {
-      if (originalLoadInterval) originalLoadInterval(index);
-      if (focusModeActive && focusTimer.intervals.length > 0) {
-        focusTimer.currentIntervalIndex = index;
-        focusTimer.calculateRemaining();
-        updateFocusMode(focusTimer.getState());
+      } else {
+        originalPauseTimer();
       }
     };
     

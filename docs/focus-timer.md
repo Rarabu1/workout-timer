@@ -199,6 +199,31 @@ Listens to multiple events for maximum compatibility:
 
 Debounced to 150ms to avoid rapid firing.
 
+## Recent Fixes (v2.0)
+
+### Fixed: Random Workout Generation
+- Added **🎲 Random Workout** button - no typing required!
+- Generates sensible workouts with proper warm-up, intervals, and cool-down
+- 5 workout types: Tempo Run, Progressive Run, Interval Training, Endurance Base, Hill Workout
+- Durations: 20-45 minutes randomly selected
+
+### Fixed: Unified Timer State
+- Portrait and landscape modes now share single timer state
+- Seamless handoff when rotating device
+- No more timer desyncs or duplicate countdowns
+- Timer continues exactly where it left off when switching orientations
+
+### Fixed: Landscape Start Button
+- Start/Pause button now fully functional in Focus Mode
+- Countdown overlay doesn't block button clicks (`pointer-events: none`)
+- Proper state icons: ▶️ (start/resume) vs ⏸ (pause)
+
+### Fixed: Focus Mode Re-entry
+- Rotating to landscape always activates Focus Mode
+- Rotating back to portrait exits cleanly
+- Rotating to landscape again re-enters seamlessly
+- No page refresh needed
+
 ## Known Limitations
 
 ### 1. Wake Lock Requires User Gesture

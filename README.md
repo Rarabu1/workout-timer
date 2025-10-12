@@ -55,6 +55,14 @@ Visit `http://localhost:5000`
 ## 📱 Usage
 
 ### Generate a Workout
+
+**Option 1: Random Workout (Fastest!)**
+1. Go to **AI Workout** tab
+2. Click **🎲 Random Workout** - Done!
+3. Click **Use This Workout**
+4. Hit **Start** when ready
+
+**Option 2: AI Custom Workout**
 1. Go to **AI Workout** tab
 2. Enter prompt: "30 minute tempo run with intervals"
 3. Click **Generate Workout**
