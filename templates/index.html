@@ -562,8 +562,17 @@
     <div class="interval-list" id="intervals-list"></div>
   </div>
 
+  <!-- Main Application -->
+  <script type="module" src="/static/app.js"></script>
+  
+  <!-- Legacy browser warning -->
+  <script nomodule>
+    alert('Your browser doesn\'t support ES6 modules. Please use a modern browser like Chrome, Firefox, or Safari.');
+  </script>
+  
+  <!-- Backward compatibility: Expose main timer for Focus Mode sync -->
   <script>
-    // State
+    // State variables for backward compatibility with Focus Mode
     let intervals = [];
     let currentIntervalIndex = 0;
     let secondsRemaining = 0;
@@ -955,16 +964,14 @@
       }
     }
 
-    // Load saved workouts on page load
-    loadSavedWorkouts();
+    // These functions are now in static/ui-controller.js
+    // loadSavedWorkouts() is called automatically by UIController
   </script>
   
-  <!-- Focus Mode Integration -->
+  <!-- Focus Mode Integration (now in static/app.js) -->
   <script type="module">
-    import orientationDetector from '/static/orientation.js';
-    import FocusTimer from '/static/focus-timer.js';
-    import { getIntensityColors } from '/static/intensity-colors.js';
-    import VoiceCues from '/static/voice-cues.js';
+    // All Focus Mode logic has been moved to static/app.js
+    // This script tag is kept for backward compatibility
     
     // Initialize Focus Timer and Voice Cues
     const focusTimer = new FocusTimer();
@@ -1255,10 +1262,10 @@
       }
     };
     
-    // Make functions available globally
-    window.focusTimer = focusTimer;
-    window.enterFocusMode = enterFocusMode;
-    window.exitFocusMode = exitFocusMode;
+    // Functions are now available via window.app
+    // window.app.focusTimer
+    // window.app.enterFocusMode()
+    // window.app.exitFocusMode()
   </script>
 </body>
 </html>
